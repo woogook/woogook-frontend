@@ -1,0 +1,78 @@
+{
+  "city_name_canonical": "제주특별자치도",
+  "sigungu_name": "제주시",
+  "emd_name": "노형동",
+  "resolution_status": "partially_ambiguous",
+  "ballot_count": 3,
+  "ballots": [
+    {
+      "contest_id": "0020260603:3:4900:all:제주특별자치도",
+      "election_code": "3",
+      "election_name": "시·도지사선거",
+      "ballot_subject_type": "candidate_person",
+      "office_level": "metro_head",
+      "representation_type": "single",
+      "special_region_type": "jeju",
+      "geographic_scope": "city_province",
+      "city_code": 4900,
+      "city_name_canonical": "제주특별자치도",
+      "sigungu_name": null,
+      "display_name": "제주특별자치도",
+      "parent_area_name": null,
+      "seats": 1,
+      "candidates": []
+    },
+    {
+      "contest_id": "0020260603:8:4900:all:제주특별자치도",
+      "election_code": "8",
+      "election_name": "광역의원비례대표선거",
+      "ballot_subject_type": "party_list",
+      "office_level": "metro_council",
+      "representation_type": "proportional",
+      "special_region_type": "jeju",
+      "geographic_scope": "city_province",
+      "city_code": 4900,
+      "city_name_canonical": "제주특별자치도",
+      "sigungu_name": null,
+      "display_name": "제주특별자치도",
+      "parent_area_name": null,
+      "seats": null,
+      "candidates": []
+    },
+    {
+      "contest_id": "0020260603:11:4900:all:제주특별자치도",
+      "election_code": "11",
+      "election_name": "교육감선거",
+      "ballot_subject_type": "candidate_person",
+      "office_level": "education_head",
+      "representation_type": "single",
+      "special_region_type": "jeju",
+      "geographic_scope": "city_province",
+      "city_code": 4900,
+      "city_name_canonical": "제주특별자치도",
+      "sigungu_name": null,
+      "display_name": "제주특별자치도",
+      "parent_area_name": null,
+      "seats": 1,
+      "candidates": []
+    }
+  ],
+  "ambiguous_ballots": [
+    {
+      "election_code": "5",
+      "election_name": "시·도의회의원선거",
+      "options": [
+        {
+          "contest_id": "0020260603:5:4900:제주시:제주특별자치도_제주시_노형동갑선거구",
+          "display_name": "제주특별자치도 제주시 노형동갑선거구",
+          "parent_area_name": "제주시"
+        },
+        {
+          "contest_id": "0020260603:5:4900:제주시:제주특별자치도_제주시_노형동을선거구",
+          "display_name": "제주특별자치도 제주시 노형동을선거구",
+          "parent_area_name": "제주시"
+        }
+      ]
+    }
+  ]
+}
