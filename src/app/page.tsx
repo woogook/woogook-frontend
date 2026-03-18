@@ -237,7 +237,7 @@ export default function Home() {
                 className="text-[13px] font-bold leading-tight truncate"
                 style={{ color: "var(--navy)" }}
               >
-                우리동네 선거
+                우리동네 국회의원
               </p>
               <p
                 className="text-[11px] leading-snug text-ellipsis whitespace-nowrap overflow-hidden"

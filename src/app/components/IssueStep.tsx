@@ -5,10 +5,10 @@ import {
   BallotItem,
   ISSUE_DEFINITIONS,
   UserIssueProfile,
+  buildIssueCriterionEntries,
   buildNormalizedIssueKeys,
-  getAuthorityHint,
   getContestTitle,
-  getIssueLabel,
+  getIssueCriterionHint,
   getOfficeRoleDescription,
 } from "../data";
 
@@ -32,21 +32,17 @@ export default function IssueStep({
     initialProfile.custom_keywords,
   );
   const [keywordInput, setKeywordInput] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     setSelectedIssues(initialProfile.selected_issue_keys);
     setCustomKeywords(initialProfile.custom_keywords);
   }, [initialProfile]);
 
-  const normalizedIssueKeys = useMemo(
-    () => buildNormalizedIssueKeys(selectedIssues, customKeywords),
-    [selectedIssues, customKeywords],
+  const interpretedCriteria = useMemo(
+    () => buildIssueCriterionEntries(selectedIssues, customKeywords),
+    [customKeywords, selectedIssues],
   );
-
-  const authorityHints = normalizedIssueKeys.map((issueKey) => ({
-    issueKey,
-    message: getAuthorityHint(ballot.office_level, issueKey),
-  }));
 
   const handleToggleIssue = (issueKey: UserIssueProfile["selected_issue_keys"][number]) => {
     setSelectedIssues((current) =>
@@ -162,8 +158,17 @@ export default function IssueStep({
             <input
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(event) => {
+                setIsComposing(false);
+                setKeywordInput(event.currentTarget.value);
+              }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                if (
+                  event.key === "Enter" &&
+                  !isComposing &&
+                  !event.nativeEvent.isComposing
+                ) {
                   event.preventDefault();
                   handleAddKeyword();
                 }
@@ -213,28 +218,40 @@ export default function IssueStep({
           <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
             현재 해석된 비교 기준
           </p>
-          {normalizedIssueKeys.length > 0 ? (
+          {interpretedCriteria.length > 0 ? (
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2">
-                {normalizedIssueKeys.map((issueKey) => (
+                {interpretedCriteria.map((criterion) => (
                   <span
-                    key={issueKey}
+                    key={criterion.id}
                     className="px-2 py-1 rounded text-[11px] font-semibold"
-                    style={{ background: "var(--surface)", color: "var(--navy)", border: "1px solid var(--border)" }}
+                    style={{
+                      background:
+                        criterion.source === "selected"
+                          ? "var(--surface)"
+                          : "var(--amber-bg)",
+                      color:
+                        criterion.source === "selected"
+                          ? "var(--navy)"
+                          : "var(--amber)",
+                      border: "1px solid var(--border)",
+                    }}
                   >
-                    {getIssueLabel(issueKey)}
+                    {criterion.label}
                   </span>
                 ))}
               </div>
-              <div className="space-y-1.5">
-                {authorityHints.map((hint) => (
-                  <p key={hint.issueKey} className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    <strong style={{ color: "var(--navy)" }}>{getIssueLabel(hint.issueKey)}</strong>
-                    {" · "}
-                    {hint.message}
-                  </p>
-                ))}
-              </div>
+              {interpretedCriteria.length > 0 ? (
+                <div className="space-y-1.5">
+                  {interpretedCriteria.map((criterion) => (
+                    <p key={`hint:${criterion.id}`} className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      <strong style={{ color: "var(--navy)" }}>{criterion.label}</strong>
+                      {" · "}
+                      {getIssueCriterionHint(ballot.office_level, criterion)}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : (
             <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>

@@ -5,14 +5,15 @@ import {
   BallotItem,
   CandidateRecord,
   UserIssueProfile,
+  getIssueCriterionEntries,
+  getIssueCriterionHint,
   formatKoreanDateTime,
-  getAuthorityHint,
+  getCandidateCrimeDetails,
   getEvidenceStatusLabel,
-  getIssueLabel,
   getIssueMatchLevelLabel,
   getPartyColor,
   getPromiseSourceStatusLabel,
-  getRelevantIssueMatches,
+  hasActiveIssues,
   parseBirthAge,
   parseCareer,
 } from "../data";
@@ -40,11 +41,14 @@ export default function DetailView({
   const partyColor = getPartyColor(candidate.party_name);
   const birthAge = parseBirthAge(candidate.birthdate_text);
   const careerLines = parseCareer(candidate.career);
-  const selectedMatches = getRelevantIssueMatches(candidate, issueProfile);
-  const firstIssue = issueProfile?.normalized_issue_keys[0];
-
   const crimeDisplay = candidate.crime_text || "정보 없음";
   const crimeHighlight = !!candidate.crime_text && candidate.crime_text !== "없음";
+  const crimeDetails = getCandidateCrimeDetails(candidate);
+  const hasIssueSummary = hasActiveIssues(issueProfile);
+  const issueCriteria = getIssueCriterionEntries(issueProfile);
+  const issueMatches = new Map(
+    (candidate.issue_matches || []).map((match) => [match.issue_key, match]),
+  );
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "career", label: "경력/학력" },
@@ -158,85 +162,74 @@ export default function DetailView({
           </div>
         </div>
 
-        <div
-          className="animate-fade-in-up stagger-2 rounded px-4 py-4 mb-4"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-        >
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
-                관심 이슈 기준 요약
-              </p>
-              <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                현재 확보한 공개 자료 기준으로 정리한 내용입니다.
-              </p>
+        {hasIssueSummary && (
+          <div
+            className="animate-fade-in-up stagger-2 rounded px-4 py-4 mb-4"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--navy)" }}>
+                  관심 이슈 기준 요약
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                  현재 확보한 공개 자료 기준으로 정리한 내용입니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onEditIssues}
+                className="px-3 py-2 rounded text-[12px] font-semibold cursor-pointer"
+                style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--navy)" }}
+              >
+                이슈 수정
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onEditIssues}
-              className="px-3 py-2 rounded text-[12px] font-semibold cursor-pointer"
-              style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--navy)" }}
-            >
-              이슈 수정
-            </button>
-          </div>
 
-          {selectedMatches.length > 0 ? (
             <div className="space-y-2.5">
-              {selectedMatches.map((match) => (
-                <div
-                  key={match.issue_key}
-                  className="rounded px-3 py-2.5"
-                  style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
-                      {getIssueLabel(match.issue_key)}
-                    </span>
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                      style={{
-                        background:
-                          match.level === "insufficient"
-                            ? "var(--warning-bg)"
-                            : "var(--amber-bg)",
-                        color:
-                          match.level === "insufficient"
-                            ? "var(--warning-text)"
-                            : "var(--amber)",
-                      }}
-                    >
-                      {getIssueMatchLevelLabel(match.level)}
-                    </span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed mt-1" style={{ color: "var(--text-secondary)" }}>
-                    {match.reasons[0]}
-                  </p>
-                  <p className="text-[10px] leading-relaxed mt-1" style={{ color: "var(--text-tertiary)" }}>
-                    {getAuthorityHint(ballot.office_level, match.issue_key)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div
-              className="rounded px-3 py-2.5"
-              style={{ background: "var(--warning-bg)", borderLeft: "3px solid var(--warning-text)" }}
-            >
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--warning-text)" }}>
-                선택한 이슈가 없거나, 현재 확보한 공개 자료에서 직접 연결할 수 있는 단서를 찾기 어렵습니다.
-              </p>
-            </div>
-          )}
+              {issueCriteria.map((criterion) => {
+                const match = criterion.issue_key
+                  ? issueMatches.get(criterion.issue_key)
+                  : null;
+                const isInsufficient = !match || match.level === "insufficient";
+                const reason = match?.reasons[0]
+                  ? match.reasons[0]
+                  : criterion.issue_key
+                    ? "현재 확보한 공개 자료에서 직접 연결할 수 있는 단서를 찾기 어렵습니다."
+                    : "아직 자동 분류되지 않은 자유 키워드입니다. 후보 정보와 원문 출처를 함께 확인해주세요.";
 
-          {firstIssue && (
-            <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-              <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                {getAuthorityHint(ballot.office_level, firstIssue)}
-              </p>
+                return (
+                  <div
+                    key={criterion.id}
+                    className="rounded px-3 py-2.5"
+                    style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                        {criterion.label}
+                      </span>
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                        style={{
+                          background: isInsufficient ? "var(--warning-bg)" : "var(--amber-bg)",
+                          color: isInsufficient ? "var(--warning-text)" : "var(--amber)",
+                        }}
+                      >
+                        {match ? getIssueMatchLevelLabel(match.level) : "관련 정보 부족"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed mt-1" style={{ color: "var(--text-secondary)" }}>
+                      {reason}
+                    </p>
+                    <p className="text-[10px] leading-relaxed mt-1" style={{ color: "var(--text-tertiary)" }}>
+                      {getIssueCriterionHint(ballot.office_level, criterion)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div
           className="animate-fade-in-up stagger-3 rounded px-4 py-4 mb-4"
@@ -409,6 +402,42 @@ export default function DetailView({
                   </span>
                 </div>
               ))}
+
+              {crimeHighlight && (
+                <div
+                  className="rounded px-4 py-3"
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
+                    전과 상세
+                  </p>
+                  {crimeDetails.length > 0 ? (
+                    <div className="space-y-2">
+                      {crimeDetails.map((detail) => (
+                        <div
+                          key={detail}
+                          className="rounded px-3 py-2"
+                          style={{
+                            background: "var(--warning-bg)",
+                            borderLeft: "3px solid var(--warning-text)",
+                          }}
+                        >
+                          <p className="text-[11px] leading-relaxed" style={{ color: "var(--warning-text)" }}>
+                            {detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      현재 데이터에는 전과 건수 요약만 있고 세부 항목 원문은 포함되어 있지 않습니다.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {candidate.compare_entry?.source_refs?.length ? (
                 <div

@@ -10,6 +10,7 @@ import {
   getEvidenceStatusLabel,
   getIssueMatchLevelLabel,
   getIssueProfileLabelList,
+  hasActiveIssues,
   getOfficeLevelLabel,
   getPartyColor,
   getPromiseSourceStatusLabel,
@@ -104,6 +105,7 @@ export default function CandidateCards({
   const showCompare = !isPartyList && ballot.candidates.length > 1;
   const isSingleCandidate = !isPartyList && ballot.candidates.length === 1;
   const issueLabels = getIssueProfileLabelList(issueProfile);
+  const showIssueSummary = hasActiveIssues(issueProfile);
 
   const candidates = useMemo(() => {
     if (!sortByIssues || !issueProfile) {
@@ -168,16 +170,16 @@ export default function CandidateCards({
           </div>
         </div>
 
-        <div
-          className="animate-fade-in-up stagger-2 rounded px-4 py-3 mb-4"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>
-                나의 관심 이슈
-              </p>
-              {issueLabels.length > 0 ? (
+        {showIssueSummary && (
+          <div
+            className="animate-fade-in-up stagger-2 rounded px-4 py-3 mb-4"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>
+                  나의 관심 이슈
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {issueLabels.map((label) => (
                     <span
@@ -189,29 +191,25 @@ export default function CandidateCards({
                     </span>
                   ))}
                 </div>
-              ) : (
-                <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  이슈를 선택하지 않았습니다. 기본 후보 정보 순서로 먼저 보여드립니다.
-                </p>
+              </div>
+
+              {(issueProfile?.normalized_issue_keys.length || 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSortByIssues((current) => !current)}
+                  className="px-3 py-2 rounded text-[11px] font-semibold cursor-pointer transition-all"
+                  style={{
+                    background: sortByIssues ? "var(--navy)" : "var(--surface-alt)",
+                    color: sortByIssues ? "#ffffff" : "var(--text-secondary)",
+                    border: sortByIssues ? "1px solid var(--navy)" : "1px solid var(--border)",
+                  }}
+                >
+                  {sortByIssues ? "이슈 기준 정렬 중" : "관심 이슈 기준으로 보기"}
+                </button>
               )}
             </div>
-
-            {(issueProfile?.normalized_issue_keys.length || 0) > 0 && (
-              <button
-                type="button"
-                onClick={() => setSortByIssues((current) => !current)}
-                className="px-3 py-2 rounded text-[11px] font-semibold cursor-pointer transition-all"
-                style={{
-                  background: sortByIssues ? "var(--navy)" : "var(--surface-alt)",
-                  color: sortByIssues ? "#ffffff" : "var(--text-secondary)",
-                  border: sortByIssues ? "1px solid var(--navy)" : "1px solid var(--border)",
-                }}
-              >
-                {sortByIssues ? "이슈 기준 정렬 중" : "관심 이슈 기준으로 보기"}
-              </button>
-            )}
           </div>
-        </div>
+        )}
 
         {isSingleCandidate && (
           <div

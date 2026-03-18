@@ -46,6 +46,13 @@ export interface IssueDefinition {
   aliases: string[];
 }
 
+export interface IssueCriterionEntry {
+  id: string;
+  label: string;
+  issue_key: IssueKey | null;
+  source: "selected" | "custom";
+}
+
 export const ISSUE_DEFINITIONS: IssueDefinition[] = [
   {
     key: "transport",
@@ -375,6 +382,43 @@ export function parseCareer(career: string): string[] {
     .filter(Boolean);
 }
 
+export function getCandidateCrimeDetails(candidate: CandidateRecord): string[] {
+  const details: string[] = [];
+
+  for (const item of candidate.crime_items || []) {
+    if (typeof item === "string") {
+      const text = item.trim();
+      if (text) details.push(text);
+      continue;
+    }
+
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const record = item as Record<string, unknown>;
+    const rawText = asNonEmptyText(record.raw_text);
+    if (rawText) {
+      details.push(rawText);
+      continue;
+    }
+
+    const charge = asNonEmptyText(record.charge_text);
+    const sentence = asNonEmptyText(record.sentence_text);
+    const decisionDate = asNonEmptyText(record.decision_date_text);
+    const caseCount = asNonEmptyText(record.case_count_text);
+    const parts = [charge, sentence, decisionDate].filter(Boolean);
+
+    if (parts.length > 0) {
+      details.push(
+        caseCount ? `${caseCount} · ${parts.join(" / ")}` : parts.join(" / "),
+      );
+    }
+  }
+
+  return Array.from(new Set(details));
+}
+
 export function parseBirthAge(
   text: string | null,
 ): { age: string; birth: string } | null {
@@ -426,6 +470,61 @@ export function buildNormalizedIssueKeys(
       ...normalizeCustomIssueKeywords(customKeywords),
     ]),
   );
+}
+
+export function resolveIssueKeyFromKeyword(keyword: string): IssueKey | null {
+  return ISSUE_ALIAS_MAP.get(normalizeLookup(keyword)) || null;
+}
+
+export function buildIssueCriterionEntries(
+  selectedIssueKeys: IssueKey[],
+  customKeywords: string[],
+): IssueCriterionEntry[] {
+  const entries: IssueCriterionEntry[] = selectedIssueKeys.map((issueKey) => ({
+    id: `selected:${issueKey}`,
+    label: getIssueLabel(issueKey),
+    issue_key: issueKey,
+    source: "selected",
+  }));
+
+  const seenCustom = new Set<string>();
+  for (const keyword of customKeywords) {
+    const trimmed = keyword.trim();
+    if (!trimmed) continue;
+
+    const normalizedKeyword = normalizeLookup(trimmed);
+    if (seenCustom.has(normalizedKeyword)) continue;
+    seenCustom.add(normalizedKeyword);
+
+    entries.push({
+      id: `custom:${normalizedKeyword}`,
+      label: trimmed,
+      issue_key: resolveIssueKeyFromKeyword(trimmed),
+      source: "custom",
+    });
+  }
+
+  return entries;
+}
+
+export function getIssueCriterionEntries(
+  issueProfile: UserIssueProfile | null | undefined,
+): IssueCriterionEntry[] {
+  if (!issueProfile) return [];
+  return buildIssueCriterionEntries(
+    issueProfile.selected_issue_keys,
+    issueProfile.custom_keywords,
+  );
+}
+
+export function getIssueCriterionHint(
+  officeLevel: string,
+  criterion: IssueCriterionEntry,
+): string {
+  if (!criterion.issue_key) {
+    return "아직 자동 분류되지 않은 자유 키워드입니다. 후보 정보와 원문 출처를 함께 확인해주세요.";
+  }
+  return getAuthorityHint(officeLevel, criterion.issue_key);
 }
 
 export function formatKoreanDate(input: string | Date | null | undefined): string {
@@ -679,9 +778,7 @@ export function getCandidateIssueSortScore(
 export function getIssueProfileLabelList(
   issueProfile: UserIssueProfile | null | undefined,
 ): string[] {
-  if (!issueProfile) return [];
-  const normalized = issueProfile.normalized_issue_keys.map(getIssueShortLabel);
-  return Array.from(new Set([...normalized, ...issueProfile.custom_keywords]));
+  return getIssueCriterionEntries(issueProfile).map((entry) => entry.label);
 }
 
 export const CITIES = [
@@ -762,4 +859,10 @@ function getIssueMatchScore(level: IssueMatchLevel): number {
 
 function normalizeLookup(value: string): string {
   return value.toLowerCase().replace(/\s+/g, "");
+}
+
+function asNonEmptyText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
