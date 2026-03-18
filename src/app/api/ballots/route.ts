@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import type {
   AmbiguousBallot,
   BallotItem,
-  BallotResponse,
   CandidateRecord,
-} from "@/app/data";
+} from "@/lib/schemas";
 import { pool } from "@/lib/db";
+import {
+  ballotResponseSchema,
+  ballotsSearchParamsSchema,
+} from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -50,11 +53,13 @@ type CandidateRow = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const city = searchParams.get("city")?.trim();
-  const sigungu = searchParams.get("sigungu")?.trim();
-  const emd = searchParams.get("emd")?.trim() || null;
+  const parsed = ballotsSearchParamsSchema.safeParse({
+    city: searchParams.get("city"),
+    sigungu: searchParams.get("sigungu"),
+    emd: searchParams.get("emd"),
+  });
 
-  if (!city || !sigungu) {
+  if (!parsed.success) {
     return NextResponse.json(
       { error: "city and sigungu are required" },
       { status: 400 },
@@ -62,18 +67,21 @@ export async function GET(request: Request) {
   }
 
   try {
+    const { city, sigungu, emd } = parsed.data;
     const contests = await fetchContests(city, sigungu, emd);
 
     if (contests.length === 0) {
-      return NextResponse.json<BallotResponse>({
-        city_name_canonical: city,
-        sigungu_name: sigungu,
-        emd_name: emd,
-        resolution_status: "ambiguous",
-        ballot_count: 0,
-        ballots: [],
-        ambiguous_ballots: [],
-      });
+      return NextResponse.json(
+        ballotResponseSchema.parse({
+          city_name_canonical: city,
+          sigungu_name: sigungu,
+          emd_name: emd ?? null,
+          resolution_status: "ambiguous",
+          ballot_count: 0,
+          ballots: [],
+          ambiguous_ballots: [],
+        }),
+      );
     }
 
     const contestIds = contests.map((c) => c.contest_id);
@@ -104,22 +112,24 @@ export async function GET(request: Request) {
       }
     }
 
-    const resolutionStatus: BallotResponse["resolution_status"] =
+    const resolutionStatus =
       ambiguousBallots.length > 0
         ? ballots.length > 0
           ? "partially_ambiguous"
           : "ambiguous"
         : "resolved";
 
-    return NextResponse.json<BallotResponse>({
-      city_name_canonical: city,
-      sigungu_name: sigungu,
-      emd_name: emd,
-      resolution_status: resolutionStatus,
-      ballot_count: ballots.length,
-      ballots,
-      ambiguous_ballots: ambiguousBallots,
-    });
+    return NextResponse.json(
+      ballotResponseSchema.parse({
+        city_name_canonical: city,
+        sigungu_name: sigungu,
+        emd_name: emd ?? null,
+        resolution_status: resolutionStatus,
+        ballot_count: ballots.length,
+        ballots,
+        ambiguous_ballots: ambiguousBallots,
+      }),
+    );
   } catch (error) {
     console.error("[ballots] error", error);
     return NextResponse.json(
@@ -129,7 +139,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function fetchContests(city: string, sigungu: string, emd: string | null) {
+async function fetchContests(city: string, sigungu: string, emd?: string) {
   const result = await pool.query<ContestRow>(
     `
       select

@@ -2,6 +2,12 @@
 
 import type { CSSProperties } from "react";
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ballotsQueryOptions } from "@/lib/api-client";
+import { ballotsSearchParamsSchema } from "@/lib/schemas";
 import {
   BallotResponse,
   BallotItem,
@@ -17,6 +23,7 @@ type View = "address" | "ballot" | "candidates" | "compare" | "detail";
 type ServiceTab = "assembly" | "local";
 
 export default function Home() {
+  const queryClient = useQueryClient();
   const [view, setView] = useState<View>("address");
   const [activeTab, setActiveTab] = useState<ServiceTab>("local");
   const [ballotData, setBallotData] = useState<BallotResponse | null>(null);
@@ -61,11 +68,11 @@ export default function Home() {
 
   // ── Handlers ─────────────────────────────────────────
   const handleAddressSubmit = async (city: string, district: string, dong: string) => {
-    const params = new URLSearchParams({
+    const params = ballotsSearchParamsSchema.parse({
       city,
       sigungu: district,
+      emd: dong,
     });
-    if (dong) params.set("emd", dong);
 
     setError(null);
     setLoading(true);
@@ -74,16 +81,16 @@ export default function Home() {
     setSelectedCandidate(null);
 
     try {
-      const res = await fetch(`/api/ballots?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error("투표구 정보를 불러오지 못했습니다.");
-      }
-      const data = (await res.json()) as BallotResponse;
+      const data = await queryClient.fetchQuery(ballotsQueryOptions(params));
       setBallotData(data);
       navigate("ballot");
     } catch (err) {
       console.error(err);
-      setError("데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      );
     } finally {
       setLoading(false);
     }
@@ -147,38 +154,22 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2" role="tablist" aria-label="선거 서비스 전환">
-            <button
-              onClick={() => handleTabChange("assembly")}
-              className="px-3 sm:px-4 py-2 rounded-full text-[13px] font-semibold cursor-pointer transition-all"
-              style={{
-                background: activeTab === "assembly" ? "var(--navy)" : "transparent",
-                color: activeTab === "assembly" ? "#ffffff" : "var(--text-secondary)",
-                border: activeTab === "assembly" ? "1px solid var(--navy)" : "1px solid var(--border)",
-                boxShadow: activeTab === "assembly" ? "0 10px 30px rgba(30,41,59,0.12)" : "none",
-              }}
-              aria-selected={activeTab === "assembly"}
-              role="tab"
-              tabIndex={activeTab === "assembly" ? 0 : -1}
-            >
-              국회
-            </button>
-            <button
-              onClick={() => handleTabChange("local")}
-              className="px-3 sm:px-4 py-2 rounded-full text-[13px] font-semibold cursor-pointer transition-all"
-              style={{
-                background: activeTab === "local" ? "var(--amber)" : "transparent",
-                color: activeTab === "local" ? "#ffffff" : "var(--text-secondary)",
-                border: activeTab === "local" ? "1px solid var(--amber)" : "1px solid var(--border)",
-                boxShadow: activeTab === "local" ? "0 10px 30px rgba(168,132,44,0.18)" : "none",
-              }}
-              aria-selected={activeTab === "local"}
-              role="tab"
-              tabIndex={activeTab === "local" ? 0 : -1}
-            >
-              지방
-            </button>
-          </div>
+          <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as ServiceTab)}>
+            <TabsList aria-label="선거 서비스 전환">
+              <TabsTrigger
+                value="assembly"
+                className="data-[state=active]:border-[var(--navy)] data-[state=active]:bg-[var(--navy)] data-[state=active]:text-white"
+              >
+                국회
+              </TabsTrigger>
+              <TabsTrigger
+                value="local"
+                className="data-[state=active]:border-[var(--amber)] data-[state=active]:bg-[var(--amber)] data-[state=active]:text-white data-[state=active]:shadow-[0_10px_30px_rgba(168,132,44,0.18)]"
+              >
+                지방
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
 
@@ -220,13 +211,14 @@ export default function Home() {
             </div>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
+              <Button
                 onClick={() => handleTabChange("local")}
-                className="w-full sm:w-auto px-5 py-3 rounded-lg font-semibold cursor-pointer active:scale-[0.98] transition-all"
-                style={{ background: "var(--navy)", color: "#ffffff" }}
+                variant="primary"
+                size="lg"
+                className="w-full sm:w-auto"
               >
                 지방선거 정보 먼저 보기
-              </button>
+              </Button>
               <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                 현재 준비된 기능: 주소로 투표지 확인, 후보 비교, 정책 키워드 탐색(지방)
               </p>
