@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { citiesResponseSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ export async function GET() {
     );
 
     const cities = result.rows.map((r) => r.city_name_canonical);
-    return NextResponse.json({ cities });
+    return NextResponse.json(citiesResponseSchema.parse({ cities }));
   } catch (error) {
     console.error("[regions/cities] error", error);
     return NextResponse.json({ error: "Failed to load cities" }, { status: 500 });

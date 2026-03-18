@@ -1,0 +1,55 @@
+name: Discord PR Notifications
+
+on:
+  pull_request:
+    types: [opened, reopened, closed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send PR event to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_PR_BOT_WEBHOOK_URL }}
+          ACTION: ${{ github.event.action }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+          PR_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -e
+
+          # Default message (opened/reopened)
+          CONTENT="📣 **PR #$PR_NUMBER $ACTION**\n**$PR_TITLE**\nRepo: \`$REPO\`\nAuthor: \`$ACTOR\`\nBranch: \`$PR_HEAD\` → \`$PR_BASE\`\nURL: $PR_URL"
+
+          # If PR closed, decide merged vs just closed
+          if [ "$ACTION" = "closed" ]; then
+            if [ "$PR_MERGED" = "true" ]; then
+              MERGED_BY="${PR_MERGED_BY:-$ACTOR}"
+              CONTENT="✅ **PR #$PR_NUMBER MERGED**\n**$PR_TITLE**\nRepo: \`$REPO\`\nMerged by: \`$MERGED_BY\`\nBranch: \`$PR_HEAD\` → \`$PR_BASE\`\nMerge commit: \`$PR_MERGE_SHA\`\nURL: $PR_URL"
+            else
+              CONTENT="🛑 **PR #$PR_NUMBER CLOSED**\n**$PR_TITLE**\nRepo: \`$REPO\`\nClosed by: \`$ACTOR\`\nBranch: \`$PR_HEAD\` → \`$PR_BASE\`\nURL: $PR_URL"
+            fi
+          fi
+
+          # Send to Discord webhook
+          # Discord expects JSON with "content"
+          export CONTENT
+          PAYLOAD=$(python - << 'PY'
+          import json, os
+          # Shell 문자열의 "\n"을 실제 줄바꿈 문자로 변환한다.
+          content = os.environ["CONTENT"].replace("\\n", "\n")
+          print(json.dumps({"content": content}))
+          PY
+          )
+
+          curl -sS -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL"
