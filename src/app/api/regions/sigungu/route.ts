@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import {
+  buildDatabaseUnavailableResponse,
+  isDatabaseUnavailableError,
+} from "@/lib/pg-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,6 +32,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ sigungu: sgun });
   } catch (error) {
     console.error("[regions/sigungu] error", error);
+    if (isDatabaseUnavailableError(error)) {
+      return buildDatabaseUnavailableResponse("sigungu");
+    }
     return NextResponse.json({ error: "Failed to load sigungu" }, { status: 500 });
   }
 }

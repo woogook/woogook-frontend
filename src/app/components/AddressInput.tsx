@@ -9,6 +9,10 @@ interface Props {
   error?: string | null;
 }
 
+type ApiErrorBody = {
+  message?: string;
+};
+
 // Custom select wrapper with dropdown arrow
 function SelectField({
   label,
@@ -81,13 +85,23 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
       setRegionError(null);
       try {
         const res = await fetch("/api/regions/cities");
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+          throw new Error(
+            body?.message ||
+              "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
+          );
+        }
         const data = (await res.json()) as { cities: string[] };
         setCities(data.cities);
       } catch (e) {
         console.error(e);
         setCities([...CITIES]);
-        setRegionError("지역 목록을 불러오지 못해 기본 목록을 사용합니다.");
+        setRegionError(
+          e instanceof Error
+            ? e.message
+            : "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
+        );
       } finally {
         setRegionLoading((prev) => ({ ...prev, city: false }));
       }
@@ -108,13 +122,23 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
       setRegionError(null);
       try {
         const res = await fetch(`/api/regions/sigungu?city=${encodeURIComponent(city)}`);
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+          throw new Error(
+            body?.message ||
+              "구/군 목록을 불러오지 못해 기본 목록을 사용합니다.",
+          );
+        }
         const data = (await res.json()) as { sigungu: string[] };
         setDistricts(data.sigungu);
       } catch (e) {
         console.error(e);
         setDistricts(DISTRICTS[city] || []);
-        setRegionError("구/군 목록을 불러오지 못해 기본 목록을 사용합니다.");
+        setRegionError(
+          e instanceof Error
+            ? e.message
+            : "구/군 목록을 불러오지 못해 기본 목록을 사용합니다.",
+        );
       } finally {
         setDistrict("");
         setDong("");
@@ -136,13 +160,23 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
       setRegionError(null);
       try {
         const res = await fetch(`/api/regions/emd?city=${encodeURIComponent(city)}&sigungu=${encodeURIComponent(district)}`);
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+          throw new Error(
+            body?.message ||
+              "동 목록을 불러오지 못해 기본 목록을 사용합니다.",
+          );
+        }
         const data = (await res.json()) as { emd: string[] };
         setDongs(data.emd);
       } catch (e) {
         console.error(e);
         setDongs(DONGS[district] || []);
-        setRegionError("동 목록을 불러오지 못해 기본 목록을 사용합니다.");
+        setRegionError(
+          e instanceof Error
+            ? e.message
+            : "동 목록을 불러오지 못해 기본 목록을 사용합니다.",
+        );
       } finally {
         setDong("");
         setRegionLoading((prev) => ({ ...prev, dong: false }));

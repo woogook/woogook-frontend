@@ -1,89 +1,57 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   BallotItem,
   CandidateRecord,
-  getPartyColor,
-  parseBirthAge,
-  parseCareer,
+  UserIssueProfile,
+  formatKoreanDateTime,
+  getAuthorityHint,
   getContestTitle,
+  getIssueLabel,
+  getIssueMatchLevelLabel,
+  getIssueProfileLabelList,
+  getPartyColor,
+  getRelevantIssueMatches,
 } from "../data";
 import { CandidatePhoto } from "./CandidateCards";
 
 interface Props {
   ballot: BallotItem;
+  issueProfile: UserIssueProfile | null;
   onSelectCandidate: (candidate: CandidateRecord) => void;
   onBack: () => void;
+  onEditIssues: () => void;
 }
 
-// ── Comparison row data ─────────────────────────────────
+const FACT_LABELS = [
+  "정당",
+  "직업",
+  "학력",
+  "전과기록",
+  "등록일",
+  "주소",
+  "주요 경력",
+] as const;
 
-interface CompareRow {
-  label: string;
-  getValue: (c: CandidateRecord) => string;
-  highlight?: (c: CandidateRecord) => boolean;
-}
-
-const COMPARE_SECTIONS: { title: string; rows: CompareRow[] }[] = [
-  {
-    title: "기본 정보",
-    rows: [
-      { label: "정당", getValue: (c) => c.party_name || "무소속" },
-      {
-        label: "나이",
-        getValue: (c) => {
-          const ba = parseBirthAge(c.birthdate_text);
-          return ba ? ba.age : "—";
-        },
-      },
-      { label: "성별", getValue: (c) => c.gender },
-      { label: "직업", getValue: (c) => c.job || "—" },
-    ],
-  },
-  {
-    title: "학력",
-    rows: [
-      { label: "학력", getValue: (c) => c.education || "—" },
-    ],
-  },
-  {
-    title: "주요 경력",
-    rows: [
-      {
-        label: "경력",
-        getValue: (c) => {
-          const lines = parseCareer(c.career);
-          return lines.length > 0 ? lines.join("\n") : "—";
-        },
-      },
-    ],
-  },
-  {
-    title: "공개 정보",
-    rows: [
-      {
-        label: "전과기록",
-        getValue: (c) => c.crime_text || "정보 없음",
-        highlight: (c) => !!c.crime_text && c.crime_text !== "없음",
-      },
-      { label: "등록일", getValue: (c) => c.registration_date },
-      { label: "주소", getValue: (c) => c.address || "—" },
-    ],
-  },
-];
-
-export default function CompareView({ ballot, onSelectCandidate, onBack }: Props) {
+export default function CompareView({
+  ballot,
+  issueProfile,
+  onSelectCandidate,
+  onBack,
+  onEditIssues,
+}: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const [activeCandidate, setActiveCandidate] = useState(0);
 
   const candidates = ballot.candidates;
-  const gridCols = candidates.length <= 2
-    ? `repeat(${candidates.length}, 1fr)`
-    : `repeat(${candidates.length}, 160px)`;
+  const issueLabels = getIssueProfileLabelList(issueProfile);
+  const gridCols =
+    candidates.length <= 2
+      ? `repeat(${candidates.length}, 1fr)`
+      : `repeat(${candidates.length}, 180px)`;
 
-  // Sync scroll between header and body
   useEffect(() => {
     const body = scrollContainerRef.current;
     const header = headerScrollRef.current;
@@ -105,7 +73,6 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
     };
   }, []);
 
-  // Track active candidate from scroll position
   useEffect(() => {
     if (candidates.length <= 2) return;
     const container = scrollContainerRef.current;
@@ -113,8 +80,8 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
 
     const onScroll = () => {
       const scrollLeft = container.scrollLeft;
-      const idx = Math.round(scrollLeft / 160);
-      setActiveCandidate(Math.min(idx, candidates.length - 1));
+      const index = Math.round(scrollLeft / 180);
+      setActiveCandidate(Math.min(index, candidates.length - 1));
     };
 
     container.addEventListener("scroll", onScroll, { passive: true });
@@ -124,7 +91,6 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
   return (
     <section className="px-5 pt-4 pb-8">
       <div className="w-full max-w-[400px] mx-auto">
-        {/* Back */}
         <button
           onClick={onBack}
           className="animate-fade-in-up inline-flex items-center gap-1 text-[13px] mb-4 cursor-pointer active:opacity-60"
@@ -137,21 +103,64 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
           후보 목록
         </button>
 
-        {/* Header */}
         <div className="animate-fade-in-up stagger-1 mb-4">
-          <h2 className="text-[1.375rem] font-bold tracking-tight mb-1" style={{ color: "var(--navy)" }}>
-            후보 비교
-          </h2>
-          <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-            {getContestTitle(ballot)} — {ballot.display_name} — {candidates.length}명
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[1.375rem] font-bold tracking-tight mb-1" style={{ color: "var(--navy)" }}>
+                후보 비교
+              </h2>
+              <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                {getContestTitle(ballot)} — {ballot.display_name} — {candidates.length}명
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onEditIssues}
+              className="px-3 py-2 rounded text-[12px] font-semibold cursor-pointer"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--navy)" }}
+            >
+              이슈 수정
+            </button>
+          </div>
         </div>
 
-        {/* Sticky candidate header */}
         <div
-          className="animate-fade-in-up stagger-2 sticky z-10 -mx-5 px-5 pt-2 pb-3"
+          className="animate-fade-in-up stagger-2 rounded px-4 py-3 mb-4"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
+            비교 기준
+          </p>
+          {issueLabels.length > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {issueLabels.map((label) => (
+                  <span
+                    key={label}
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                    style={{ background: "var(--amber-bg)", color: "var(--amber)" }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+              {issueProfile?.normalized_issue_keys[0] && (
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  {getAuthorityHint(ballot.office_level, issueProfile.normalized_issue_keys[0])}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              이슈를 따로 선택하지 않았습니다. 공개 정보와 요약 중심으로 비교합니다.
+            </p>
+          )}
+        </div>
+
+        <div
+          className="animate-fade-in-up stagger-3 sticky z-10 -mx-5 px-5 pt-2 pb-3"
           style={{
-            top: "49px", // below main header
+            top: "49px",
             background: "rgba(249,248,245,0.95)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
@@ -163,31 +172,36 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
             className="overflow-x-auto scrollbar-hide"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: "8px", minWidth: candidates.length > 2 ? `${candidates.length * 160}px` : undefined }}>
-              {candidates.map((c, i) => {
-                const partyColor = getPartyColor(c.party_name);
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: gridCols,
+                gap: "8px",
+                minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined,
+              }}
+            >
+              {candidates.map((candidate, index) => {
+                const partyColor = getPartyColor(candidate.party_name);
                 return (
                   <button
-                    key={c.candidate_id}
-                    onClick={() => onSelectCandidate(c)}
+                    key={candidate.candidate_id}
+                    onClick={() => onSelectCandidate(candidate)}
                     className="flex flex-col items-center gap-1.5 py-1.5 cursor-pointer active:opacity-70 rounded transition-all"
-                    style={{
-                      opacity: candidates.length > 2 && activeCandidate !== i ? 0.6 : 1,
-                    }}
-                    aria-label={`${c.name_ko} 상세보기`}
+                    style={{ opacity: candidates.length > 2 && activeCandidate !== index ? 0.6 : 1 }}
+                    aria-label={`${candidate.name_ko} 상세보기`}
                   >
-                    <div className="w-[44px] h-[56px] rounded overflow-hidden shrink-0" style={{ border: `2px solid ${partyColor}` }}>
-                      <CandidatePhoto src={c.photo_url} alt={c.name_ko} size="sm" />
+                    <div
+                      className="w-[44px] h-[56px] rounded overflow-hidden shrink-0"
+                      style={{ border: `2px solid ${partyColor}` }}
+                    >
+                      <CandidatePhoto src={candidate.photo_url} alt={candidate.name_ko} size="sm" />
                     </div>
                     <div className="text-center">
                       <span className="text-[13px] font-bold block leading-tight" style={{ color: "var(--navy)" }}>
-                        {c.name_ko}
+                        {candidate.name_ko}
                       </span>
-                      <span
-                        className="text-[10px] font-semibold"
-                        style={{ color: partyColor }}
-                      >
-                        {c.party_name || "무소속"}
+                      <span className="text-[10px] font-semibold" style={{ color: partyColor }}>
+                        {candidate.party_name || "무소속"}
                       </span>
                     </div>
                   </button>
@@ -196,15 +210,15 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
             </div>
           </div>
 
-          {/* Scroll indicator dots (3+ candidates) */}
           {candidates.length > 2 && (
             <div className="flex justify-center gap-1 mt-1.5">
-              {candidates.map((_, i) => (
+              {candidates.map((_, index) => (
                 <div
-                  key={i}
+                  key={index}
                   className="w-1.5 h-1.5 rounded-full transition-all"
                   style={{
-                    background: activeCandidate === i ? "var(--navy)" : "var(--border-dark)",
+                    background:
+                      activeCandidate === index ? "var(--navy)" : "var(--border-dark)",
                   }}
                 />
               ))}
@@ -212,127 +226,237 @@ export default function CompareView({ ballot, onSelectCandidate, onBack }: Props
           )}
         </div>
 
-        {/* Comparison body */}
         <div
           ref={scrollContainerRef}
           className="overflow-x-auto mt-3"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <div style={{ minWidth: candidates.length > 2 ? `${candidates.length * 160}px` : undefined }}>
-            {COMPARE_SECTIONS.map((section, si) => (
-              <div
-                key={section.title}
-                className={`animate-fade-in-up stagger-${Math.min(si + 3, 7)} mb-3`}
-              >
-                {/* Section title */}
-                <div
-                  className="px-3 py-2 rounded-t"
-                  style={{ background: "var(--navy)", }}
-                >
-                  <span className="text-[11px] font-semibold text-white tracking-wide">
-                    {section.title}
-                  </span>
-                </div>
+          <div style={{ minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined }}>
+            {issueProfile?.normalized_issue_keys.length ? (
+              <CompareSection title="관심 이슈 기준" candidates={candidates}>
+                {issueProfile.normalized_issue_keys.map((issueKey) => (
+                  <CompareRow
+                    key={issueKey}
+                    label={getIssueLabel(issueKey)}
+                    gridCols={gridCols}
+                    candidates={candidates}
+                    renderValue={(candidate) => {
+                      const match = getRelevantIssueMatches(candidate, {
+                        ...issueProfile,
+                        normalized_issue_keys: [issueKey],
+                      })[0];
+                      if (!match) {
+                        return (
+                          <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                            관련 정보 부족
+                          </span>
+                        );
+                      }
+                      return (
+                        <div className="space-y-1">
+                          <span
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded inline-block"
+                            style={{
+                              background:
+                                match.level === "insufficient"
+                                  ? "var(--warning-bg)"
+                                  : "var(--amber-bg)",
+                              color:
+                                match.level === "insufficient"
+                                  ? "var(--warning-text)"
+                                  : "var(--amber)",
+                            }}
+                          >
+                            {getIssueMatchLevelLabel(match.level)}
+                          </span>
+                          <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
+                            {match.reasons[0]}
+                          </p>
+                        </div>
+                      );
+                    }}
+                  />
+                ))}
+              </CompareSection>
+            ) : null}
 
-                {/* Rows */}
-                <div
-                  className="rounded-b overflow-hidden"
-                  style={{ border: "1px solid var(--border)", borderTop: "none" }}
-                >
-                  {section.rows.map((row, ri) => (
-                    <div
-                      key={row.label}
-                      style={{
-                        borderBottom: ri < section.rows.length - 1 ? "1px solid var(--border)" : "none",
-                      }}
-                    >
-                      {/* Row label */}
-                      <div
-                        className="px-3 py-1.5"
-                        style={{ background: "var(--surface-alt)" }}
-                      >
-                        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
-                          {row.label}
-                        </span>
-                      </div>
-
-                      {/* Values grid */}
-                      <div
-                        className="px-2"
+            <CompareSection title="팩트" candidates={candidates}>
+              {FACT_LABELS.map((label) => (
+                <CompareRow
+                  key={label}
+                  label={label}
+                  gridCols={gridCols}
+                  candidates={candidates}
+                  renderValue={(candidate) => {
+                    const fact = candidate.compare_entry?.facts.find((item) => item.label === label);
+                    return (
+                      <span
+                        className="text-[12px] leading-relaxed"
                         style={{
-                          display: "grid",
-                          gridTemplateColumns: gridCols,
-                          gap: "8px",
-                          background: "var(--surface)",
+                          color: fact?.value && fact.value !== "정보 없음" ? "var(--foreground)" : "var(--text-tertiary)",
                         }}
                       >
-                        {candidates.map((c) => {
-                          const value = row.getValue(c);
-                          const isHighlight = row.highlight?.(c) || false;
-                          const isMultiLine = value.includes("\n");
-                          const partyColor = getPartyColor(c.party_name);
+                        {fact?.value || "정보 없음"}
+                      </span>
+                    );
+                  }}
+                />
+              ))}
+            </CompareSection>
 
-                          return (
-                            <div
-                              key={c.candidate_id}
-                              className="py-2 px-1"
-                              style={{
-                                borderLeft: `2px solid ${partyColor}30`,
-                              }}
-                            >
-                              {row.label === "정당" ? (
-                                <span
-                                  className="text-[11px] font-semibold px-1.5 py-0.5 rounded inline-block"
-                                  style={{ background: `${partyColor}18`, color: partyColor }}
-                                >
-                                  {value}
-                                </span>
-                              ) : isMultiLine ? (
-                                <div className="space-y-0.5">
-                                  {value.split("\n").map((line, li) => (
-                                    <p
-                                      key={li}
-                                      className="text-[11px] leading-snug"
-                                      style={{ color: "var(--foreground)" }}
-                                    >
-                                      {line}
-                                    </p>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span
-                                  className="text-[12px] leading-relaxed"
-                                  style={{
-                                    color: isHighlight ? "var(--warning-text)" : value === "—" ? "var(--text-tertiary)" : "var(--foreground)",
-                                    fontWeight: isHighlight ? 600 : 400,
-                                  }}
-                                >
-                                  {value}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
+            <CompareSection title="요약" candidates={candidates}>
+              <CompareRow
+                label="핵심 요약"
+                gridCols={gridCols}
+                candidates={candidates}
+                renderValue={(candidate) => (
+                  <div className="space-y-1">
+                    {(candidate.compare_entry?.summary || candidate.brief?.summary_lines || []).map((line) => (
+                      <p key={line} className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              />
+              <CompareRow
+                label="차별점"
+                gridCols={gridCols}
+                candidates={candidates}
+                renderValue={(candidate) => (
+                  <span className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
+                    {candidate.brief?.differentiator || "대표 차별점 공개 정보 부족"}
+                  </span>
+                )}
+              />
+            </CompareSection>
+
+            <CompareSection title="출처 및 정보 부족" candidates={candidates}>
+              <CompareRow
+                label="출처"
+                gridCols={gridCols}
+                candidates={candidates}
+                renderValue={(candidate) => (
+                  <div className="space-y-1">
+                    {(candidate.compare_entry?.source_refs || []).map((source) => (
+                      <div key={`${candidate.candidate_id}-${source.label}`} className="space-y-0.5">
+                        <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
+                          {source.label}
+                        </p>
+                        <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
+                          {source.as_of ? `기준: ${formatKoreanDateTime(source.as_of)}` : "기준 시각 정보 없음"}
+                        </p>
                       </div>
+                    ))}
+                  </div>
+                )}
+              />
+              <CompareRow
+                label="정보 부족"
+                gridCols={gridCols}
+                candidates={candidates}
+                renderValue={(candidate) => {
+                  const infoGaps = candidate.compare_entry?.info_gap_flags || [];
+                  return infoGaps.length > 0 ? (
+                    <div className="space-y-0.5">
+                      {infoGaps.map((flag) => (
+                        <p key={flag} className="text-[11px] leading-relaxed" style={{ color: "var(--warning-text)" }}>
+                          {flag}
+                        </p>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  ) : (
+                    <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      표시할 부족 정보 없음
+                    </span>
+                  );
+                }}
+              />
+            </CompareSection>
           </div>
         </div>
 
-        {/* Source note */}
         <div
           className="mt-4 px-3 py-2.5 rounded"
           style={{ background: "var(--surface-alt)", borderLeft: "2px solid var(--border-dark)" }}
         >
           <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-            후보 정보는 중앙선거관리위원회 예비후보자 명부를 기준으로 합니다.
-            특정 후보를 추천하거나 평가하지 않습니다.
+            비교 결과는 현재 확보한 공개 자료 기준입니다. 특정 후보를 추천하지 않으며, 정보 부족은 숨기지 않고 표시합니다.
           </p>
         </div>
       </div>
     </section>
+  );
+}
+
+function CompareSection({
+  title,
+  candidates,
+  children,
+}: {
+  title: string;
+  candidates: CandidateRecord[];
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-3">
+      <div className="px-3 py-2 rounded-t" style={{ background: "var(--navy)" }}>
+        <span className="text-[11px] font-semibold text-white tracking-wide">
+          {title}
+        </span>
+      </div>
+      <div
+        className="rounded-b overflow-hidden"
+        style={{ border: "1px solid var(--border)", borderTop: "none" }}
+      >
+        <div style={{ minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompareRow({
+  label,
+  gridCols,
+  candidates,
+  renderValue,
+}: {
+  label: string;
+  gridCols: string;
+  candidates: CandidateRecord[];
+  renderValue: (candidate: CandidateRecord) => ReactNode;
+}) {
+  return (
+    <div style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="px-3 py-1.5" style={{ background: "var(--surface-alt)" }}>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+          {label}
+        </span>
+      </div>
+      <div
+        className="px-2"
+        style={{
+          display: "grid",
+          gridTemplateColumns: gridCols,
+          gap: "8px",
+          background: "var(--surface)",
+        }}
+      >
+        {candidates.map((candidate) => {
+          const partyColor = getPartyColor(candidate.party_name);
+          return (
+            <div
+              key={`${candidate.candidate_id}-${label}`}
+              className="py-2 px-1"
+              style={{ borderLeft: `2px solid ${partyColor}30` }}
+            >
+              {renderValue(candidate)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import {
+  buildDatabaseUnavailableResponse,
+  isDatabaseUnavailableError,
+} from "@/lib/pg-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,6 +35,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ emd });
   } catch (error) {
     console.error("[regions/emd] error", error);
+    if (isDatabaseUnavailableError(error)) {
+      return buildDatabaseUnavailableResponse("emd");
+    }
     return NextResponse.json({ error: "Failed to load emd" }, { status: 500 });
   }
 }
