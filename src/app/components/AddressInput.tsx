@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CITIES, DISTRICTS, DONGS } from "../data";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Info, LoaderCircle, TriangleAlert } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  citiesQueryOptions,
+  emdQueryOptions,
+  sigunguQueryOptions,
+} from "@/lib/api-client";
 
 interface Props {
   onSubmit: (city: string, district: string, dong: string) => void;
@@ -9,11 +18,6 @@ interface Props {
   error?: string | null;
 }
 
-type ApiErrorBody = {
-  message?: string;
-};
-
-// Custom select wrapper with dropdown arrow
 function SelectField({
   label,
   sublabel,
@@ -33,16 +37,21 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold tracking-wide mb-1.5" style={{ color: "var(--text-secondary)" }}>
+      <label
+        className="mb-1.5 block text-[11px] font-semibold tracking-wide"
+        style={{ color: "var(--text-secondary)" }}
+      >
         {label}
-        {sublabel && <span style={{ color: "var(--text-tertiary)" }}> {sublabel}</span>}
+        {sublabel && (
+          <span style={{ color: "var(--text-tertiary)" }}> {sublabel}</span>
+        )}
       </label>
       <div className="relative">
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
-          className="w-full h-[48px] px-3 pr-9 text-[14px] rounded appearance-none cursor-pointer disabled:opacity-40"
+          className="h-[48px] w-full cursor-pointer appearance-none rounded px-3 pr-9 text-[14px] disabled:opacity-40"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
@@ -50,17 +59,31 @@ function SelectField({
           }}
         >
           <option value="">{placeholder}</option>
-          {options.map((o) => (
-            <option key={o} value={o}>{o}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
           ))}
         </select>
-        {/* Dropdown arrow */}
         <div
-          className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: disabled ? "var(--text-tertiary)" : "var(--text-secondary)" }}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+          style={{
+            color: disabled ? "var(--text-tertiary)" : "var(--text-secondary)",
+          }}
         >
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          <svg
+            width="14"
+            height="14"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+            />
           </svg>
         </div>
       </div>
@@ -73,117 +96,28 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
   const [district, setDistrict] = useState("");
   const [dong, setDong] = useState("");
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [districts, setDistricts] = useState<string[]>([]);
-  const [dongs, setDongs] = useState<string[]>([]);
-  const [regionError, setRegionError] = useState<string | null>(null);
-  const [regionLoading, setRegionLoading] = useState({ city: false, district: false, dong: false });
+  const citiesQuery = useQuery(citiesQueryOptions);
+  const districtsQuery = useQuery({
+    ...sigunguQueryOptions(city),
+    enabled: Boolean(city),
+  });
+  const dongsQuery = useQuery({
+    ...emdQueryOptions(city, district),
+    enabled: Boolean(city) && Boolean(district),
+  });
 
-  useEffect(() => {
-    const loadCities = async () => {
-      setRegionLoading((prev) => ({ ...prev, city: true }));
-      setRegionError(null);
-      try {
-        const res = await fetch("/api/regions/cities");
-        if (!res.ok) {
-          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-          throw new Error(
-            body?.message ||
-              "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
-          );
-        }
-        const data = (await res.json()) as { cities: string[] };
-        setCities(data.cities);
-      } catch (e) {
-        console.error(e);
-        setCities([...CITIES]);
-        setRegionError(
-          e instanceof Error
-            ? e.message
-            : "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
-        );
-      } finally {
-        setRegionLoading((prev) => ({ ...prev, city: false }));
-      }
-    };
-    loadCities();
-  }, []);
+  const cities = citiesQuery.data?.items || [];
+  const districts = districtsQuery.data?.items || [];
+  const dongs = dongsQuery.data?.items || [];
+  const regionNotice =
+    dongsQuery.data?.fallbackMessage ||
+    districtsQuery.data?.fallbackMessage ||
+    citiesQuery.data?.fallbackMessage ||
+    null;
 
-  useEffect(() => {
-    const loadSigungu = async () => {
-      if (!city) {
-        setDistricts([]);
-        setDongs([]);
-        setDistrict("");
-        setDong("");
-        return;
-      }
-      setRegionLoading((prev) => ({ ...prev, district: true }));
-      setRegionError(null);
-      try {
-        const res = await fetch(`/api/regions/sigungu?city=${encodeURIComponent(city)}`);
-        if (!res.ok) {
-          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-          throw new Error(
-            body?.message ||
-              "구/군 목록을 불러오지 못해 기본 목록을 사용합니다.",
-          );
-        }
-        const data = (await res.json()) as { sigungu: string[] };
-        setDistricts(data.sigungu);
-      } catch (e) {
-        console.error(e);
-        setDistricts(DISTRICTS[city] || []);
-        setRegionError(
-          e instanceof Error
-            ? e.message
-            : "구/군 목록을 불러오지 못해 기본 목록을 사용합니다.",
-        );
-      } finally {
-        setDistrict("");
-        setDong("");
-        setDongs([]);
-        setRegionLoading((prev) => ({ ...prev, district: false }));
-      }
-    };
-    loadSigungu();
-  }, [city]);
-
-  useEffect(() => {
-    const loadDongs = async () => {
-      if (!city || !district) {
-        setDongs([]);
-        setDong("");
-        return;
-      }
-      setRegionLoading((prev) => ({ ...prev, dong: true }));
-      setRegionError(null);
-      try {
-        const res = await fetch(`/api/regions/emd?city=${encodeURIComponent(city)}&sigungu=${encodeURIComponent(district)}`);
-        if (!res.ok) {
-          const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
-          throw new Error(
-            body?.message ||
-              "동 목록을 불러오지 못해 기본 목록을 사용합니다.",
-          );
-        }
-        const data = (await res.json()) as { emd: string[] };
-        setDongs(data.emd);
-      } catch (e) {
-        console.error(e);
-        setDongs(DONGS[district] || []);
-        setRegionError(
-          e instanceof Error
-            ? e.message
-            : "동 목록을 불러오지 못해 기본 목록을 사용합니다.",
-        );
-      } finally {
-        setDong("");
-        setRegionLoading((prev) => ({ ...prev, dong: false }));
-      }
-    };
-    loadDongs();
-  }, [city, district]);
+  const isCityLoading = citiesQuery.isPending;
+  const isDistrictLoading = Boolean(city) && districtsQuery.isFetching;
+  const isDongLoading = Boolean(city) && Boolean(district) && dongsQuery.isFetching;
 
   const handleSubmit = () => {
     if (city && district) {
@@ -191,54 +125,67 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
     }
   };
 
+  const handleCityChange = (nextCity: string) => {
+    setCity(nextCity);
+    setDistrict("");
+    setDong("");
+  };
+
+  const handleDistrictChange = (nextDistrict: string) => {
+    setDistrict(nextDistrict);
+    setDong("");
+  };
+
   return (
-    <section className="min-h-[100dvh] flex flex-col justify-center px-5 py-12">
-      <div className="w-full max-w-[400px] mx-auto">
-        {/* Badge */}
-        <div className="animate-fade-in-up mb-5">
+    <section className="flex min-h-[100dvh] flex-col justify-center px-5 py-12">
+      <div className="mx-auto w-full max-w-[400px]">
+        <div className="mb-5 animate-fade-in-up">
           <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest"
             style={{ color: "var(--amber)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--amber)" }} aria-hidden="true" />
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--amber)" }}
+              aria-hidden="true"
+            />
             2026 지방선거
           </span>
         </div>
 
-        {/* Headline */}
         <h1
-          className="animate-fade-in-up stagger-1 text-[1.75rem] leading-[1.25] font-bold tracking-tight mb-2"
+          className="stagger-1 mb-2 animate-fade-in-up text-[1.75rem] font-bold leading-[1.25] tracking-tight"
           style={{ color: "var(--navy)" }}
         >
           내 선거 안내서
         </h1>
         <p
-          className="animate-fade-in-up stagger-2 text-[14px] leading-relaxed mb-8"
+          className="stagger-2 mb-8 animate-fade-in-up text-[14px] leading-relaxed"
           style={{ color: "var(--text-secondary)" }}
         >
-          지역을 선택하면, 이번 선거에서 받게 되는<br />
+          지역을 선택하면, 이번 선거에서 받게 되는
+          <br />
           투표용지와 후보자 정보를 확인할 수 있습니다.
         </p>
 
-        {/* Select inputs */}
-        <div className="animate-fade-in-up stagger-3 space-y-3 mb-5">
+        <div className="stagger-3 mb-5 animate-fade-in-up space-y-3">
           <SelectField
             label="시/도"
             value={city}
-            onChange={(v) => { setCity(v); setDistrict(""); setDong(""); }}
-            placeholder={regionLoading.city ? "불러오는 중..." : "시/도 선택"}
+            onChange={handleCityChange}
+            placeholder={isCityLoading ? "불러오는 중..." : "시/도 선택"}
             options={cities}
           />
 
           <SelectField
             label="구/군/시"
             value={district}
-            onChange={(v) => { setDistrict(v); setDong(""); }}
-            disabled={!city || regionLoading.district}
+            onChange={handleDistrictChange}
+            disabled={!city || isDistrictLoading}
             placeholder={
               !city
                 ? "시/도를 먼저 선택하세요"
-                : regionLoading.district
+                : isDistrictLoading
                   ? "불러오는 중..."
                   : districts.length === 0
                     ? "데이터 준비 중"
@@ -252,11 +199,11 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
             sublabel="(선택)"
             value={dong}
             onChange={setDong}
-            disabled={!district || regionLoading.dong}
+            disabled={!district || isDongLoading}
             placeholder={
               !district
                 ? "구/군/시를 먼저 선택하세요"
-                : regionLoading.dong
+                : isDongLoading
                   ? "불러오는 중..."
                   : dongs.length === 0
                     ? "데이터 준비 중"
@@ -266,64 +213,77 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
           />
         </div>
 
-        {/* Submit button */}
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={!city || !district || loading}
-          className="animate-fade-in-up stagger-4 w-full h-[52px] text-[15px] font-semibold rounded transition-all disabled:opacity-35 cursor-pointer text-white active:scale-[0.98]"
-          style={{ background: "var(--navy)" }}
+          variant="primary"
+          size="lg"
+          className="stagger-4 w-full animate-fade-in-up"
         >
+          {loading && (
+            <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+          )}
           {loading ? "불러오는 중..." : "내 선거 확인하기"}
-        </button>
+        </Button>
 
         {error && (
-          <p className="animate-fade-in-up stagger-5 text-[12px] mt-3 leading-relaxed" style={{ color: "var(--warning-text)" }}>
-            {error}
-          </p>
-        )}
-        {regionError && (
-          <p className="animate-fade-in-up stagger-5 text-[12px] mt-2 leading-relaxed" style={{ color: "var(--warning-text)" }}>
-            {regionError}
-          </p>
+          <Alert variant="warning" className="stagger-5 mt-3 animate-fade-in-up">
+            <div className="flex items-start gap-2">
+              <TriangleAlert
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
+              <div>
+                <AlertTitle>조회 오류</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </div>
+            </div>
+          </Alert>
         )}
 
-        {/* Quick access */}
-        <div className="animate-fade-in-up stagger-6 mt-6">
-          <p className="text-[11px] font-medium mb-2" style={{ color: "var(--text-tertiary)" }}>
+        {regionNotice && (
+          <Alert variant="info" className="stagger-5 mt-2 animate-fade-in-up">
+            <div className="flex items-start gap-2">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <div>
+                <AlertTitle>기본 목록 사용</AlertTitle>
+                <AlertDescription>{regionNotice}</AlertDescription>
+              </div>
+            </div>
+          </Alert>
+        )}
+
+        <div className="stagger-6 mt-6 animate-fade-in-up">
+          <p
+            className="mb-2 text-[11px] font-medium"
+            style={{ color: "var(--text-tertiary)" }}
+          >
             샘플 데이터로 미리보기
           </p>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => onSubmit("서울특별시", "강남구", "개포1동")}
-              className="flex-1 h-[44px] text-[12px] font-medium rounded cursor-pointer transition-colors active:scale-[0.98]"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                color: "var(--text-secondary)",
-              }}
+              variant="secondary"
+              className="h-[44px] flex-1 text-[12px] font-medium"
             >
               서울 강남구 개포1동
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => onSubmit("제주특별자치도", "제주시", "노형동")}
-              className="flex-1 h-[44px] text-[12px] font-medium rounded cursor-pointer transition-colors active:scale-[0.98]"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                color: "var(--text-secondary)",
-              }}
+              variant="secondary"
+              className="h-[44px] flex-1 text-[12px] font-medium"
             >
               제주 제주시 노형동
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Footer note */}
         <p
-          className="animate-fade-in-up stagger-7 text-[10px] mt-8 leading-relaxed"
+          className="stagger-7 mt-8 animate-fade-in-up text-[10px] leading-relaxed"
           style={{ color: "var(--text-tertiary)" }}
         >
-          입력한 주소 정보는 선거구 매핑에만 사용됩니다.<br />
+          입력한 주소 정보는 선거구 매핑에만 사용됩니다.
+          <br />
           출처: 중앙선거관리위원회 (2026.05.15 기준)
         </p>
       </div>

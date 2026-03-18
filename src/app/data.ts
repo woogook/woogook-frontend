@@ -1,167 +1,42 @@
 import seoulData from "../../2026_data/sample_ballot_response_resolved_seoul.json";
 import jejuData from "../../2026_data/sample_ballot_response_partially_ambiguous_jeju.json";
+import type {
+  BallotItem,
+  BallotResponse,
+  CandidateBrief,
+  CandidateCompareEntry,
+  CandidateIssueMatch,
+  CandidateRecord,
+  DataPhase,
+  ElectionMeta,
+  EvidenceStatus,
+  IssueKey,
+  IssueMatchLevel,
+  PromiseSourceStatus,
+  UserIssueProfile,
+} from "@/lib/schemas";
 
-export type IssueKey =
-  | "transport"
-  | "housing"
-  | "education"
-  | "care"
-  | "jobs"
-  | "safety"
-  | "climate"
-  | "welfare"
-  | "youth"
-  | "commerce";
+export type {
+  AmbiguousBallot,
+  AmbiguousOption,
+  BallotItem,
+  BallotResponse,
+  CandidateBrief,
+  CandidateCompareEntry,
+  CandidateIssueMatch,
+  CandidateRecord,
+  DataPhase,
+  ElectionMeta,
+  EvidenceStatus,
+  IssueKey,
+  IssueMatchLevel,
+  PromiseSourceStatus,
+  SourceRef,
+  SourceType,
+  UserIssueProfile,
+} from "@/lib/schemas";
 
-export type IssueMatchLevel =
-  | "very_high"
-  | "high"
-  | "partial"
-  | "insufficient";
-
-export type EvidenceStatus = "enough" | "limited" | "missing";
-export type PromiseSourceStatus =
-  | "official"
-  | "public_statement"
-  | "not_open_yet"
-  | "not_secured";
-export type SourceType = "official" | "semi_official" | "auxiliary";
-export type DataPhase =
-  | "pre_registration"
-  | "registered"
-  | "campaign"
-  | "completed";
-
-export interface SourceRef {
-  label: string;
-  source_type: SourceType;
-  as_of: string | null;
-  url: string | null;
-}
-
-export interface CandidateIssueMatch {
-  issue_key: IssueKey;
-  level: IssueMatchLevel;
-  reasons: string[];
-  matched_keywords: string[];
-}
-
-export interface CandidateBrief {
-  summary_lines: string[];
-  differentiator: string | null;
-  evidence_status: EvidenceStatus;
-  promise_source_status: PromiseSourceStatus;
-  info_gap_flags: string[];
-}
-
-export interface CandidateCompareFact {
-  label: string;
-  value: string;
-}
-
-export interface CandidateCompareEntry {
-  facts: CandidateCompareFact[];
-  summary: string[];
-  source_refs: SourceRef[];
-  info_gap_flags: string[];
-}
-
-export interface ElectionMeta {
-  election_id: string;
-  election_name: string;
-  election_day: string;
-  data_phase: DataPhase;
-  as_of: string;
-}
-
-export interface UserIssueProfile {
-  election_id: string;
-  contest_id: string;
-  selected_issue_keys: IssueKey[];
-  custom_keywords: string[];
-  normalized_issue_keys: IssueKey[];
-  updated_at: string;
-}
-
-export interface CandidateRecord {
-  candidate_id: string;
-  contest_id: string;
-  election_id: string;
-  election_code: string;
-  election_name: string;
-  city_code: number;
-  city_name: string;
-  town_code: string | null;
-  town_name: string | null;
-  district_name_raw: string;
-  name_ko: string;
-  name_hanja: string | null;
-  party_name: string | null;
-  gender: string;
-  birthdate_text: string | null;
-  age_text: string | null;
-  address: string;
-  job: string;
-  education: string;
-  career: string;
-  registration_date: string;
-  crime_text: string;
-  crime_parse_status: string;
-  crime_case_count: number | null;
-  crime_items: unknown[];
-  photo_url: string;
-  detail_url: string;
-  source_scope_key: string;
-  source_scope_label: string;
-  source_kind: string;
-  source_file: string;
-  brief?: CandidateBrief | null;
-  issue_matches?: CandidateIssueMatch[];
-  compare_entry?: CandidateCompareEntry | null;
-}
-
-export interface BallotItem {
-  contest_id: string;
-  election_code: string;
-  election_name: string;
-  ballot_subject_type: "candidate_person" | "party_list";
-  office_level: string;
-  representation_type: "single" | "district" | "proportional";
-  special_region_type: string;
-  geographic_scope: string;
-  city_code: number;
-  city_name_canonical: string;
-  sigungu_name: string | null;
-  display_name: string;
-  parent_area_name: string | null;
-  seats: number | null;
-  candidates: CandidateRecord[];
-}
-
-export interface AmbiguousOption {
-  contest_id: string;
-  display_name: string;
-  parent_area_name: string;
-}
-
-export interface AmbiguousBallot {
-  election_code: string;
-  election_name: string;
-  options: AmbiguousOption[];
-}
-
-export type ResolutionStatus = "resolved" | "partially_ambiguous" | "ambiguous";
-
-export interface BallotResponse {
-  city_name_canonical: string;
-  sigungu_name: string;
-  emd_name: string;
-  resolution_status: ResolutionStatus;
-  ballot_count: number;
-  ballots: BallotItem[];
-  ambiguous_ballots: AmbiguousBallot[];
-  meta?: ElectionMeta | null;
-}
+export type ResolutionStatus = BallotResponse["resolution_status"];
 
 export interface IssueDefinition {
   key: IssueKey;

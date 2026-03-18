@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import seoulSample from "../../../../2026_data/sample_ballot_response_resolved_seoul.json";
 import jejuSample from "../../../../2026_data/sample_ballot_response_partially_ambiguous_jeju.json";
-import type {
-  AmbiguousBallot,
-  BallotItem,
-  BallotResponse,
-  CandidateRecord,
-} from "@/app/data";
+import seoulSample from "../../../../2026_data/sample_ballot_response_resolved_seoul.json";
 import { buildCandidateArtifacts, buildElectionMeta } from "@/app/data";
 import { pool } from "@/lib/db";
 import {
   buildDatabaseUnavailableResponse,
   isDatabaseUnavailableError,
 } from "@/lib/pg-error";
+import {
+  ballotResponseSchema,
+  ballotsSearchParamsSchema,
+  type AmbiguousBallot,
+  type BallotItem,
+  type BallotResponse,
+  type CandidateRecord,
+} from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,34 +60,43 @@ type CandidateRow = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const city = searchParams.get("city")?.trim();
-  const sigungu = searchParams.get("sigungu")?.trim();
-  const emd = searchParams.get("emd")?.trim() || null;
+  const parsed = ballotsSearchParamsSchema.safeParse({
+    city: searchParams.get("city"),
+    sigungu: searchParams.get("sigungu"),
+    emd: searchParams.get("emd"),
+  });
 
-  if (!city || !sigungu) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "city and sigungu are required" },
+      {
+        error: "city and sigungu are required",
+        message: "시/도와 구/군/시는 필수입니다.",
+      },
       { status: 400 },
     );
   }
+
+  const { city, sigungu, emd } = parsed.data;
 
   try {
     const contests = await fetchContests(city, sigungu, emd);
 
     if (contests.length === 0) {
-      return NextResponse.json<BallotResponse>({
-        city_name_canonical: city,
-        sigungu_name: sigungu,
-        emd_name: emd || "",
-        resolution_status: "ambiguous",
-        ballot_count: 0,
-        ballots: [],
-        ambiguous_ballots: [],
-        meta: buildElectionMeta(),
-      });
+      return NextResponse.json(
+        ballotResponseSchema.parse({
+          city_name_canonical: city,
+          sigungu_name: sigungu,
+          emd_name: emd ?? null,
+          resolution_status: "ambiguous",
+          ballot_count: 0,
+          ballots: [],
+          ambiguous_ballots: [],
+          meta: buildElectionMeta(),
+        }),
+      );
     }
 
-    const contestIds = contests.map((c) => c.contest_id);
+    const contestIds = contests.map((contest) => contest.contest_id);
     const candidateMap = await fetchCandidatesByContest(contestIds);
 
     const groupedByElection = groupContestsByElection(contests);
@@ -99,39 +110,43 @@ export async function GET(request: Request) {
           ...contest,
           candidates: candidateMap.get(contest.contest_id) || [],
         });
-      } else {
-        const { election_code, election_name } = group[0];
-        ambiguousBallots.push({
-          election_code,
-          election_name,
-          options: group.map((contest) => ({
-            contest_id: contest.contest_id,
-            display_name: contest.display_name,
-            parent_area_name: contest.parent_area_name,
-          })),
-        });
+        continue;
       }
+
+      const { election_code, election_name } = group[0];
+      ambiguousBallots.push({
+        election_code,
+        election_name,
+        options: group.map((contest) => ({
+          contest_id: contest.contest_id,
+          display_name: contest.display_name,
+          parent_area_name: contest.parent_area_name,
+        })),
+      });
     }
 
-    const resolutionStatus: BallotResponse["resolution_status"] =
+    const resolutionStatus =
       ambiguousBallots.length > 0
         ? ballots.length > 0
           ? "partially_ambiguous"
           : "ambiguous"
         : "resolved";
 
-    return NextResponse.json<BallotResponse>({
-      city_name_canonical: city,
-      sigungu_name: sigungu,
-      emd_name: emd || "",
-      resolution_status: resolutionStatus,
-      ballot_count: ballots.length,
-      ballots,
-      ambiguous_ballots: ambiguousBallots,
-      meta: buildElectionMeta(contests[0].election_id, contests[0].election_name),
-    });
+    return NextResponse.json(
+      ballotResponseSchema.parse({
+        city_name_canonical: city,
+        sigungu_name: sigungu,
+        emd_name: emd ?? null,
+        resolution_status: resolutionStatus,
+        ballot_count: ballots.length,
+        ballots,
+        ambiguous_ballots: ambiguousBallots,
+        meta: buildElectionMeta(contests[0].election_id, contests[0].election_name),
+      }),
+    );
   } catch (error) {
     console.error("[ballots] error", error);
+
     if (isDatabaseUnavailableError(error)) {
       const fallback = buildFallbackBallotResponse(city, sigungu, emd);
       if (fallback) {
@@ -139,8 +154,13 @@ export async function GET(request: Request) {
       }
       return buildDatabaseUnavailableResponse("ballots");
     }
+
     return NextResponse.json(
-      { error: "Failed to load ballots" },
+      {
+        error: "Failed to load ballots",
+        message:
+          "투표구 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      },
       { status: 500 },
     );
   }
@@ -149,20 +169,23 @@ export async function GET(request: Request) {
 function buildFallbackBallotResponse(
   city: string,
   sigungu: string,
-  emd: string | null,
+  emd: string | undefined,
 ): BallotResponse | null {
   const key = `${city}::${sigungu}::${emd || ""}`;
+
   if (key === "서울특별시::강남구::개포1동") {
     return enrichFallbackResponse(seoulSample as BallotResponse);
   }
+
   if (key === "제주특별자치도::제주시::노형동") {
     return enrichFallbackResponse(jejuSample as BallotResponse);
   }
+
   return null;
 }
 
 function enrichFallbackResponse(response: BallotResponse): BallotResponse {
-  return {
+  return ballotResponseSchema.parse({
     ...response,
     ballots: response.ballots.map((ballot) => ({
       ...ballot,
@@ -176,10 +199,10 @@ function enrichFallbackResponse(response: BallotResponse): BallotResponse {
         "0020260603",
       response.ballots[0]?.election_name || "제9회 전국동시지방선거",
     ),
-  };
+  });
 }
 
-async function fetchContests(city: string, sigungu: string, emd: string | null) {
+async function fetchContests(city: string, sigungu: string, emd?: string) {
   const result = await pool.query<ContestRow>(
     `
       select
@@ -213,7 +236,7 @@ async function fetchContests(city: string, sigungu: string, emd: string | null) 
         )
       order by c.election_code, c.display_name;
     `,
-    [city, sigungu, emd],
+    [city, sigungu, emd ?? null],
   );
 
   return result.rows;
@@ -290,9 +313,9 @@ async function fetchCandidatesByContest(contestIds: string[]) {
       source_file: row.source_file || (payload.source_file as string) || "",
     } satisfies CandidateRecord);
 
-    const list = map.get(row.contest_id) || [];
-    list.push(record);
-    map.set(row.contest_id, list);
+    const candidates = map.get(row.contest_id) || [];
+    candidates.push(record);
+    map.set(row.contest_id, candidates);
   }
 
   return map;
@@ -302,9 +325,9 @@ function groupContestsByElection(contests: ContestRow[]) {
   const grouped = new Map<string, ContestRow[]>();
 
   for (const contest of contests) {
-    const list = grouped.get(contest.election_code) || [];
-    list.push(contest);
-    grouped.set(contest.election_code, list);
+    const contestsByElection = grouped.get(contest.election_code) || [];
+    contestsByElection.push(contest);
+    grouped.set(contest.election_code, contestsByElection);
   }
 
   return grouped;

@@ -4,19 +4,23 @@ import {
   buildDatabaseUnavailableResponse,
   isDatabaseUnavailableError,
 } from "@/lib/pg-error";
+import { cityQuerySchema, sigunguResponseSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const city = searchParams.get("city")?.trim();
+  const parsed = cityQuerySchema.safeParse({
+    city: searchParams.get("city"),
+  });
 
-  if (!city) {
+  if (!parsed.success) {
     return NextResponse.json({ error: "city is required" }, { status: 400 });
   }
 
   try {
+    const { city } = parsed.data;
     const result = await pool.query<{ sigungu_name: string | null }>(
       `
         select distinct sigungu_name
@@ -29,7 +33,7 @@ export async function GET(request: Request) {
     );
 
     const sgun = result.rows.map((r) => r.sigungu_name).filter(Boolean) as string[];
-    return NextResponse.json({ sigungu: sgun });
+    return NextResponse.json(sigunguResponseSchema.parse({ sigungu: sgun }));
   } catch (error) {
     console.error("[regions/sigungu] error", error);
     if (isDatabaseUnavailableError(error)) {
