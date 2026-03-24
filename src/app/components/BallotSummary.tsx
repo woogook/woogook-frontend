@@ -5,6 +5,8 @@ import {
   BallotResponse,
   BallotItem,
   AmbiguousBallot,
+  formatKoreanDate,
+  getDataPhaseLabel,
   getOfficeLevelLabel,
   getRepresentationLabel,
   getContestTitle,
@@ -96,10 +98,10 @@ export default function BallotSummary({ data, onSelectBallot, onBack }: Props) {
           </svg>
           <div>
             <span className="text-[13px] font-semibold" style={{ color: "var(--navy)" }}>
-              투표일 2026년 6월 3일 (수)
+              투표일 {formatKoreanDate(data.meta?.election_day)}
             </span>
             <span className="text-[11px] block" style={{ color: "var(--text-tertiary)" }}>
-              오전 6시 ~ 오후 6시
+              {data.meta ? `${getDataPhaseLabel(data.meta.data_phase)} 기준 정보` : "선거 일정 정보 준비 중"}
             </span>
           </div>
         </div>
@@ -159,7 +161,7 @@ export default function BallotSummary({ data, onSelectBallot, onBack }: Props) {
         >
           <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
             선거구 정보는 중앙선거관리위원회 고시를 기준으로 합니다.
-            정확한 정보는 선관위 홈페이지에서 확인하세요.
+            다음 단계에서 관심 이슈를 입력하면 후보를 그 기준으로 다시 정렬해 볼 수 있습니다.
           </p>
         </div>
       </div>

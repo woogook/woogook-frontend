@@ -1,26 +1,49 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { ChatSelectionBasis } from "@/lib/schemas";
 import { ballotsQueryOptions } from "@/lib/api-client";
 import { ballotsSearchParamsSchema } from "@/lib/schemas";
 import {
-  BallotResponse,
   BallotItem,
+  BallotResponse,
   CandidateRecord,
+  UserIssueProfile,
+  formatKoreanDate,
+  formatKoreanDateTime,
+  getDataPhaseLabel,
+  makeEmptyIssueProfile,
 } from "./data";
 import AddressInput from "./components/AddressInput";
 import BallotSummary from "./components/BallotSummary";
 import CandidateCards from "./components/CandidateCards";
-import DetailView from "./components/DetailView";
 import CompareView from "./components/CompareView";
+import CompareScopeView from "./components/CompareScopeView";
+import DetailView from "./components/DetailView";
+import IssueStep from "./components/IssueStep";
 
-type View = "address" | "ballot" | "candidates" | "compare" | "detail";
+type View =
+  | "address"
+  | "ballot"
+  | "issues"
+  | "candidates"
+  | "compare_scope"
+  | "compare"
+  | "detail";
 type ServiceTab = "assembly" | "local";
+type IssueOriginView =
+  | "ballot"
+  | "candidates"
+  | "compare_scope"
+  | "compare"
+  | "detail";
+
+const ISSUE_STORAGE_KEY = "woogook.local-election.issue-profiles.v1";
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -28,8 +51,22 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<ServiceTab>("local");
   const [ballotData, setBallotData] = useState<BallotResponse | null>(null);
   const [selectedBallot, setSelectedBallot] = useState<BallotItem | null>(null);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateRecord | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateRecord | null>(
+    null,
+  );
   const [detailReturnView, setDetailReturnView] = useState<View>("candidates");
+  const [selectedCompareCandidateIds, setSelectedCompareCandidateIds] = useState<
+    string[]
+  >([]);
+  const [compareSelectionBasis, setCompareSelectionBasis] =
+    useState<ChatSelectionBasis>("all");
+  const [compareSelectionLabel, setCompareSelectionLabel] = useState<string | null>(
+    null,
+  );
+  const [issueOriginView, setIssueOriginView] = useState<IssueOriginView>("ballot");
+  const [issueProfiles, setIssueProfiles] = useState<
+    Record<string, UserIssueProfile>
+  >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,36 +75,51 @@ export default function Home() {
     ["--nav-height" as string]: "60px",
   };
 
-  // ── Scroll to top on view change ─────────────────────
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(ISSUE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, UserIssueProfile>;
+      setIssueProfiles(parsed);
+    } catch (storageError) {
+      console.error("[issueProfiles] failed to load", storageError);
+    }
+  }, []);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }, [view]);
 
-  // ── Browser history integration ──────────────────────
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ISSUE_STORAGE_KEY, JSON.stringify(issueProfiles));
+    } catch (storageError) {
+      console.error("[issueProfiles] failed to persist", storageError);
+    }
+  }, [issueProfiles]);
+
   const navigate = useCallback((newView: View) => {
     setView(newView);
     window.history.pushState({ view: newView }, "");
   }, []);
 
   useEffect(() => {
-    // Set initial state
     window.history.replaceState({ view: "address" }, "");
 
-    const handlePopState = (e: PopStateEvent) => {
-      const targetView = e.state?.view as View | undefined;
-      if (targetView) {
-        setView(targetView);
-      } else {
-        setView("address");
-      }
+    const handlePopState = (event: PopStateEvent) => {
+      const targetView = event.state?.view as View | undefined;
+      setView(targetView || "address");
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // ── Handlers ─────────────────────────────────────────
-  const handleAddressSubmit = async (city: string, district: string, dong: string) => {
+  const handleAddressSubmit = async (
+    city: string,
+    district: string,
+    dong: string,
+  ) => {
     const params = ballotsSearchParamsSchema.parse({
       city,
       sigungu: district,
@@ -79,6 +131,9 @@ export default function Home() {
     setBallotData(null);
     setSelectedBallot(null);
     setSelectedCandidate(null);
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("all");
+    setCompareSelectionLabel(null);
 
     try {
       const data = await queryClient.fetchQuery(ballotsQueryOptions(params));
@@ -102,13 +157,79 @@ export default function Home() {
     }
     setSelectedBallot(ballot);
     setSelectedCandidate(null);
-    navigate("candidates");
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("all");
+    setCompareSelectionLabel(null);
+    setIssueOriginView("ballot");
+    navigate("issues");
   };
 
-  const handleSelectCandidate = (candidate: CandidateRecord, fromView: View = "candidates") => {
+  const handleSelectCandidate = (
+    candidate: CandidateRecord,
+    fromView: View = "candidates",
+  ) => {
     setSelectedCandidate(candidate);
     setDetailReturnView(fromView);
     navigate("detail");
+  };
+
+  const handleOpenIssueStep = (originView: IssueOriginView) => {
+    setIssueOriginView(originView);
+    navigate("issues");
+  };
+
+  const handleOpenCompareFlow = useCallback(() => {
+    if (!selectedBallot) return;
+
+    if (selectedBallot.candidates.length <= 3) {
+      setSelectedCompareCandidateIds(
+        selectedBallot.candidates.map((candidate) => candidate.candidate_id),
+      );
+      setCompareSelectionBasis("all");
+      setCompareSelectionLabel("전체 후보");
+      navigate("compare");
+      return;
+    }
+
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("issue");
+    setCompareSelectionLabel(null);
+    navigate("compare_scope");
+  }, [navigate, selectedBallot]);
+
+  const handleStartScopedCompare = useCallback(
+    (
+      candidateIds: string[],
+      selectionBasis: ChatSelectionBasis,
+      selectionLabel: string | null,
+    ) => {
+      setSelectedCompareCandidateIds(candidateIds);
+      setCompareSelectionBasis(selectionBasis);
+      setCompareSelectionLabel(selectionLabel);
+      navigate("compare");
+    },
+    [navigate],
+  );
+
+  const handleIssueSubmit = (profile: UserIssueProfile) => {
+    setIssueProfiles((current) => ({
+      ...current,
+      [profile.contest_id]: profile,
+    }));
+
+    if (issueOriginView === "ballot") {
+      navigate("candidates");
+      return;
+    }
+    navigate(issueOriginView);
+  };
+
+  const handleIssueBack = () => {
+    if (issueOriginView === "ballot") {
+      navigate("ballot");
+      return;
+    }
+    navigate(issueOriginView);
   };
 
   const handleTabChange = (tab: ServiceTab) => {
@@ -116,9 +237,50 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const currentIssueProfile = selectedBallot
+    ? issueProfiles[selectedBallot.contest_id] ||
+      makeEmptyIssueProfile(
+        selectedBallot.candidates[0]?.election_id ||
+          ballotData?.meta?.election_id ||
+          "0020260603",
+        selectedBallot.contest_id,
+      )
+    : null;
+  const compareCandidates = useMemo(() => {
+    if (!selectedBallot) {
+      return [];
+    }
+
+    if (selectedBallot.candidates.length <= 3) {
+      return selectedBallot.candidates;
+    }
+
+    if (selectedCompareCandidateIds.length === 0) {
+      return [];
+    }
+
+    const selectedCandidateIdSet = new Set(selectedCompareCandidateIds);
+    return selectedBallot.candidates.filter((candidate) =>
+      selectedCandidateIdSet.has(candidate.candidate_id),
+    );
+  }, [selectedBallot, selectedCompareCandidateIds]);
+  const compareBallot = useMemo(() => {
+    if (!selectedBallot) {
+      return null;
+    }
+
+    return {
+      ...selectedBallot,
+      candidates: compareCandidates,
+    };
+  }, [compareCandidates, selectedBallot]);
+  const compareBackView =
+    selectedBallot && selectedBallot.candidates.length >= 4
+      ? ("compare_scope" as const)
+      : ("candidates" as const);
+
   return (
     <div className="min-h-[100dvh] flex flex-col" style={rootStyle}>
-      {/* Top navigation */}
       <div
         className="sticky top-0 z-50 border-b"
         style={{
@@ -134,10 +296,23 @@ export default function Home() {
           <div className="flex items-center gap-3 min-w-0">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--amber-bg)", border: "1px solid var(--border)", color: "var(--amber)" }}
+              style={{
+                background: "var(--amber-bg)",
+                border: "1px solid var(--border)",
+                color: "var(--amber)",
+              }}
               aria-hidden="true"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M4 10h16" />
                 <path d="M6 10V8.2c0-.3.18-.57.45-.69L12 4.5l5.55 3.01c.27.12.45.39.45.69V10" />
                 <path d="M7 10v7M12 10v7M17 10v7" />
@@ -145,10 +320,16 @@ export default function Home() {
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="text-[13px] font-bold leading-tight truncate" style={{ color: "var(--navy)" }}>
-                우리동네 선거
+              <p
+                className="text-[13px] font-bold leading-tight truncate"
+                style={{ color: "var(--navy)" }}
+              >
+                우리동네 국회의원
               </p>
-              <p className="text-[11px] leading-snug text-ellipsis whitespace-nowrap overflow-hidden" style={{ color: "var(--text-secondary)" }}>
+              <p
+                className="text-[11px] leading-snug text-ellipsis whitespace-nowrap overflow-hidden"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 국회·지방 정보를 한 번에 확인
               </p>
             </div>
@@ -173,17 +354,30 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 국회 서비스 안내 섹션 */}
       {activeTab === "assembly" ? (
         <section className="flex-1 w-full px-5 py-12 flex items-center">
           <div className="mx-auto w-full max-w-[760px] text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full mb-5" style={{ background: "var(--amber-bg)", color: "var(--amber)", border: "1px solid var(--border)" }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: "var(--amber)" }} aria-hidden="true" />
+            <div
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-full mb-5"
+              style={{
+                background: "var(--amber-bg)",
+                color: "var(--amber)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: "var(--amber)" }}
+                aria-hidden="true"
+              />
               국회 의원 서비스 준비 중
             </div>
             <h1
               className="text-[1.9rem] leading-[1.25] font-bold tracking-tight mb-3"
-              style={{ color: "var(--navy)", fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif" }}
+              style={{
+                color: "var(--navy)",
+                fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+              }}
             >
               우리동네 국회의원 안내서
             </h1>
@@ -194,16 +388,30 @@ export default function Home() {
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="p-4 rounded-xl text-left" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-tertiary)" }}>국회 서비스</p>
-                <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>지역구·비례 의원 찾기</p>
+              <div
+                className="p-4 rounded-xl text-left"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+              >
+                <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                  국회 서비스
+                </p>
+                <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>
+                  지역구·비례 의원 찾기
+                </p>
                 <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   지역별 의원 매칭, 주요 의정 활동과 공약을 보기 쉽게 준비하고 있어요.
                 </p>
               </div>
-              <div className="p-4 rounded-xl text-left" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-tertiary)" }}>키워드 탐색</p>
-                <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>법안·정책 검색</p>
+              <div
+                className="p-4 rounded-xl text-left"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+              >
+                <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+                  키워드 탐색
+                </p>
+                <p className="text-[15px] font-bold mb-1" style={{ color: "var(--navy)" }}>
+                  법안·정책 검색
+                </p>
                 <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   관심 키워드로 법안과 의원 활동을 찾아볼 수 있도록 곧 업데이트될 예정이에요.
                 </p>
@@ -220,14 +428,13 @@ export default function Home() {
                 지방선거 정보 먼저 보기
               </Button>
               <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                현재 준비된 기능: 주소로 투표지 확인, 후보 비교, 정책 키워드 탐색(지방)
+                현재 준비된 기능: 주소로 투표지 확인, 관심 이슈 입력, 후보 비교(지방)
               </p>
             </div>
           </div>
         </section>
       ) : (
         <>
-          {/* Mobile header */}
           {view !== "address" && (
             <header
               className="sticky z-40 px-5 py-3 flex items-center justify-between"
@@ -245,56 +452,133 @@ export default function Home() {
                 style={{ color: "var(--navy)" }}
                 aria-label="처음으로 돌아가기"
               >
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--amber)" }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style={{ color: "var(--amber)" }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
-                <span className="text-[14px] font-bold" style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif" }}>
+                <span
+                  className="text-[14px] font-bold"
+                  style={{ fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif" }}
+                >
                   내 선거
                 </span>
               </button>
 
-              {/* Breadcrumb — larger touch targets */}
               <nav className="flex items-center gap-0.5 text-[12px]" style={{ color: "var(--text-tertiary)" }}>
                 <button
                   onClick={() => navigate("ballot")}
                   className="cursor-pointer active:opacity-60 px-2 py-1.5 -my-1.5 rounded"
-                  style={{ color: view === "ballot" ? "var(--navy)" : "var(--text-tertiary)", minHeight: "36px", display: "flex", alignItems: "center" }}
+                  style={{
+                    color: view === "ballot" ? "var(--navy)" : "var(--text-tertiary)",
+                    minHeight: "36px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
                   aria-label="투표지 목록으로"
                 >
                   투표지
                 </button>
-                {(view === "candidates" || view === "compare" || view === "detail") && selectedBallot && (
+                {(view === "issues" ||
+                  view === "candidates" ||
+                  view === "compare_scope" ||
+                  view === "compare" ||
+                  view === "detail") &&
+                  selectedBallot && (
+                    <>
+                      <span aria-hidden="true">/</span>
+                      <button
+                        onClick={() =>
+                          handleOpenIssueStep(
+                            view === "compare" || view === "detail" || view === "candidates"
+                              ? view
+                              : view === "compare_scope"
+                              ? view
+                              : "ballot",
+                          )
+                        }
+                        className="cursor-pointer active:opacity-60 px-2 py-1.5 -my-1.5 rounded"
+                        style={{
+                          color: view === "issues" ? "var(--navy)" : "var(--text-tertiary)",
+                          minHeight: "36px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        aria-label="관심 이슈로"
+                      >
+                        이슈
+                      </button>
+                    </>
+                  )}
+                {(view === "candidates" ||
+                  view === "compare_scope" ||
+                  view === "compare" ||
+                  view === "detail") &&
+                  selectedBallot && (
+                    <>
+                      <span aria-hidden="true">/</span>
+                      <button
+                        onClick={() => navigate("candidates")}
+                        className="cursor-pointer active:opacity-60 px-2 py-1.5 -my-1.5 rounded max-w-[72px] truncate"
+                        style={{
+                          color:
+                            view === "candidates" ? "var(--navy)" : "var(--text-tertiary)",
+                          minHeight: "36px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        aria-label="후보 목록으로"
+                      >
+                        후보
+                      </button>
+                    </>
+                  )}
+                {view === "compare_scope" && (
                   <>
                     <span aria-hidden="true">/</span>
-                    <button
-                      onClick={() => navigate("candidates")}
-                      className="cursor-pointer active:opacity-60 px-2 py-1.5 -my-1.5 rounded max-w-[72px] truncate"
-                      style={{ color: view === "candidates" ? "var(--navy)" : "var(--text-tertiary)", minHeight: "36px", display: "flex", alignItems: "center" }}
-                      aria-label="후보 목록으로"
-                    >
-                      후보
-                    </button>
+                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>
+                      후보군
+                    </span>
                   </>
                 )}
                 {view === "compare" && (
                   <>
                     <span aria-hidden="true">/</span>
-                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>비교</span>
+                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>
+                      비교
+                    </span>
                   </>
                 )}
                 {view === "detail" && selectedCandidate && (
                   <>
                     <span aria-hidden="true">/</span>
-                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>{selectedCandidate.name_ko}</span>
+                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>
+                      {selectedCandidate.name_ko}
+                    </span>
                   </>
                 )}
               </nav>
             </header>
           )}
 
-          {/* Views */}
           <div className="flex-1">
-            {view === "address" && <AddressInput onSubmit={handleAddressSubmit} loading={loading} error={error} />}
+            {view === "address" && (
+              <AddressInput
+                onSubmit={handleAddressSubmit}
+                loading={loading}
+                error={error}
+              />
+            )}
 
             {view === "ballot" && ballotData && (
               <BallotSummary
@@ -304,38 +588,75 @@ export default function Home() {
               />
             )}
 
+            {view === "issues" && selectedBallot && currentIssueProfile && (
+              <IssueStep
+                ballot={selectedBallot}
+                initialProfile={currentIssueProfile}
+                onSubmit={handleIssueSubmit}
+                onBack={handleIssueBack}
+              />
+            )}
+
             {view === "candidates" && selectedBallot && (
               <CandidateCards
                 ballot={selectedBallot}
+                issueProfile={currentIssueProfile}
                 onSelectCandidate={handleSelectCandidate}
-                onCompare={() => navigate("compare")}
-                onBack={() => navigate("ballot")}
+                onCompare={handleOpenCompareFlow}
+                onBack={() => navigate("issues")}
+                onEditIssues={() => handleOpenIssueStep("candidates")}
               />
             )}
 
-            {view === "compare" && selectedBallot && selectedBallot.candidates.length > 0 && (
-              <CompareView
+            {view === "compare_scope" && selectedBallot && (
+              <CompareScopeView
                 ballot={selectedBallot}
-                onSelectCandidate={(c) => handleSelectCandidate(c, "compare")}
+                issueProfile={currentIssueProfile}
                 onBack={() => navigate("candidates")}
+                onEditIssues={() => handleOpenIssueStep("compare_scope")}
+                onSelectCandidate={(candidate) =>
+                  handleSelectCandidate(candidate, "compare_scope")
+                }
+                onStartCompare={handleStartScopedCompare}
               />
             )}
 
-            {view === "detail" && selectedCandidate && (
+            {view === "compare" &&
+              compareBallot &&
+              compareBallot.candidates.length > 0 && (
+                <CompareView
+                  ballot={compareBallot}
+                  totalCandidateCount={selectedBallot?.candidates.length || 0}
+                  issueProfile={currentIssueProfile}
+                  selectionBasis={compareSelectionBasis}
+                  selectionLabel={compareSelectionLabel}
+                  onSelectCandidate={(candidate) =>
+                    handleSelectCandidate(candidate, "compare")
+                  }
+                  onBack={() => navigate(compareBackView)}
+                  onEditIssues={() => handleOpenIssueStep("compare")}
+                />
+              )}
+
+            {view === "detail" && selectedCandidate && selectedBallot && (
               <DetailView
                 candidate={selectedCandidate}
+                ballot={selectedBallot}
+                issueProfile={currentIssueProfile}
                 onBack={() => navigate(detailReturnView)}
+                onEditIssues={() => handleOpenIssueStep("detail")}
               />
             )}
           </div>
 
-          {/* Footer — hidden on address view (has its own source note) */}
           {view !== "address" && (
             <footer className="px-5 py-5 safe-bottom" style={{ borderTop: "1px solid var(--border)" }}>
               <p className="text-[10px] leading-relaxed text-center" style={{ color: "var(--text-tertiary)" }}>
                 출처: 중앙선거관리위원회 | 특정 후보를 추천하지 않습니다.
                 <br />
-                정보 기준일: 2026.05.15 | 예비후보 기준 데이터
+                선거일: {formatKoreanDate(ballotData?.meta?.election_day)} | 상태:{" "}
+                {ballotData?.meta ? getDataPhaseLabel(ballotData.meta.data_phase) : "정보 없음"} | 기준 시각:{" "}
+                {formatKoreanDateTime(ballotData?.meta?.as_of)}
               </p>
             </footer>
           )}

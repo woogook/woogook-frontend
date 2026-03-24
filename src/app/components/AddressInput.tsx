@@ -38,7 +38,7 @@ function SelectField({
   return (
     <div>
       <label
-        className="block text-[11px] font-semibold tracking-wide mb-1.5"
+        className="mb-1.5 block text-[11px] font-semibold tracking-wide"
         style={{ color: "var(--text-secondary)" }}
       >
         {label}
@@ -49,9 +49,9 @@ function SelectField({
       <div className="relative">
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
-          className="w-full h-[48px] px-3 pr-9 text-[14px] rounded appearance-none cursor-pointer disabled:opacity-40"
+          className="h-[48px] w-full cursor-pointer appearance-none rounded px-3 pr-9 text-[14px] disabled:opacity-40"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
@@ -66,7 +66,7 @@ function SelectField({
           ))}
         </select>
         <div
-          className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
           style={{
             color: disabled ? "var(--text-tertiary)" : "var(--text-secondary)",
           }}
@@ -137,15 +137,15 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
   };
 
   return (
-    <section className="min-h-[100dvh] flex flex-col justify-center px-5 py-12">
-      <div className="w-full max-w-[400px] mx-auto">
-        <div className="animate-fade-in-up mb-5">
+    <section className="flex min-h-[100dvh] flex-col justify-center px-5 py-12">
+      <div className="mx-auto w-full max-w-[400px]">
+        <div className="mb-5 animate-fade-in-up">
           <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest"
             style={{ color: "var(--amber)" }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full"
+              className="h-1.5 w-1.5 rounded-full"
               style={{ background: "var(--amber)" }}
               aria-hidden="true"
             />
@@ -154,13 +154,13 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
         </div>
 
         <h1
-          className="animate-fade-in-up stagger-1 text-[1.75rem] leading-[1.25] font-bold tracking-tight mb-2"
+          className="stagger-1 mb-2 animate-fade-in-up text-[1.75rem] font-bold leading-[1.25] tracking-tight"
           style={{ color: "var(--navy)" }}
         >
           내 선거 안내서
         </h1>
         <p
-          className="animate-fade-in-up stagger-2 text-[14px] leading-relaxed mb-8"
+          className="stagger-2 mb-8 animate-fade-in-up text-[14px] leading-relaxed"
           style={{ color: "var(--text-secondary)" }}
         >
           지역을 선택하면, 이번 선거에서 받게 되는
@@ -168,7 +168,7 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
           투표용지와 후보자 정보를 확인할 수 있습니다.
         </p>
 
-        <div className="animate-fade-in-up stagger-3 space-y-3 mb-5">
+        <div className="stagger-3 mb-5 animate-fade-in-up space-y-3">
           <SelectField
             label="시/도"
             value={city}
@@ -218,16 +218,21 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
           disabled={!city || !district || loading}
           variant="primary"
           size="lg"
-          className="animate-fade-in-up stagger-4 w-full"
+          className="stagger-4 w-full animate-fade-in-up"
         >
-          {loading && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {loading && (
+            <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+          )}
           {loading ? "불러오는 중..." : "내 선거 확인하기"}
         </Button>
 
         {error && (
-          <Alert variant="warning" className="animate-fade-in-up stagger-5 mt-3">
+          <Alert variant="warning" className="stagger-5 mt-3 animate-fade-in-up">
             <div className="flex items-start gap-2">
-              <TriangleAlert className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+              <TriangleAlert
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
               <div>
                 <AlertTitle>조회 오류</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
@@ -237,9 +242,9 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
         )}
 
         {regionNotice && (
-          <Alert variant="info" className="animate-fade-in-up stagger-5 mt-2">
+          <Alert variant="info" className="stagger-5 mt-2 animate-fade-in-up">
             <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <div>
                 <AlertTitle>기본 목록 사용</AlertTitle>
                 <AlertDescription>{regionNotice}</AlertDescription>
@@ -248,9 +253,9 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
           </Alert>
         )}
 
-        <div className="animate-fade-in-up stagger-6 mt-6">
+        <div className="stagger-6 mt-6 animate-fade-in-up">
           <p
-            className="text-[11px] font-medium mb-2"
+            className="mb-2 text-[11px] font-medium"
             style={{ color: "var(--text-tertiary)" }}
           >
             샘플 데이터로 미리보기
@@ -259,14 +264,14 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
             <Button
               onClick={() => onSubmit("서울특별시", "강남구", "개포1동")}
               variant="secondary"
-              className="flex-1 h-[44px] text-[12px] font-medium"
+              className="h-[44px] flex-1 text-[12px] font-medium"
             >
               서울 강남구 개포1동
             </Button>
             <Button
               onClick={() => onSubmit("제주특별자치도", "제주시", "노형동")}
               variant="secondary"
-              className="flex-1 h-[44px] text-[12px] font-medium"
+              className="h-[44px] flex-1 text-[12px] font-medium"
             >
               제주 제주시 노형동
             </Button>
@@ -274,7 +279,7 @@ export default function AddressInput({ onSubmit, loading, error }: Props) {
         </div>
 
         <p
-          className="animate-fade-in-up stagger-7 text-[10px] mt-8 leading-relaxed"
+          className="stagger-7 mt-8 animate-fade-in-up text-[10px] leading-relaxed"
           style={{ color: "var(--text-tertiary)" }}
         >
           입력한 주소 정보는 선거구 매핑에만 사용됩니다.

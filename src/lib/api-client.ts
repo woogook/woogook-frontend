@@ -9,8 +9,14 @@ import {
   cityQuerySchema,
   citySigunguQuerySchema,
   emdResponseSchema,
+  localElectionChatConversationCreateRequestSchema,
+  localElectionChatConversationResponseSchema,
+  localElectionChatMessageCreateRequestSchema,
+  localElectionChatMessageResponseSchema,
   sigunguResponseSchema,
   type BallotsSearchParams,
+  type LocalElectionChatConversationCreateRequest,
+  type LocalElectionChatMessageCreateRequest,
 } from "@/lib/schemas";
 
 type RegionQueryResult = {
@@ -18,7 +24,26 @@ type RegionQueryResult = {
   fallbackMessage?: string;
 };
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 function getErrorMessage(payload: unknown, fallback: string) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message;
+  }
+
   if (
     payload &&
     typeof payload === "object" &&
@@ -31,19 +56,33 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
-async function fetchJson<T>(input: string, schema: ZodType<T>): Promise<T> {
+async function requestJson<T>(
+  input: string,
+  schema: ZodType<T>,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(input, {
+    ...init,
     headers: {
       Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.headers || {}),
     },
   });
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, "요청을 처리하지 못했습니다."));
+    throw new ApiError(
+      response.status,
+      getErrorMessage(payload, "요청을 처리하지 못했습니다."),
+    );
   }
 
   return schema.parse(payload);
+}
+
+async function fetchJson<T>(input: string, schema: ZodType<T>): Promise<T> {
+  return requestJson(input, schema);
 }
 
 async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>(
@@ -62,7 +101,7 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
     console.error(error);
     return {
       items: [...fallback],
-      fallbackMessage,
+      fallbackMessage: error instanceof Error ? error.message : fallbackMessage,
     } satisfies RegionQueryResult;
   }
 }
@@ -141,4 +180,48 @@ export function ballotsQueryOptions(params: BallotsSearchParams) {
     staleTime: 5 * 60 * 1000,
     retry: 0,
   });
+}
+
+export async function createLocalElectionChatConversation(
+  request: LocalElectionChatConversationCreateRequest,
+) {
+  const payload = localElectionChatConversationCreateRequestSchema.parse(request);
+  return requestJson(
+    "/api/local-election/v1/chat/conversations",
+    localElectionChatConversationResponseSchema,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function getLocalElectionChatConversation(params: {
+  conversationId: string;
+  clientSessionId: string;
+}) {
+  const query = new URLSearchParams({
+    client_session_id: params.clientSessionId,
+  });
+
+  return requestJson(
+    `/api/local-election/v1/chat/conversations/${encodeURIComponent(params.conversationId)}?${query.toString()}`,
+    localElectionChatConversationResponseSchema,
+  );
+}
+
+export async function sendLocalElectionChatMessage(params: {
+  conversationId: string;
+  request: LocalElectionChatMessageCreateRequest;
+}) {
+  const payload = localElectionChatMessageCreateRequestSchema.parse(params.request);
+
+  return requestJson(
+    `/api/local-election/v1/chat/conversations/${encodeURIComponent(params.conversationId)}/messages`,
+    localElectionChatMessageResponseSchema,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }

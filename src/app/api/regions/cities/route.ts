@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import {
+  buildDatabaseUnavailableResponse,
+  isDatabaseUnavailableError,
+} from "@/lib/pg-error";
 import { citiesResponseSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +24,9 @@ export async function GET() {
     return NextResponse.json(citiesResponseSchema.parse({ cities }));
   } catch (error) {
     console.error("[regions/cities] error", error);
+    if (isDatabaseUnavailableError(error)) {
+      return buildDatabaseUnavailableResponse("cities");
+    }
     return NextResponse.json({ error: "Failed to load cities" }, { status: 500 });
   }
 }
