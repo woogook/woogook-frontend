@@ -104,6 +104,10 @@ export default function CandidateCards({
   const hasCandidates = ballot.candidates.length > 0;
   const showCompare = !isPartyList && ballot.candidates.length > 1;
   const isSingleCandidate = !isPartyList && ballot.candidates.length === 1;
+  const compareButtonLabel =
+    ballot.candidates.length <= 3
+      ? "전체 후보 비교하기"
+      : "후보 좁혀서 비교하기";
   const issueLabels = getIssueProfileLabelList(issueProfile);
   const showIssueSummary = hasActiveIssues(issueProfile);
 
@@ -440,7 +444,7 @@ export default function CandidateCards({
               }}
               aria-label="후보 비교 화면으로 이동"
             >
-              후보 {ballot.candidates.length}명 비교하기
+              {compareButtonLabel}
             </button>
           </div>
         )}

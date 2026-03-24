@@ -1,11 +1,12 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { ChatSelectionBasis } from "@/lib/schemas";
 import { ballotsQueryOptions } from "@/lib/api-client";
 import { ballotsSearchParamsSchema } from "@/lib/schemas";
 import {
@@ -22,6 +23,7 @@ import AddressInput from "./components/AddressInput";
 import BallotSummary from "./components/BallotSummary";
 import CandidateCards from "./components/CandidateCards";
 import CompareView from "./components/CompareView";
+import CompareScopeView from "./components/CompareScopeView";
 import DetailView from "./components/DetailView";
 import IssueStep from "./components/IssueStep";
 
@@ -30,10 +32,16 @@ type View =
   | "ballot"
   | "issues"
   | "candidates"
+  | "compare_scope"
   | "compare"
   | "detail";
 type ServiceTab = "assembly" | "local";
-type IssueOriginView = "ballot" | "candidates" | "compare" | "detail";
+type IssueOriginView =
+  | "ballot"
+  | "candidates"
+  | "compare_scope"
+  | "compare"
+  | "detail";
 
 const ISSUE_STORAGE_KEY = "woogook.local-election.issue-profiles.v1";
 
@@ -47,6 +55,14 @@ export default function Home() {
     null,
   );
   const [detailReturnView, setDetailReturnView] = useState<View>("candidates");
+  const [selectedCompareCandidateIds, setSelectedCompareCandidateIds] = useState<
+    string[]
+  >([]);
+  const [compareSelectionBasis, setCompareSelectionBasis] =
+    useState<ChatSelectionBasis>("all");
+  const [compareSelectionLabel, setCompareSelectionLabel] = useState<string | null>(
+    null,
+  );
   const [issueOriginView, setIssueOriginView] = useState<IssueOriginView>("ballot");
   const [issueProfiles, setIssueProfiles] = useState<
     Record<string, UserIssueProfile>
@@ -115,6 +131,9 @@ export default function Home() {
     setBallotData(null);
     setSelectedBallot(null);
     setSelectedCandidate(null);
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("all");
+    setCompareSelectionLabel(null);
 
     try {
       const data = await queryClient.fetchQuery(ballotsQueryOptions(params));
@@ -138,6 +157,9 @@ export default function Home() {
     }
     setSelectedBallot(ballot);
     setSelectedCandidate(null);
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("all");
+    setCompareSelectionLabel(null);
     setIssueOriginView("ballot");
     navigate("issues");
   };
@@ -155,6 +177,39 @@ export default function Home() {
     setIssueOriginView(originView);
     navigate("issues");
   };
+
+  const handleOpenCompareFlow = useCallback(() => {
+    if (!selectedBallot) return;
+
+    if (selectedBallot.candidates.length <= 3) {
+      setSelectedCompareCandidateIds(
+        selectedBallot.candidates.map((candidate) => candidate.candidate_id),
+      );
+      setCompareSelectionBasis("all");
+      setCompareSelectionLabel("전체 후보");
+      navigate("compare");
+      return;
+    }
+
+    setSelectedCompareCandidateIds([]);
+    setCompareSelectionBasis("issue");
+    setCompareSelectionLabel(null);
+    navigate("compare_scope");
+  }, [navigate, selectedBallot]);
+
+  const handleStartScopedCompare = useCallback(
+    (
+      candidateIds: string[],
+      selectionBasis: ChatSelectionBasis,
+      selectionLabel: string | null,
+    ) => {
+      setSelectedCompareCandidateIds(candidateIds);
+      setCompareSelectionBasis(selectionBasis);
+      setCompareSelectionLabel(selectionLabel);
+      navigate("compare");
+    },
+    [navigate],
+  );
 
   const handleIssueSubmit = (profile: UserIssueProfile) => {
     setIssueProfiles((current) => ({
@@ -191,6 +246,38 @@ export default function Home() {
         selectedBallot.contest_id,
       )
     : null;
+  const compareCandidates = useMemo(() => {
+    if (!selectedBallot) {
+      return [];
+    }
+
+    if (selectedBallot.candidates.length <= 3) {
+      return selectedBallot.candidates;
+    }
+
+    if (selectedCompareCandidateIds.length === 0) {
+      return [];
+    }
+
+    const selectedCandidateIdSet = new Set(selectedCompareCandidateIds);
+    return selectedBallot.candidates.filter((candidate) =>
+      selectedCandidateIdSet.has(candidate.candidate_id),
+    );
+  }, [selectedBallot, selectedCompareCandidateIds]);
+  const compareBallot = useMemo(() => {
+    if (!selectedBallot) {
+      return null;
+    }
+
+    return {
+      ...selectedBallot,
+      candidates: compareCandidates,
+    };
+  }, [compareCandidates, selectedBallot]);
+  const compareBackView =
+    selectedBallot && selectedBallot.candidates.length >= 4
+      ? ("compare_scope" as const)
+      : ("candidates" as const);
 
   return (
     <div className="min-h-[100dvh] flex flex-col" style={rootStyle}>
@@ -404,6 +491,7 @@ export default function Home() {
                 </button>
                 {(view === "issues" ||
                   view === "candidates" ||
+                  view === "compare_scope" ||
                   view === "compare" ||
                   view === "detail") &&
                   selectedBallot && (
@@ -413,6 +501,8 @@ export default function Home() {
                         onClick={() =>
                           handleOpenIssueStep(
                             view === "compare" || view === "detail" || view === "candidates"
+                              ? view
+                              : view === "compare_scope"
                               ? view
                               : "ballot",
                           )
@@ -430,7 +520,10 @@ export default function Home() {
                       </button>
                     </>
                   )}
-                {(view === "candidates" || view === "compare" || view === "detail") &&
+                {(view === "candidates" ||
+                  view === "compare_scope" ||
+                  view === "compare" ||
+                  view === "detail") &&
                   selectedBallot && (
                     <>
                       <span aria-hidden="true">/</span>
@@ -450,6 +543,14 @@ export default function Home() {
                       </button>
                     </>
                   )}
+                {view === "compare_scope" && (
+                  <>
+                    <span aria-hidden="true">/</span>
+                    <span className="px-1 py-1.5" style={{ color: "var(--navy)" }}>
+                      후보군
+                    </span>
+                  </>
+                )}
                 {view === "compare" && (
                   <>
                     <span aria-hidden="true">/</span>
@@ -501,22 +602,38 @@ export default function Home() {
                 ballot={selectedBallot}
                 issueProfile={currentIssueProfile}
                 onSelectCandidate={handleSelectCandidate}
-                onCompare={() => navigate("compare")}
+                onCompare={handleOpenCompareFlow}
                 onBack={() => navigate("issues")}
                 onEditIssues={() => handleOpenIssueStep("candidates")}
               />
             )}
 
+            {view === "compare_scope" && selectedBallot && (
+              <CompareScopeView
+                ballot={selectedBallot}
+                issueProfile={currentIssueProfile}
+                onBack={() => navigate("candidates")}
+                onEditIssues={() => handleOpenIssueStep("compare_scope")}
+                onSelectCandidate={(candidate) =>
+                  handleSelectCandidate(candidate, "compare_scope")
+                }
+                onStartCompare={handleStartScopedCompare}
+              />
+            )}
+
             {view === "compare" &&
-              selectedBallot &&
-              selectedBallot.candidates.length > 0 && (
+              compareBallot &&
+              compareBallot.candidates.length > 0 && (
                 <CompareView
-                  ballot={selectedBallot}
+                  ballot={compareBallot}
+                  totalCandidateCount={selectedBallot?.candidates.length || 0}
                   issueProfile={currentIssueProfile}
+                  selectionBasis={compareSelectionBasis}
+                  selectionLabel={compareSelectionLabel}
                   onSelectCandidate={(candidate) =>
                     handleSelectCandidate(candidate, "compare")
                   }
-                  onBack={() => navigate("candidates")}
+                  onBack={() => navigate(compareBackView)}
                   onEditIssues={() => handleOpenIssueStep("compare")}
                 />
               )}

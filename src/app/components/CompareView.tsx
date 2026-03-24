@@ -1,7 +1,20 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  ApiError,
+  createLocalElectionChatConversation,
+  getLocalElectionChatConversation,
+  sendLocalElectionChatMessage,
+} from "@/lib/api-client";
+import {
+  chatMessageRoleSchema,
+  localElectionChatCitationSchema,
+  type ChatSelectionBasis,
+  type LocalElectionChatCitation,
+} from "@/lib/schemas";
 import {
   BallotItem,
   CandidateRecord,
@@ -20,9 +33,16 @@ import {
 } from "../data";
 import { CandidatePhoto } from "./CandidateCards";
 
+const CLIENT_SESSION_STORAGE_KEY = "woogook.local-election.chat.client-session.v1";
+const COMPARE_CHAT_STORAGE_KEY_PREFIX = "woogook.local-election.chat.compare.v1.";
+const DEFAULT_INITIAL_CHAT_QUESTION = "내 관심 이슈 기준으로 다시 요약해줘";
+
 interface Props {
   ballot: BallotItem;
+  totalCandidateCount: number;
   issueProfile: UserIssueProfile | null;
+  selectionBasis: ChatSelectionBasis;
+  selectionLabel: string | null;
   onSelectCandidate: (candidate: CandidateRecord) => void;
   onBack: () => void;
   onEditIssues: () => void;
@@ -40,17 +60,28 @@ const FACT_LABELS = [
 
 export default function CompareView({
   ballot,
+  totalCandidateCount,
   issueProfile,
+  selectionBasis,
+  selectionLabel,
   onSelectCandidate,
   onBack,
   onEditIssues,
 }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
+  const skipNextChatPersistRef = useRef(true);
   const [activeCandidate, setActiveCandidate] = useState(0);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<AssistantMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatUiMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
+  const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [hasAutoPrompted, setHasAutoPrompted] = useState(false);
 
   const candidates = ballot.candidates;
   const issueLabels = getIssueProfileLabelList(issueProfile);
@@ -68,16 +99,33 @@ export default function CompareView({
     () => buildAssistantPromptOptions(issueCriteria),
     [issueCriteria],
   );
-  const initialAssistantMessage = useMemo(
+  const candidateNameMap = useMemo(
+    () => new Map(candidates.map((candidate) => [candidate.candidate_id, candidate.name_ko])),
+    [candidates],
+  );
+  const scopeBanner = useMemo(
     () =>
-      buildAssistantReply(
-        "내 관심 이슈 기준으로 다시 요약해줘",
+      buildCompareScopeBanner({
+        totalCandidateCount,
+        selectedCandidateCount: candidates.length,
+        selectionBasis,
+        selectionLabel,
+      }),
+    [candidates.length, selectionBasis, selectionLabel, totalCandidateCount],
+  );
+  const chatContextSignature = useMemo(
+    () =>
+      buildCompareChatContextSignature(
         ballot,
-        candidates,
         issueProfile,
-        compareOverview,
+        selectionBasis,
+        selectionLabel,
       ),
-    [ballot, candidates, compareOverview, issueProfile],
+    [ballot, issueProfile, selectionBasis, selectionLabel],
+  );
+  const chatStorageKey = useMemo(
+    () => buildCompareChatStorageKey(chatContextSignature),
+    [chatContextSignature],
   );
 
   useEffect(() => {
@@ -116,44 +164,128 @@ export default function CompareView({
     return () => container.removeEventListener("scroll", onScroll);
   }, [candidates.length]);
 
-  const appendAssistantExchange = (question: string) => {
-    const trimmed = question.trim();
-    if (!trimmed) return;
+  useEffect(() => {
+    const stored = readStoredCompareChatState(chatStorageKey);
+    skipNextChatPersistRef.current = true;
 
-    const reply = buildAssistantReply(
-      trimmed,
-      ballot,
-      candidates,
-      issueProfile,
-      compareOverview,
-    );
+    setConversationId(stored?.conversationId ?? null);
+    setChatMessages(stored?.messages ?? []);
+    setLastQuestion(stored?.lastQuestion ?? null);
+    setLastFailedQuestion(null);
+    setPendingQuestion(null);
+    setChatError(null);
+    setIsSending(false);
+    setHasAutoPrompted((stored?.messages.length ?? 0) > 0);
+  }, [chatStorageKey]);
 
-    setChatMessages((current) => [
-      ...current,
-      {
-        id: `user:${current.length}:${trimmed}`,
-        role: "user",
-        content: trimmed,
-      },
-      {
-        id: `assistant:${current.length}:${trimmed}`,
-        role: "assistant",
-        content: reply,
-      },
-    ]);
-    setChatInput("");
-  };
+  useEffect(() => {
+    if (skipNextChatPersistRef.current) {
+      skipNextChatPersistRef.current = false;
+      return;
+    }
+
+    writeStoredCompareChatState(chatStorageKey, {
+      contextSignature: chatContextSignature,
+      conversationId,
+      messages: chatMessages,
+      lastQuestion,
+    });
+  }, [chatContextSignature, chatMessages, chatStorageKey, conversationId, lastQuestion]);
+
+  const resetConversationCache = useCallback(() => {
+    setConversationId(null);
+    setChatMessages([]);
+    setLastQuestion(null);
+    clearStoredCompareChatState(chatStorageKey);
+  }, [chatStorageKey]);
+
+  const createConversation = useCallback(
+    async (clientSessionId: string) => {
+      const response = await createLocalElectionChatConversation({
+        client_session_id: clientSessionId,
+        contest_id: ballot.contest_id,
+        candidate_ids: candidates.map((candidate) => candidate.candidate_id),
+        issue_profile_snapshot: issueProfile,
+        entry_point: "compare",
+        selection_basis: selectionBasis,
+        selection_label: selectionLabel,
+      });
+
+      setConversationId(response.conversation_id);
+      return response.conversation_id;
+    },
+    [ballot.contest_id, candidates, issueProfile, selectionBasis, selectionLabel],
+  );
+
+  const ensureConversation = useCallback(
+    async (clientSessionId: string) => {
+      if (!conversationId) {
+        return createConversation(clientSessionId);
+      }
+
+      try {
+        await getLocalElectionChatConversation({
+          conversationId,
+          clientSessionId,
+        });
+        return conversationId;
+      } catch (error) {
+        if (isApiErrorWithStatus(error, 404)) {
+          resetConversationCache();
+          return createConversation(clientSessionId);
+        }
+        throw error;
+      }
+    },
+    [conversationId, createConversation, resetConversationCache],
+  );
+
+  const sendQuestion = useCallback(
+    async (questionText: string) => {
+      const question = questionText.trim();
+      if (!question || isSending) return;
+
+      setChatError(null);
+      setLastFailedQuestion(null);
+      setPendingQuestion(question);
+      setIsSending(true);
+
+      try {
+        const clientSessionId = getOrCreateClientSessionId();
+        const activeConversationId = await ensureConversation(clientSessionId);
+        const response = await sendLocalElectionChatMessage({
+          conversationId: activeConversationId,
+          request: {
+            client_session_id: clientSessionId,
+            question,
+          },
+        });
+
+        setConversationId(response.conversation_id);
+        setChatMessages((current) => [...current, ...buildChatMessagesFromResponse(response)]);
+        setLastQuestion(question);
+        setChatInput("");
+      } catch (error) {
+        setChatError(buildChatErrorMessage(error));
+        setLastFailedQuestion(question);
+      } finally {
+        setPendingQuestion(null);
+        setIsSending(false);
+      }
+    },
+    [ensureConversation, isSending],
+  );
+
+  useEffect(() => {
+    if (!assistantOpen || hasAutoPrompted || isSending || chatMessages.length > 0) {
+      return;
+    }
+
+    setHasAutoPrompted(true);
+    void sendQuestion(DEFAULT_INITIAL_CHAT_QUESTION);
+  }, [assistantOpen, chatMessages.length, hasAutoPrompted, isSending, sendQuestion]);
 
   const openAssistant = () => {
-    if (chatMessages.length === 0) {
-      setChatMessages([
-        {
-          id: "assistant:welcome",
-          role: "assistant",
-          content: initialAssistantMessage,
-        },
-      ]);
-    }
     setAssistantOpen(true);
   };
 
@@ -179,7 +311,7 @@ export default function CompareView({
                 후보 비교
               </h2>
               <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                {getContestTitle(ballot)} — {ballot.display_name} — {candidates.length}명
+                {getContestTitle(ballot)} — {ballot.display_name} — 선택 {candidates.length}명
               </p>
             </div>
             <button
@@ -195,6 +327,25 @@ export default function CompareView({
 
         <div
           className="animate-fade-in-up stagger-2 rounded px-4 py-3 mb-4"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(255,248,231,0.92), rgba(246,240,224,0.92))",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>
+            현재 비교 범위
+          </p>
+          <p className="text-[12px] leading-relaxed" style={{ color: "var(--foreground)" }}>
+            {scopeBanner.title}
+          </p>
+          <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            {scopeBanner.helper}
+          </p>
+        </div>
+
+        <div
+          className="animate-fade-in-up stagger-3 rounded px-4 py-3 mb-4"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
@@ -227,7 +378,7 @@ export default function CompareView({
         </div>
 
         <div
-          className="animate-fade-in-up stagger-3 rounded px-4 py-4 mb-4"
+          className="animate-fade-in-up stagger-4 rounded px-4 py-4 mb-4"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -236,7 +387,7 @@ export default function CompareView({
                 한눈에 비교
               </p>
               <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                {compareOverview.headline}
+                {scopeBanner.shortLabel} 범위에서 {compareOverview.headline}
               </p>
             </div>
             <Button
@@ -268,7 +419,7 @@ export default function CompareView({
         </div>
 
         <div
-          className="animate-fade-in-up stagger-4 sticky z-10 -mx-5 px-5 pt-2 pb-3"
+          className="animate-fade-in-up stagger-5 sticky z-10 -mx-5 px-5 pt-2 pb-3"
           style={{
             top: "49px",
             background: "rgba(249,248,245,0.95)",
@@ -491,7 +642,7 @@ export default function CompareView({
           style={{ background: "var(--surface-alt)", borderLeft: "2px solid var(--border-dark)" }}
         >
           <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-            비교 결과는 현재 확보한 공개 자료 기준입니다. 특정 후보를 추천하지 않으며, 정보 부족은 숨기지 않고 표시합니다.
+            비교 결과는 현재 선택한 후보 범위와 확보한 공개 자료 기준입니다. 특정 후보를 추천하지 않으며, 정보 부족은 숨기지 않고 표시합니다.
           </p>
         </div>
 
@@ -545,7 +696,10 @@ export default function CompareView({
                     비교 도우미
                   </p>
                   <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    현재 비교 화면 기준으로 근거를 다시 설명합니다.
+                    {scopeBanner.title}
+                  </p>
+                  <p className="text-[10px] leading-relaxed mt-1" style={{ color: "var(--text-tertiary)" }}>
+                    사용 후보: {candidates.map((candidate) => candidate.name_ko).join(", ")}
                   </p>
                 </div>
                 <button
@@ -578,13 +732,15 @@ export default function CompareView({
                   <button
                     key={prompt}
                     type="button"
-                    onClick={() => appendAssistantExchange(prompt)}
+                    onClick={() => void sendQuestion(prompt)}
                     className="rounded-full px-3 py-2 text-[11px] font-medium"
                     style={{
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
                       color: "var(--navy)",
+                      opacity: isSending ? 0.55 : 1,
                     }}
+                    disabled={isSending}
                   >
                     {prompt}
                   </button>
@@ -617,13 +773,180 @@ export default function CompareView({
                             : "1px solid var(--border)",
                       }}
                     >
+                      {message.role === "assistant" && (
+                        <div
+                          className="mb-2 rounded-xl px-2.5 py-2"
+                          style={{
+                            background: "rgba(255,248,231,0.92)",
+                            border: "1px solid rgba(201,169,84,0.22)",
+                          }}
+                        >
+                          <p className="text-[10px] font-semibold" style={{ color: "var(--amber)" }}>
+                            이 답변은 현재 선택된 후보 범위 기준입니다.
+                          </p>
+                        </div>
+                      )}
                       <p className="text-[11px] leading-relaxed whitespace-pre-line">
                         {message.content}
                       </p>
+                      {message.role === "assistant" && (
+                        <div className="mt-2.5 space-y-2">
+                          {message.citations.length > 0 && (
+                            <div className="space-y-1.5">
+                              <p
+                                className="text-[10px] font-semibold"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                근거
+                              </p>
+                              {message.citations.map((citation) => (
+                                <div
+                                  key={`${message.id}:${citation.label}:${citation.candidate_id || "none"}`}
+                                  className="rounded-xl px-2.5 py-2"
+                                  style={{
+                                    background: "rgba(255,255,255,0.72)",
+                                    border: "1px solid var(--border)",
+                                  }}
+                                >
+                                  <p
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "var(--navy)" }}
+                                  >
+                                    {citation.label}
+                                    {citation.candidate_id &&
+                                      candidateNameMap.get(citation.candidate_id) &&
+                                      ` · ${candidateNameMap.get(citation.candidate_id)}`}
+                                  </p>
+                                  <p
+                                    className="text-[10px] leading-relaxed mt-1"
+                                    style={{ color: "var(--foreground)" }}
+                                  >
+                                    {citation.snippet}
+                                  </p>
+                                  <p
+                                    className="text-[10px] mt-1"
+                                    style={{ color: "var(--text-tertiary)" }}
+                                  >
+                                    {getChatSourceTypeLabel(citation.source_type)}
+                                    {citation.as_of
+                                      ? ` · ${formatKoreanDateTime(citation.as_of)}`
+                                      : ""}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {message.infoGapFlags.length > 0 && (
+                            <div className="space-y-1">
+                              <p
+                                className="text-[10px] font-semibold"
+                                style={{ color: "var(--warning-text)" }}
+                              >
+                                정보 부족
+                              </p>
+                              {message.infoGapFlags.map((flag) => (
+                                <p
+                                  key={`${message.id}:${flag}`}
+                                  className="text-[10px] leading-relaxed"
+                                  style={{ color: "var(--warning-text)" }}
+                                >
+                                  {flag}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          {message.followUpSuggestions.length > 0 && (
+                            <div className="space-y-1.5">
+                              <p
+                                className="text-[10px] font-semibold"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                이어서 물어보기
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {message.followUpSuggestions.map((suggestion) => (
+                                  <button
+                                    key={`${message.id}:${suggestion}`}
+                                    type="button"
+                                    onClick={() => void sendQuestion(suggestion)}
+                                    className="rounded-full px-2.5 py-1.5 text-[10px] font-medium"
+                                    style={{
+                                      background: "var(--surface-alt)",
+                                      border: "1px solid var(--border)",
+                                      color: "var(--navy)",
+                                      opacity: isSending ? 0.55 : 1,
+                                    }}
+                                    disabled={isSending}
+                                  >
+                                    {suggestion}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
+                  {pendingQuestion && (
+                    <>
+                      <div
+                        className="max-w-[92%] rounded-2xl px-3 py-2.5 ml-auto"
+                        style={{ background: "var(--navy)", color: "#ffffff" }}
+                      >
+                        <p className="text-[11px] leading-relaxed whitespace-pre-line">
+                          {pendingQuestion}
+                        </p>
+                      </div>
+                      <div
+                        className="max-w-[92%] rounded-2xl px-3 py-2.5"
+                        style={{
+                          background: "var(--surface)",
+                          color: "var(--foreground)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <p className="text-[11px] leading-relaxed">
+                          답변을 정리하고 있습니다...
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
+
+              {chatError && (
+                <div
+                  className="mb-3 rounded-2xl px-3 py-2.5"
+                  style={{
+                    background: "var(--warning-bg)",
+                    border: "1px solid rgba(180,83,9,0.18)",
+                  }}
+                >
+                  <p
+                    className="text-[11px] leading-relaxed"
+                    style={{ color: "var(--warning-text)" }}
+                  >
+                    {chatError}
+                  </p>
+                  {lastFailedQuestion && (
+                    <button
+                      type="button"
+                      onClick={() => void sendQuestion(lastFailedQuestion)}
+                      className="mt-2 rounded-full px-3 py-1.5 text-[10px] font-semibold"
+                      style={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        color: "var(--navy)",
+                        opacity: isSending ? 0.55 : 1,
+                      }}
+                      disabled={isSending}
+                    >
+                      다시 시도
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <input
@@ -632,7 +955,7 @@ export default function CompareView({
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
-                      appendAssistantExchange(chatInput);
+                      void sendQuestion(chatInput);
                     }
                   }}
                   placeholder="비교 화면 기준으로 질문해보세요"
@@ -642,15 +965,16 @@ export default function CompareView({
                     border: "1px solid var(--border)",
                     color: "var(--foreground)",
                   }}
+                  disabled={isSending}
                 />
                 <Button
                   type="button"
                   variant="primary"
                   size="default"
-                  onClick={() => appendAssistantExchange(chatInput)}
-                  disabled={!chatInput.trim()}
+                  onClick={() => void sendQuestion(chatInput)}
+                  disabled={!chatInput.trim() || isSending}
                 >
-                  보내기
+                  {isSending ? "전송 중" : "보내기"}
                 </Button>
               </div>
             </div>
@@ -667,11 +991,38 @@ type CompareOverview = {
   caveat: string;
 };
 
-type AssistantMessage = {
-  id: string;
-  role: "assistant" | "user";
-  content: string;
+type CompareScopeBanner = {
+  title: string;
+  helper: string;
+  shortLabel: string;
 };
+
+type ChatUiMessage = {
+  id: string;
+  role: z.infer<typeof chatMessageRoleSchema>;
+  content: string;
+  createdAt: string | null;
+  citations: LocalElectionChatCitation[];
+  infoGapFlags: string[];
+  followUpSuggestions: string[];
+};
+
+const chatUiMessageSchema = z.object({
+  id: z.string(),
+  role: chatMessageRoleSchema,
+  content: z.string(),
+  createdAt: z.string().nullable(),
+  citations: z.array(localElectionChatCitationSchema),
+  infoGapFlags: z.array(z.string()),
+  followUpSuggestions: z.array(z.string()),
+});
+
+const storedCompareChatStateSchema = z.object({
+  contextSignature: z.string(),
+  conversationId: z.string().nullable(),
+  messages: z.array(chatUiMessageSchema),
+  lastQuestion: z.string().nullable(),
+});
 
 function buildCompareOverview(
   ballot: BallotItem,
@@ -790,114 +1141,183 @@ function buildAssistantPromptOptions(criteria: ReturnType<typeof getIssueCriteri
   ];
 }
 
-function buildAssistantReply(
-  question: string,
+function buildCompareChatContextSignature(
   ballot: BallotItem,
-  candidates: CandidateRecord[],
   issueProfile: UserIssueProfile | null,
-  compareOverview: CompareOverview,
+  selectionBasis: ChatSelectionBasis,
+  selectionLabel: string | null,
 ) {
-  const normalizedQuestion = question.replace(/\s+/g, "");
-  const criteria = getIssueCriterionEntries(issueProfile);
-  const sparseCandidates = candidates
-    .filter((candidate) => (candidate.compare_entry?.info_gap_flags.length || 0) > 0)
-    .sort(
-      (left, right) =>
-        (right.compare_entry?.info_gap_flags.length || 0) -
-        (left.compare_entry?.info_gap_flags.length || 0),
-    );
-  const strongestEvidenceCandidate = [...candidates].sort(
-    (left, right) => getEvidenceScore(right) - getEvidenceScore(left),
-  )[0];
+  return JSON.stringify({
+    contestId: ballot.contest_id,
+    candidateIds: ballot.candidates.map((candidate) => candidate.candidate_id),
+    normalizedIssueKeys: issueProfile?.normalized_issue_keys || [],
+    customKeywords: issueProfile?.custom_keywords || [],
+    selectionBasis,
+    selectionLabel,
+  });
+}
 
-  if (
-    normalizedQuestion.includes("왜") ||
-    normalizedQuestion.includes("근거")
-  ) {
-    return `${compareOverview.headline}\n${compareOverview.bullets.join("\n")}`;
+function buildCompareScopeBanner(params: {
+  totalCandidateCount: number;
+  selectedCandidateCount: number;
+  selectionBasis: ChatSelectionBasis;
+  selectionLabel: string | null;
+}): CompareScopeBanner {
+  const { totalCandidateCount, selectedCandidateCount, selectionBasis, selectionLabel } =
+    params;
+  const label = selectionLabel || getSelectionBasisLabel(selectionBasis);
+  const title =
+    totalCandidateCount > selectedCandidateCount
+      ? `전체 ${totalCandidateCount}명 중 ${label} ${selectedCandidateCount}명 비교`
+      : `${label} ${selectedCandidateCount}명 비교`;
+
+  return {
+    title,
+    shortLabel: label,
+    helper:
+      selectedCandidateCount === 1
+        ? "현재는 한 후보를 깊게 살펴보는 모드입니다. 다른 후보와 함께 고르면 차이 설명이 더 풍부해집니다."
+        : "비교 표와 에이전트는 모두 이 범위 안의 후보만 사용합니다.",
+  };
+}
+
+function getSelectionBasisLabel(selectionBasis: ChatSelectionBasis) {
+  const labels: Record<ChatSelectionBasis, string> = {
+    all: "전체 후보",
+    issue: "이슈 관련 후보",
+    party: "정당별 후보",
+    manual: "직접 고른 후보",
+    evidence: "정보 충분 후보",
+    incumbent: "현직·의정 경험 후보",
+  };
+
+  return labels[selectionBasis];
+}
+
+function buildCompareChatStorageKey(contextSignature: string) {
+  return `${COMPARE_CHAT_STORAGE_KEY_PREFIX}${encodeURIComponent(contextSignature)}`;
+}
+
+function readStoredCompareChatState(storageKey: string) {
+  if (typeof window === "undefined") {
+    return null;
   }
 
-  if (normalizedQuestion.includes("정보부족")) {
-    if (sparseCandidates.length === 0) {
-      return "현재 비교 대상에서는 특별히 표시된 정보 부족 항목이 많지 않습니다.";
-    }
+  try {
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    return storedCompareChatStateSchema.parse(JSON.parse(raw));
+  } catch (error) {
+    console.error("[compare-chat] failed to read stored state", error);
+    window.sessionStorage.removeItem(storageKey);
+    return null;
+  }
+}
 
-    return sparseCandidates
-      .slice(0, 2)
-      .map((candidate) => {
-        const gaps = candidate.compare_entry?.info_gap_flags || [];
-        return `${candidate.name_ko} 후보는 ${gaps.length}개의 부족 항목이 있습니다. ${gaps.slice(0, 2).join(", ")}${
-          gaps.length > 2 ? " 등이 비어 있습니다." : "."
-        }`;
-      })
-      .join("\n");
+function writeStoredCompareChatState(
+  storageKey: string,
+  state: z.infer<typeof storedCompareChatStateSchema>,
+) {
+  if (typeof window === "undefined") {
+    return;
   }
 
-  if (normalizedQuestion.includes("권한")) {
-    if (criteria.length === 0) {
-      return "아직 선택된 이슈가 없어 특정 권한 범위를 짚기 어렵습니다. 이슈를 먼저 고르면 선출직 권한과 연결해서 다시 설명할 수 있습니다.";
-    }
+  try {
+    window.sessionStorage.setItem(storageKey, JSON.stringify(state));
+  } catch (error) {
+    console.error("[compare-chat] failed to persist state", error);
+  }
+}
 
-    return criteria
-      .slice(0, 2)
-      .map(
-        (criterion) =>
-          `${criterion.label} · ${getIssueCriterionHint(ballot.office_level, criterion)}`,
-      )
-      .join("\n");
+function clearStoredCompareChatState(storageKey: string) {
+  if (typeof window === "undefined") {
+    return;
   }
 
-  const matchedCriterion = criteria.find((criterion) =>
-    normalizedQuestion.includes(criterion.label.replace(/\s+/g, "")),
-  );
+  window.sessionStorage.removeItem(storageKey);
+}
 
-  if (matchedCriterion?.issue_key && issueProfile) {
-    const ranked = [...candidates]
-      .map((candidate) => ({
-        candidate,
-        match: getRelevantIssueMatches(candidate, {
-          ...issueProfile,
-          normalized_issue_keys: [matchedCriterion.issue_key!],
-        })[0],
-      }))
-      .sort(
-        (left, right) =>
-          getIssueLevelScore(right.match?.level) - getIssueLevelScore(left.match?.level),
-      );
-
-    return ranked
-      .slice(0, 2)
-      .map(({ candidate, match }) => {
-        if (!match) {
-          return `${candidate.name_ko} 후보는 ${matchedCriterion.label}와 직접 연결되는 공개 단서가 아직 부족합니다.`;
-        }
-        return `${candidate.name_ko} 후보는 ${matchedCriterion.label} 기준 ${getIssueMatchLevelLabel(match.level)}으로 보이며, ${match.reasons[0]}`;
-      })
-      .join("\n");
+function getOrCreateClientSessionId() {
+  if (typeof window === "undefined") {
+    return `web-session-${Date.now()}`;
   }
 
-  if (
-    normalizedQuestion.includes("차이") ||
-    normalizedQuestion.includes("비교") ||
-    normalizedQuestion.includes("요약")
-  ) {
-    return `${compareOverview.headline}\n${compareOverview.bullets.join("\n")}`;
+  const existing = window.sessionStorage.getItem(CLIENT_SESSION_STORAGE_KEY);
+  if (existing) {
+    return existing;
   }
 
-  if (normalizedQuestion.includes("출처")) {
-    if (!strongestEvidenceCandidate) {
-      return "현재 연결된 출처 정보를 기준으로 우세한 후보를 특정하기 어렵습니다.";
-    }
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? `web-${crypto.randomUUID()}`
+      : `web-${Date.now()}`;
+  window.sessionStorage.setItem(CLIENT_SESSION_STORAGE_KEY, generated);
+  return generated;
+}
 
-    const primarySource = strongestEvidenceCandidate.compare_entry?.source_refs[0];
-    return `${strongestEvidenceCandidate.name_ko} 후보가 비교 대상 중 근거 연결이 가장 안정적입니다. ${
-      primarySource
-        ? `대표 출처는 ${primarySource.label}입니다.`
-        : "다만 세부 출처 수는 제한적입니다."
-    }`;
+function buildChatMessagesFromResponse(response: {
+  user_message: {
+    message_id: string;
+    role: z.infer<typeof chatMessageRoleSchema>;
+    content: string;
+    created_at: string;
+  };
+  assistant_message: {
+    message_id: string;
+    role: z.infer<typeof chatMessageRoleSchema>;
+    content: string;
+    created_at: string;
+  };
+  citations: LocalElectionChatCitation[];
+  info_gap_flags: string[];
+  follow_up_suggestions: string[];
+}) {
+  return [
+    {
+      id: response.user_message.message_id,
+      role: response.user_message.role,
+      content: response.user_message.content,
+      createdAt: response.user_message.created_at,
+      citations: [],
+      infoGapFlags: [],
+      followUpSuggestions: [],
+    },
+    {
+      id: response.assistant_message.message_id,
+      role: response.assistant_message.role,
+      content: response.assistant_message.content,
+      createdAt: response.assistant_message.created_at,
+      citations: response.citations,
+      infoGapFlags: response.info_gap_flags,
+      followUpSuggestions: response.follow_up_suggestions,
+    },
+  ] satisfies ChatUiMessage[];
+}
+
+function isApiErrorWithStatus(error: unknown, status: number) {
+  return error instanceof ApiError && error.status === status;
+}
+
+function buildChatErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.status === 503) {
+    return "비교 도우미가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.";
   }
 
-  return `${compareOverview.headline}\n궁금한 점을 더 좁혀서 물어보면 후보 차이, 권한 범위, 정보 부족 이유를 다시 설명할 수 있습니다.`;
+  if (error instanceof ApiError) {
+    return error.message || "답변을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  return "답변을 가져오지 못했습니다. 잠시 후 다시 시도해주세요.";
+}
+
+function getChatSourceTypeLabel(sourceType: LocalElectionChatCitation["source_type"]) {
+  const labels = {
+    official: "공식 자료",
+    semi_official: "준공식 자료",
+    auxiliary: "보조 자료",
+  } as const;
+
+  return labels[sourceType];
 }
 
 function getEvidenceScore(candidate: CandidateRecord) {

@@ -53,6 +53,18 @@ export const dataPhaseSchema = z.enum([
   "completed",
 ]);
 
+export const chatEntryPointSchema = z.enum(["compare"]);
+export const chatSelectionBasisSchema = z.enum([
+  "all",
+  "issue",
+  "party",
+  "manual",
+  "evidence",
+  "incumbent",
+]);
+
+export const chatMessageRoleSchema = z.enum(["user", "assistant"]);
+
 export const sourceRefSchema = z.object({
   label: z.string(),
   source_type: sourceTypeSchema,
@@ -102,6 +114,66 @@ export const userIssueProfileSchema = z.object({
   custom_keywords: z.array(z.string()),
   normalized_issue_keys: z.array(issueKeySchema),
   updated_at: z.string(),
+});
+
+export const localElectionChatConversationContextSchema = z.object({
+  contest_id: z.string(),
+  candidate_ids: z.array(z.string()),
+  issue_profile_snapshot: userIssueProfileSchema.nullable(),
+  entry_point: chatEntryPointSchema,
+  selection_basis: chatSelectionBasisSchema,
+  selection_label: z.string().nullable(),
+});
+
+export const localElectionChatConversationCreateRequestSchema = z.object({
+  client_session_id: trimmedStringSchema.max(128),
+  contest_id: trimmedStringSchema,
+  candidate_ids: z.array(trimmedStringSchema).min(1).max(3),
+  issue_profile_snapshot: userIssueProfileSchema.nullable(),
+  entry_point: chatEntryPointSchema,
+  selection_basis: chatSelectionBasisSchema,
+  selection_label: z.string().trim().min(1).max(120).nullable(),
+});
+
+export const localElectionChatConversationResponseSchema = z.object({
+  conversation_id: z.string(),
+  client_session_id: z.string(),
+  context: localElectionChatConversationContextSchema,
+  message_count: z.number().int().min(0),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const localElectionChatMessageCreateRequestSchema = z.object({
+  client_session_id: trimmedStringSchema.max(128),
+  question: trimmedStringSchema,
+});
+
+export const localElectionChatMessageRecordSchema = z.object({
+  message_id: z.string(),
+  role: chatMessageRoleSchema,
+  content: z.string(),
+  created_at: z.string(),
+});
+
+export const localElectionChatCitationSchema = z.object({
+  label: z.string(),
+  source_type: sourceTypeSchema,
+  as_of: z.string().nullable(),
+  snippet: z.string(),
+  candidate_id: z.string().nullable(),
+});
+
+export const localElectionChatMessageResponseSchema = z.object({
+  conversation_id: z.string(),
+  user_message: localElectionChatMessageRecordSchema,
+  assistant_message: localElectionChatMessageRecordSchema,
+  citations: z.array(localElectionChatCitationSchema),
+  info_gap_flags: z.array(z.string()),
+  follow_up_suggestions: z.array(z.string()),
+  used_candidate_ids: z.array(z.string()),
+  used_issue_keys: z.array(issueKeySchema),
+  answered_at: z.string(),
 });
 
 export const cityQuerySchema = z.object({
@@ -214,6 +286,9 @@ export type EvidenceStatus = z.infer<typeof evidenceStatusSchema>;
 export type PromiseSourceStatus = z.infer<typeof promiseSourceStatusSchema>;
 export type SourceType = z.infer<typeof sourceTypeSchema>;
 export type DataPhase = z.infer<typeof dataPhaseSchema>;
+export type ChatEntryPoint = z.infer<typeof chatEntryPointSchema>;
+export type ChatSelectionBasis = z.infer<typeof chatSelectionBasisSchema>;
+export type ChatMessageRole = z.infer<typeof chatMessageRoleSchema>;
 export type SourceRef = z.infer<typeof sourceRefSchema>;
 export type CandidateIssueMatch = z.infer<typeof candidateIssueMatchSchema>;
 export type CandidateBrief = z.infer<typeof candidateBriefSchema>;
@@ -221,6 +296,27 @@ export type CandidateCompareFact = z.infer<typeof candidateCompareFactSchema>;
 export type CandidateCompareEntry = z.infer<typeof candidateCompareEntrySchema>;
 export type ElectionMeta = z.infer<typeof electionMetaSchema>;
 export type UserIssueProfile = z.infer<typeof userIssueProfileSchema>;
+export type LocalElectionChatConversationContext = z.infer<
+  typeof localElectionChatConversationContextSchema
+>;
+export type LocalElectionChatConversationCreateRequest = z.infer<
+  typeof localElectionChatConversationCreateRequestSchema
+>;
+export type LocalElectionChatConversationResponse = z.infer<
+  typeof localElectionChatConversationResponseSchema
+>;
+export type LocalElectionChatMessageCreateRequest = z.infer<
+  typeof localElectionChatMessageCreateRequestSchema
+>;
+export type LocalElectionChatMessageRecord = z.infer<
+  typeof localElectionChatMessageRecordSchema
+>;
+export type LocalElectionChatCitation = z.infer<
+  typeof localElectionChatCitationSchema
+>;
+export type LocalElectionChatMessageResponse = z.infer<
+  typeof localElectionChatMessageResponseSchema
+>;
 export type CandidateRecord = z.infer<typeof candidateRecordSchema>;
 export type BallotItem = z.infer<typeof ballotItemSchema>;
 export type AmbiguousOption = z.infer<typeof ambiguousOptionSchema>;
