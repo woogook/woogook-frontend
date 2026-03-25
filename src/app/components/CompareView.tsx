@@ -819,19 +819,6 @@ export default function CompareView({
                             : "1px solid var(--border)",
                       }}
                     >
-                      {message.role === "assistant" && (
-                        <div
-                          className="mb-2 rounded-xl px-2.5 py-2"
-                          style={{
-                            background: "rgba(255,248,231,0.92)",
-                            border: "1px solid rgba(201,169,84,0.22)",
-                          }}
-                        >
-                          <p className="text-[10px] font-semibold" style={{ color: "var(--amber)" }}>
-                            이 답변은 현재 선택된 후보 범위 기준입니다.
-                          </p>
-                        </div>
-                      )}
                       <p className="text-[11px] leading-relaxed whitespace-pre-line">
                         {message.content}
                       </p>
@@ -858,10 +845,7 @@ export default function CompareView({
                                     className="text-[10px] font-semibold"
                                     style={{ color: "var(--navy)" }}
                                   >
-                                    {citation.label}
-                                    {citation.candidate_id &&
-                                      candidateNameMap.get(citation.candidate_id) &&
-                                      ` · ${candidateNameMap.get(citation.candidate_id)}`}
+                                    {getChatCitationHeading(citation, candidateNameMap)}
                                   </p>
                                   <p
                                     className="text-[10px] leading-relaxed mt-1"
@@ -888,7 +872,7 @@ export default function CompareView({
                                 className="text-[10px] font-semibold"
                                 style={{ color: "var(--warning-text)" }}
                               >
-                                정보 부족
+                                추가 확인 필요
                               </p>
                               {message.infoGapFlags.map((flag) => (
                                 <p
@@ -1389,6 +1373,42 @@ function getChatSourceTypeLabel(sourceType: LocalElectionChatCitation["source_ty
   } as const;
 
   return labels[sourceType];
+}
+
+function getChatCitationHeading(
+  citation: LocalElectionChatCitation,
+  candidateNameMap: Map<string, string>,
+) {
+  const candidateName =
+    citation.candidate_id && candidateNameMap.get(citation.candidate_id)
+      ? candidateNameMap.get(citation.candidate_id)
+      : null;
+  const articleKind = getChatCitationArticleKind(citation);
+
+  if (candidateName && articleKind) {
+    return `${candidateName} · ${articleKind}`;
+  }
+  if (candidateName) {
+    return `${candidateName} · ${citation.label}`;
+  }
+  return articleKind ? articleKind : citation.label;
+}
+
+function getChatCitationArticleKind(citation: LocalElectionChatCitation) {
+  if (citation.label.includes("·")) {
+    return citation.label.split("·")[1]?.trim() || citation.label;
+  }
+
+  const text = `${citation.label} ${citation.snippet}`.toLowerCase();
+  if (text.includes("인터뷰")) return "인터뷰";
+  if (text.includes("출마") || text.includes("기자회견")) return "출마 기사";
+  if (text.includes("생활체육") || text.includes("노인회") || text.includes("축구회")) {
+    return "지역 활동 기사";
+  }
+  if (text.includes("지선") || text.includes("연임도전") || text.includes("구도")) {
+    return "선거 구도 기사";
+  }
+  return citation.label;
 }
 
 function getEvidenceScore(candidate: CandidateRecord) {
