@@ -6,9 +6,14 @@
 ## 실행
 
 ```bash
+nvm use
 npm install
 npm run dev
 ```
+
+`Next.js 16` 요구사항 때문에 `Node.js 20.9.0` 이상이 필요합니다.
+
+`nvm use`에서 `.nvmrc` 버전이 없다고 나오면 먼저 `nvm install`을 실행한 뒤 다시 `nvm use`를 실행합니다.
 
 브라우저에서 `http://localhost:3000`을 열면 됩니다.
 

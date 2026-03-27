@@ -42,3 +42,6 @@ next-env.d.ts
 
 # data
 2026_data/
+
+# Codex
+.codex/*
