@@ -40,15 +40,15 @@
 
 ### Git 작업
 
-- `commit`을 작성하기 전에는 프로젝트 루트에 `agent-git-commit-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
-- `GitHub PR`을 생성하거나 `merge`하기 전에는 프로젝트 루트에 `agent-github-pr-and-merge-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
+- `commit`을 작성하기 전에는 `docs/git/agent-git-commit-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
+- `GitHub PR`을 생성하거나 `merge`하기 전에는 `docs/git/agent-github-pr-and-merge-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
 - 별도 가이드 문서가 없으면 `conventional commits`와 GitHub PR 기본 관례를 따른다.
 
 ## 구체적인 작업 내용 기록
 
 ### 기록 위치와 파일명
 
-- Agent가 수행한 구체적인 작업 내용을 `<project_root>/tmp/adr/<yymmdd>` 디렉터리에 `markdown` 문서로 기록한다.
+- Agent가 수행한 구체적인 작업 내용을 `<project_root>/tmp/adr/<yyMMdd>` 디렉터리에 `markdown` 문서로 기록한다.
 - 파일명은 `yyMMdd-HHmmss-<주제>.md` 형식을 사용하며, 주제는 문서의 성격이 잘 드러나도록 한글로 작성한다.
 
 ### 권장 문서 구조

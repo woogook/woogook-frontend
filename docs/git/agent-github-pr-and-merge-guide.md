@@ -5,6 +5,14 @@
 ### 공통으로 적용되는 사항
 
 - 문서와 설명 문장은 `한글`로 작성하는 것을 원칙으로 하며, `영어` 표기가 더 정확하거나 자연스러운 경우에는 괄호를 사용해 한글과 영어를 함께 작성한다. 예: 강화학습(RL, Reinforcement Learning)
+- 보편적으로 알려진 Git Convention, 특히 `Conventional Commits` 관례를 기본값으로 삼는다.
+
+### 브랜치와 제목 정합성
+
+- PR 대상 작업 브랜치는 가능하면 `<prefix>/<short-description>` 형식을 사용한다.
+- PR 제목 `prefix`는 브랜치와 최근 `commit` 제목의 `prefix`와 맞춘다.
+- 대표 `prefix` 예시는 `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`, `ci`다.
+- 예: `docs/update-agent-guides` 브랜치라면 PR 제목도 `docs: 에이전트 Git 가이드 정리`처럼 맞춘다.
 
 ### 제목
 
@@ -22,9 +30,7 @@
 
 - `assignee`: 현재 작업자의 GitHub 계정에 맞게 설정한다.
 - `project`: `우리동네 국회의원`
-- `label`: 
-  - 작업 성격에 맞는 적절한 값을 1개 이상 지정
-  - 적절한 `label`이 없는 경우 새로운 `label` 생성하는 것을 검토
+- `label`: 작업 성격에 맞는 적절한 값을 1개 이상 지정
 
 ## merge
 

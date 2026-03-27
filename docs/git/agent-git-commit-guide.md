@@ -2,6 +2,7 @@
 
 - 특별한 사유가 없으면 `main` 브랜치가 아닌 적절한 작업 브랜치에서 `commit`을 진행한다.
 - 문서와 설명 문장은 `한글`로 작성하는 것을 원칙으로 하며, `영어` 표기가 더 정확하거나 자연스러운 경우에는 괄호를 사용해 한글과 영어를 함께 작성한다. 예: 강화학습(RL, Reinforcement Learning)
+- 보편적으로 알려진 Git Convention, 특히 `Conventional Commits` 관례를 기본값으로 삼는다.
 
 ## `commit`을 진행하기 전에 구체적으로 검토해야 할 항목
 
@@ -23,9 +24,18 @@
 
 ## `commit`을 진행할 때 규칙
 
+### 브랜치
+
+- 작업 브랜치는 가능하면 `<prefix>/<short-description>` 형식으로 작성한다.
+- `prefix`는 `commit` 제목, PR 제목과 같은 의미 체계를 사용한다.
+- 대표 `prefix` 예시는 `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`, `ci`다.
+- 예: `chore/node-runtime-baseline`, `fix/ballot-api-fallback`
+
 ### 제목
 
 - `<prefix>: <작업 내용을 잘 요약한 문장>` 형식으로 작성한다.
+- 특별한 사유가 없으면 브랜치 `prefix`와 `commit` 제목 `prefix`를 일치시킨다.
+- 예: `docs/update-agent-guides`, `docs: 에이전트 Git 가이드 정리`
 
 ### `commit` 본문
 
