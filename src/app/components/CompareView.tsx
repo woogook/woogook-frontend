@@ -36,6 +36,9 @@ import { CandidatePhoto } from "./CandidateCards";
 const CLIENT_SESSION_STORAGE_KEY = "woogook.local-election.chat.client-session.v1";
 const COMPARE_CHAT_STORAGE_KEY_PREFIX = "woogook.local-election.chat.compare.v1.";
 const DEFAULT_INITIAL_CHAT_QUESTION = "내 관심 이슈 기준으로 다시 요약해줘";
+const TABLE_COLUMN_WIDTH = 180;
+const TABLE_COLUMN_GAP = 8;
+const TABLE_SCROLL_EDGE_PADDING = 16;
 
 interface Props {
   ballot: BallotItem;
@@ -90,7 +93,12 @@ export default function CompareView({
   const gridCols =
     candidates.length <= 2
       ? `repeat(${candidates.length}, 1fr)`
-      : `repeat(${candidates.length}, 180px)`;
+      : `repeat(${candidates.length}, ${TABLE_COLUMN_WIDTH}px)`;
+  const tableGridWidth =
+    candidates.length > 2
+      ? candidates.length * TABLE_COLUMN_WIDTH +
+        (candidates.length - 1) * TABLE_COLUMN_GAP
+      : null;
   const compareOverview = useMemo(
     () => buildCompareOverview(ballot, candidates, issueProfile),
     [ballot, candidates, issueProfile],
@@ -127,6 +135,14 @@ export default function CompareView({
     () => buildCompareChatStorageKey(chatContextSignature),
     [chatContextSignature],
   );
+  const compareSections = useMemo(
+    () => buildCompareSections(candidates, issueProfile),
+    [candidates, issueProfile],
+  );
+  const [tableMode, setTableMode] = useState<"differences" | "all">(
+    candidates.length > 1 ? "differences" : "all",
+  );
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   useEffect(() => {
     const body = scrollContainerRef.current;
@@ -156,7 +172,9 @@ export default function CompareView({
 
     const onScroll = () => {
       const scrollLeft = container.scrollLeft;
-      const index = Math.round(scrollLeft / 180);
+      const index = Math.round(
+        scrollLeft / (TABLE_COLUMN_WIDTH + TABLE_COLUMN_GAP),
+      );
       setActiveCandidate(Math.min(index, candidates.length - 1));
     };
 
@@ -284,6 +302,39 @@ export default function CompareView({
     setHasAutoPrompted(true);
     void sendQuestion(DEFAULT_INITIAL_CHAT_QUESTION);
   }, [assistantOpen, chatMessages.length, hasAutoPrompted, isSending, sendQuestion]);
+
+  useEffect(() => {
+    if (candidates.length <= 1) {
+      setTableMode("all");
+    }
+  }, [candidates.length]);
+
+  useEffect(() => {
+    if (compareSections.length === 0) {
+      setActiveSectionId(null);
+      return;
+    }
+
+    setActiveSectionId((current) => {
+      if (current && compareSections.some((section) => section.id === current)) {
+        return current;
+      }
+      return compareSections[0]?.id ?? null;
+    });
+  }, [compareSections]);
+
+  const activeSection = useMemo(
+    () =>
+      compareSections.find((section) => section.id === activeSectionId) ?? compareSections[0] ?? null,
+    [activeSectionId, compareSections],
+  );
+  const visibleRows = useMemo(() => {
+    if (!activeSection) return [];
+    if (tableMode === "all" || candidates.length <= 1) {
+      return activeSection.rows;
+    }
+    return activeSection.rows.filter((row) => rowHasDifference(row));
+  }, [activeSection, candidates.length, tableMode]);
 
   const openAssistant = () => {
     setAssistantOpen(true);
@@ -437,18 +488,32 @@ export default function CompareView({
               style={{
                 display: "grid",
                 gridTemplateColumns: gridCols,
-                gap: "8px",
-                minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined,
+                gap: `${TABLE_COLUMN_GAP}px`,
+                minWidth: tableGridWidth
+                  ? `${tableGridWidth + TABLE_SCROLL_EDGE_PADDING * 2}px`
+                  : undefined,
+                paddingLeft: tableGridWidth ? `${TABLE_SCROLL_EDGE_PADDING}px` : undefined,
+                paddingRight: tableGridWidth ? `${TABLE_SCROLL_EDGE_PADDING}px` : undefined,
               }}
             >
               {candidates.map((candidate, index) => {
                 const partyColor = getPartyColor(candidate.party_name);
+                const topMatch = getRelevantIssueMatches(candidate, issueProfile)[0];
+                const evidenceLabel = getEvidenceStatusLabel(
+                  candidate.brief?.evidence_status || "missing",
+                );
+                const isActive = candidates.length <= 2 || activeCandidate === index;
                 return (
                   <button
                     key={candidate.candidate_id}
                     onClick={() => onSelectCandidate(candidate)}
-                    className="flex flex-col items-center gap-1.5 py-1.5 cursor-pointer active:opacity-70 rounded transition-all"
-                    style={{ opacity: candidates.length > 2 && activeCandidate !== index ? 0.6 : 1 }}
+                    className="flex flex-col items-center gap-2 py-2 px-2 cursor-pointer active:opacity-70 rounded-2xl transition-all"
+                    style={{
+                      opacity: isActive ? 1 : 0.66,
+                      background: isActive ? "var(--surface)" : "transparent",
+                      border: isActive ? "1px solid var(--border)" : "1px solid transparent",
+                      boxShadow: isActive ? "0 8px 18px rgba(15,23,42,0.06)" : "none",
+                    }}
                     aria-label={`${candidate.name_ko} 상세보기`}
                   >
                     <div
@@ -464,6 +529,29 @@ export default function CompareView({
                       <span className="text-[10px] font-semibold" style={{ color: partyColor }}>
                         {candidate.party_name || "무소속"}
                       </span>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-1">
+                      <span
+                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                        style={{
+                          background: "var(--surface-alt)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        {evidenceLabel}
+                      </span>
+                      {topMatch && topMatch.level !== "insufficient" && (
+                        <span
+                          className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: "var(--amber-bg)",
+                            color: "var(--amber)",
+                          }}
+                        >
+                          {getIssueLabel(topMatch.issue_key)}
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
@@ -492,148 +580,106 @@ export default function CompareView({
           className="overflow-x-auto mt-3"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <div style={{ minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined }}>
-            {issueProfile?.normalized_issue_keys.length ? (
-              <CompareSection title="관심 이슈 기준" candidates={candidates}>
-                {issueProfile.normalized_issue_keys.map((issueKey) => (
-                  <CompareRow
-                    key={issueKey}
-                    label={getIssueLabel(issueKey)}
-                    gridCols={gridCols}
-                    candidates={candidates}
-                    renderValue={(candidate) => {
-                      const match = getRelevantIssueMatches(candidate, {
-                        ...issueProfile,
-                        normalized_issue_keys: [issueKey],
-                      })[0];
-                      if (!match) {
-                        return (
-                          <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                            관련 정보 부족
-                          </span>
-                        );
-                      }
-                      return (
-                        <div className="space-y-1">
-                          <span
-                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded inline-block"
-                            style={{
-                              background:
-                                match.level === "insufficient"
-                                  ? "var(--warning-bg)"
-                                  : "var(--amber-bg)",
-                              color:
-                                match.level === "insufficient"
-                                  ? "var(--warning-text)"
-                                  : "var(--amber)",
-                            }}
-                          >
-                            {getIssueMatchLevelLabel(match.level)}
-                          </span>
-                          <p className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
-                            {match.reasons[0]}
-                          </p>
-                        </div>
-                      );
+          <div
+            style={{
+              minWidth: tableGridWidth
+                ? `${tableGridWidth + TABLE_SCROLL_EDGE_PADDING * 2}px`
+                : undefined,
+              paddingLeft: tableGridWidth ? `${TABLE_SCROLL_EDGE_PADDING}px` : undefined,
+              paddingRight: tableGridWidth ? `${TABLE_SCROLL_EDGE_PADDING}px` : undefined,
+            }}
+          >
+            <div
+              className="rounded-2xl px-4 py-3 mb-4"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>
+                    비교 표
+                  </p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    차이부터 보고, 필요할 때 전체 항목으로 넓혀보세요.
+                  </p>
+                </div>
+                {candidates.length > 1 && (
+                  <div className="flex rounded-full p-1" style={{ background: "var(--surface-alt)" }}>
+                    <button
+                      type="button"
+                      onClick={() => setTableMode("differences")}
+                      className="rounded-full px-3 py-1.5 text-[10px] font-semibold"
+                      style={{
+                        background: tableMode === "differences" ? "var(--navy)" : "transparent",
+                        color: tableMode === "differences" ? "#ffffff" : "var(--navy)",
+                      }}
+                    >
+                      차이 먼저
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTableMode("all")}
+                      className="rounded-full px-3 py-1.5 text-[10px] font-semibold"
+                      style={{
+                        background: tableMode === "all" ? "var(--navy)" : "transparent",
+                        color: tableMode === "all" ? "#ffffff" : "var(--navy)",
+                      }}
+                    >
+                      전체 보기
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {compareSections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => setActiveSectionId(section.id)}
+                    className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold"
+                    style={{
+                      background:
+                        activeSection?.id === section.id ? "var(--navy)" : "var(--surface-alt)",
+                      color: activeSection?.id === section.id ? "#ffffff" : "var(--navy)",
+                      border:
+                        activeSection?.id === section.id
+                          ? "1px solid var(--navy)"
+                          : "1px solid var(--border)",
                     }}
-                  />
+                  >
+                    {section.title}
+                  </button>
                 ))}
+              </div>
+            </div>
+
+            {activeSection ? (
+              <CompareSection
+                title={activeSection.title}
+                description={activeSection.description}
+              >
+                {visibleRows.length > 0 ? (
+                  visibleRows.map((row) => (
+                    <CompareDataRow
+                      key={row.id}
+                      label={row.label}
+                      gridCols={gridCols}
+                      candidates={candidates}
+                      values={row.values}
+                    />
+                  ))
+                ) : (
+                  <div className="px-4 py-6">
+                    <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--navy)" }}>
+                      이 섹션에서는 큰 차이가 아직 드러나지 않습니다
+                    </p>
+                    <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      전체 보기로 바꾸면 같은 항목까지 포함해 후보별 내용을 모두 확인할 수 있습니다.
+                    </p>
+                  </div>
+                )}
               </CompareSection>
             ) : null}
-
-            <CompareSection title="팩트" candidates={candidates}>
-              {FACT_LABELS.map((label) => (
-                <CompareRow
-                  key={label}
-                  label={label}
-                  gridCols={gridCols}
-                  candidates={candidates}
-                  renderValue={(candidate) => {
-                    const fact = candidate.compare_entry?.facts.find((item) => item.label === label);
-                    return (
-                      <span
-                        className="text-[12px] leading-relaxed"
-                        style={{
-                          color: fact?.value && fact.value !== "정보 없음" ? "var(--foreground)" : "var(--text-tertiary)",
-                        }}
-                      >
-                        {fact?.value || "정보 없음"}
-                      </span>
-                    );
-                  }}
-                />
-              ))}
-            </CompareSection>
-
-            <CompareSection title="요약" candidates={candidates}>
-              <CompareRow
-                label="핵심 요약"
-                gridCols={gridCols}
-                candidates={candidates}
-                renderValue={(candidate) => (
-                  <div className="space-y-1">
-                    {(candidate.compare_entry?.summary || candidate.brief?.summary_lines || []).map((line) => (
-                      <p key={line} className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              />
-              <CompareRow
-                label="차별점"
-                gridCols={gridCols}
-                candidates={candidates}
-                renderValue={(candidate) => (
-                  <span className="text-[11px] leading-relaxed" style={{ color: "var(--foreground)" }}>
-                    {candidate.brief?.differentiator || "대표 차별점 공개 정보 부족"}
-                  </span>
-                )}
-              />
-            </CompareSection>
-
-            <CompareSection title="출처 및 정보 부족" candidates={candidates}>
-              <CompareRow
-                label="출처"
-                gridCols={gridCols}
-                candidates={candidates}
-                renderValue={(candidate) => (
-                  <div className="space-y-1">
-                    {(candidate.compare_entry?.source_refs || []).map((source) => (
-                      <div key={`${candidate.candidate_id}-${source.label}`} className="space-y-0.5">
-                        <p className="text-[11px] font-semibold" style={{ color: "var(--navy)" }}>
-                          {source.label}
-                        </p>
-                        <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
-                          {source.as_of ? `기준: ${formatKoreanDateTime(source.as_of)}` : "기준 시각 정보 없음"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              />
-              <CompareRow
-                label="정보 부족"
-                gridCols={gridCols}
-                candidates={candidates}
-                renderValue={(candidate) => {
-                  const infoGaps = candidate.compare_entry?.info_gap_flags || [];
-                  return infoGaps.length > 0 ? (
-                    <div className="space-y-0.5">
-                      {infoGaps.map((flag) => (
-                        <p key={flag} className="text-[11px] leading-relaxed" style={{ color: "var(--warning-text)" }}>
-                          {flag}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                      표시할 부족 정보 없음
-                    </span>
-                  );
-                }}
-              />
-            </CompareSection>
           </div>
         </div>
 
@@ -773,19 +819,6 @@ export default function CompareView({
                             : "1px solid var(--border)",
                       }}
                     >
-                      {message.role === "assistant" && (
-                        <div
-                          className="mb-2 rounded-xl px-2.5 py-2"
-                          style={{
-                            background: "rgba(255,248,231,0.92)",
-                            border: "1px solid rgba(201,169,84,0.22)",
-                          }}
-                        >
-                          <p className="text-[10px] font-semibold" style={{ color: "var(--amber)" }}>
-                            이 답변은 현재 선택된 후보 범위 기준입니다.
-                          </p>
-                        </div>
-                      )}
                       <p className="text-[11px] leading-relaxed whitespace-pre-line">
                         {message.content}
                       </p>
@@ -812,10 +845,7 @@ export default function CompareView({
                                     className="text-[10px] font-semibold"
                                     style={{ color: "var(--navy)" }}
                                   >
-                                    {citation.label}
-                                    {citation.candidate_id &&
-                                      candidateNameMap.get(citation.candidate_id) &&
-                                      ` · ${candidateNameMap.get(citation.candidate_id)}`}
+                                    {getChatCitationHeading(citation, candidateNameMap)}
                                   </p>
                                   <p
                                     className="text-[10px] leading-relaxed mt-1"
@@ -842,7 +872,7 @@ export default function CompareView({
                                 className="text-[10px] font-semibold"
                                 style={{ color: "var(--warning-text)" }}
                               >
-                                정보 부족
+                                추가 확인 필요
                               </p>
                               {message.infoGapFlags.map((flag) => (
                                 <p
@@ -1005,6 +1035,31 @@ type ChatUiMessage = {
   citations: LocalElectionChatCitation[];
   infoGapFlags: string[];
   followUpSuggestions: string[];
+};
+
+type CompareTableChip = {
+  label: string;
+  tone: "neutral" | "accent" | "warn";
+};
+
+type CompareTableCell = {
+  primary?: string;
+  secondary?: string[];
+  chips?: CompareTableChip[];
+  muted?: boolean;
+};
+
+type CompareTableRow = {
+  id: string;
+  label: string;
+  values: CompareTableCell[];
+};
+
+type CompareTableSection = {
+  id: string;
+  title: string;
+  description: string;
+  rows: CompareTableRow[];
 };
 
 const chatUiMessageSchema = z.object({
@@ -1320,6 +1375,42 @@ function getChatSourceTypeLabel(sourceType: LocalElectionChatCitation["source_ty
   return labels[sourceType];
 }
 
+function getChatCitationHeading(
+  citation: LocalElectionChatCitation,
+  candidateNameMap: Map<string, string>,
+) {
+  const candidateName =
+    citation.candidate_id && candidateNameMap.get(citation.candidate_id)
+      ? candidateNameMap.get(citation.candidate_id)
+      : null;
+  const articleKind = getChatCitationArticleKind(citation);
+
+  if (candidateName && articleKind) {
+    return `${candidateName} · ${articleKind}`;
+  }
+  if (candidateName) {
+    return `${candidateName} · ${citation.label}`;
+  }
+  return articleKind ? articleKind : citation.label;
+}
+
+function getChatCitationArticleKind(citation: LocalElectionChatCitation) {
+  if (citation.label.includes("·")) {
+    return citation.label.split("·")[1]?.trim() || citation.label;
+  }
+
+  const text = `${citation.label} ${citation.snippet}`.toLowerCase();
+  if (text.includes("인터뷰")) return "인터뷰";
+  if (text.includes("출마") || text.includes("기자회견")) return "출마 기사";
+  if (text.includes("생활체육") || text.includes("노인회") || text.includes("축구회")) {
+    return "지역 활동 기사";
+  }
+  if (text.includes("지선") || text.includes("연임도전") || text.includes("구도")) {
+    return "선거 구도 기사";
+  }
+  return citation.label;
+}
+
 function getEvidenceScore(candidate: CandidateRecord) {
   const status = candidate.brief?.evidence_status || "missing";
   if (status === "enough") return 3;
@@ -1335,74 +1426,304 @@ function getIssueLevelScore(level?: string) {
   return 0;
 }
 
+function buildCompareSections(
+  candidates: CandidateRecord[],
+  issueProfile: UserIssueProfile | null,
+): CompareTableSection[] {
+  const sections: CompareTableSection[] = [];
+
+  if (issueProfile?.normalized_issue_keys.length) {
+    sections.push({
+      id: "issues",
+      title: "관심 이슈",
+      description: "내가 고른 기준에서 후보별로 어떤 공개 근거가 붙는지 먼저 봅니다.",
+      rows: issueProfile.normalized_issue_keys.map((issueKey) => ({
+        id: `issue:${issueKey}`,
+        label: getIssueLabel(issueKey),
+        values: candidates.map((candidate) => {
+          const match = getRelevantIssueMatches(candidate, {
+            ...issueProfile,
+            normalized_issue_keys: [issueKey],
+          })[0];
+
+          if (!match) {
+            return {
+              primary: "관련 정보 부족",
+              muted: true,
+            } satisfies CompareTableCell;
+          }
+
+          return {
+            primary: match.reasons[0] || "관련 근거 확인",
+            chips: [
+              {
+                label: getIssueMatchLevelLabel(match.level),
+                tone: match.level === "insufficient" ? "warn" : "accent",
+              },
+            ],
+          } satisfies CompareTableCell;
+        }),
+      })),
+    });
+  }
+
+  sections.push({
+    id: "summary",
+    title: "핵심 요약",
+    description: "길게 읽지 않아도 차이를 잡을 수 있도록 핵심 문장만 모았습니다.",
+    rows: [
+      {
+        id: "summary:core",
+        label: "핵심 요약",
+        values: candidates.map((candidate) => {
+          const lines = candidate.compare_entry?.summary || candidate.brief?.summary_lines || [];
+          return {
+            primary: lines[0] || "요약 정보 부족",
+            secondary: lines.slice(1),
+            muted: lines.length === 0,
+          } satisfies CompareTableCell;
+        }),
+      },
+      {
+        id: "summary:diff",
+        label: "차별점",
+        values: candidates.map((candidate) => ({
+          primary: candidate.brief?.differentiator || "대표 차별점 공개 정보 부족",
+          muted: !candidate.brief?.differentiator,
+        })),
+      },
+    ],
+  });
+
+  sections.push({
+    id: "facts",
+    title: "기본 정보",
+    description: "공식 공개 정보만 빠르게 가로로 훑을 수 있도록 정리했습니다.",
+    rows: FACT_LABELS.map((label) => ({
+      id: `fact:${label}`,
+      label,
+      values: candidates.map((candidate) => {
+        const fact = candidate.compare_entry?.facts.find((item) => item.label === label);
+        const value = fact?.value || "정보 없음";
+        return {
+          primary: value,
+          muted: value === "정보 없음",
+        } satisfies CompareTableCell;
+      }),
+    })),
+  });
+
+  sections.push({
+    id: "sources",
+    title: "출처와 정보 부족",
+    description: "어디까지 확인됐는지, 추가로 더 확인해야 할 것이 무엇인지 함께 봅니다.",
+    rows: [
+      {
+        id: "sources:refs",
+        label: "출처",
+        values: candidates.map((candidate) => {
+          const sourceRefs = candidate.compare_entry?.source_refs || [];
+          const latestSource = sourceRefs[0];
+          return {
+            primary: sourceRefs.length > 0 ? `${sourceRefs.length}건 연결` : "연결된 출처 없음",
+            secondary: latestSource?.as_of
+              ? [`최신 기준: ${formatKoreanDateTime(latestSource.as_of)}`]
+              : sourceRefs.length > 0
+                ? ["기준 시각 정보 없음"]
+                : [],
+            chips: sourceRefs.map((source) => ({
+              label: source.label,
+              tone: "neutral",
+            })),
+            muted: sourceRefs.length === 0,
+          } satisfies CompareTableCell;
+        }),
+      },
+      {
+        id: "sources:gaps",
+        label: "정보 부족",
+        values: candidates.map((candidate) => {
+          const infoGaps = candidate.compare_entry?.info_gap_flags || [];
+          return {
+            primary: infoGaps.length > 0 ? `${infoGaps.length}개 항목` : "표시할 부족 정보 없음",
+            chips: infoGaps.map((flag) => ({
+              label: flag,
+              tone: "warn",
+            })),
+            muted: infoGaps.length === 0,
+          } satisfies CompareTableCell;
+        }),
+      },
+    ],
+  });
+
+  return sections;
+}
+
+function fingerprintCompareCell(cell: CompareTableCell) {
+  return JSON.stringify({
+    primary: cell.primary || "",
+    secondary: cell.secondary || [],
+    chips: (cell.chips || []).map((chip) => `${chip.tone}:${chip.label}`),
+    muted: Boolean(cell.muted),
+  });
+}
+
+function rowHasDifference(row: CompareTableRow) {
+  if (row.values.length <= 1) return true;
+  const unique = new Set(row.values.map(fingerprintCompareCell));
+  return unique.size > 1;
+}
+
 function CompareSection({
   title,
-  candidates,
+  description,
   children,
 }: {
   title: string;
-  candidates: CandidateRecord[];
+  description?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="mb-3">
-      <div className="px-3 py-2 rounded-t" style={{ background: "var(--navy)" }}>
-        <span className="text-[11px] font-semibold text-white tracking-wide">
-          {title}
-        </span>
-      </div>
+    <div
+      className="mb-4 rounded-2xl overflow-hidden"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+      }}
+    >
       <div
-        className="rounded-b overflow-hidden"
-        style={{ border: "1px solid var(--border)", borderTop: "none" }}
+        className="px-4 py-3"
+        style={{
+          background: "linear-gradient(180deg, rgba(248,246,240,0.92), rgba(255,255,255,0.88))",
+          borderBottom: "1px solid var(--border)",
+        }}
       >
-        <div style={{ minWidth: candidates.length > 2 ? `${candidates.length * 180}px` : undefined }}>
-          {children}
-        </div>
+        <p className="text-[12px] font-bold mb-1" style={{ color: "var(--navy)" }}>
+          {title}
+        </p>
+        {description && (
+          <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            {description}
+          </p>
+        )}
       </div>
+      <div className="overflow-hidden">{children}</div>
     </div>
   );
 }
 
-function CompareRow({
+function CompareDataRow({
   label,
   gridCols,
   candidates,
-  renderValue,
+  values,
 }: {
   label: string;
   gridCols: string;
   candidates: CandidateRecord[];
-  renderValue: (candidate: CandidateRecord) => ReactNode;
+  values: CompareTableCell[];
 }) {
   return (
-    <div style={{ borderBottom: "1px solid var(--border)" }}>
-      <div className="px-3 py-1.5" style={{ background: "var(--surface-alt)" }}>
-        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+    <div
+      className="px-3 py-3"
+      style={{ borderBottom: "1px solid rgba(148,163,184,0.14)" }}
+    >
+      <div className="px-1 pb-2">
+        <span className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
           {label}
         </span>
       </div>
       <div
-        className="px-2"
+        className="px-1"
         style={{
           display: "grid",
           gridTemplateColumns: gridCols,
-          gap: "8px",
-          background: "var(--surface)",
+          gap: "10px",
         }}
       >
-        {candidates.map((candidate) => {
+        {candidates.map((candidate, index) => {
           const partyColor = getPartyColor(candidate.party_name);
+          const value = values[index];
           return (
             <div
               key={`${candidate.candidate_id}-${label}`}
-              className="py-2 px-1"
-              style={{ borderLeft: `2px solid ${partyColor}30` }}
+              className="py-3 px-3 rounded-2xl"
+              style={{
+                background: "var(--surface-alt)",
+                border: "1px solid rgba(148,163,184,0.14)",
+                borderTop: `3px solid ${partyColor}66`,
+                minHeight: "100%",
+              }}
             >
-              {renderValue(candidate)}
+              <CompareDataCell cell={value} />
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+function CompareDataCell({ cell }: { cell: CompareTableCell }) {
+  return (
+    <div className="space-y-2">
+      <p
+        className="text-[12px] leading-relaxed"
+        style={{ color: cell.muted ? "var(--text-tertiary)" : "var(--foreground)" }}
+      >
+        {cell.primary || "정보 없음"}
+      </p>
+      {cell.secondary && cell.secondary.length > 0 && (
+        <div className="space-y-1">
+          {cell.secondary.map((line) => (
+            <p
+              key={line}
+              className="text-[10px] leading-relaxed"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {line}
+            </p>
+          ))}
+        </div>
+      )}
+      {cell.chips && cell.chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {cell.chips.map((chip) => (
+            <span
+              key={`${chip.tone}:${chip.label}`}
+              className="rounded-full px-2 py-1 text-[10px] font-medium"
+              style={getCompareChipStyle(chip.tone)}
+            >
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getCompareChipStyle(tone: CompareTableChip["tone"]) {
+  if (tone === "accent") {
+    return {
+      background: "var(--amber-bg)",
+      color: "var(--amber)",
+    };
+  }
+
+  if (tone === "warn") {
+    return {
+      background: "var(--warning-bg)",
+      color: "var(--warning-text)",
+      border: "1px solid rgba(180,83,9,0.12)",
+    };
+  }
+
+  return {
+    background: "var(--surface)",
+    color: "var(--navy)",
+    border: "1px solid var(--border)",
+  };
 }
