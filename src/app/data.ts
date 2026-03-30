@@ -1,5 +1,6 @@
 import seoulData from "../../2026_data/sample_ballot_response_resolved_seoul.json";
 import jejuData from "../../2026_data/sample_ballot_response_partially_ambiguous_jeju.json";
+import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
 import type {
   BallotItem,
   BallotResponse,
@@ -206,15 +207,6 @@ const AUTHORITY_MATRIX: Record<string, Record<IssueKey, "direct" | "oversight" |
     commerce: "low",
   },
 };
-
-const CURRENT_LOCAL_ELECTION = {
-  electionId: "0020260603",
-  electionName: "제9회 전국동시지방선거",
-  electionDay: "2026-06-03",
-  registrationStart: "2026-05-14",
-  registrationEnd: "2026-05-15",
-  campaignStart: "2026-05-21",
-} as const;
 
 export const SAMPLE_SEOUL: BallotResponse = seoulData as BallotResponse;
 export const SAMPLE_JEJU: BallotResponse = jejuData as BallotResponse;
@@ -556,14 +548,15 @@ export function formatKoreanDateTime(input: string | Date | null | undefined): s
 }
 
 export function buildElectionMeta(
-  electionId: string = CURRENT_LOCAL_ELECTION.electionId,
-  electionName: string = CURRENT_LOCAL_ELECTION.electionName,
+  electionId: string = "0020260603",
+  electionName?: string,
   now: Date = new Date(),
 ): ElectionMeta {
-  const electionDay = new Date(CURRENT_LOCAL_ELECTION.electionDay);
-  const registrationStart = new Date(CURRENT_LOCAL_ELECTION.registrationStart);
-  const registrationEnd = new Date(CURRENT_LOCAL_ELECTION.registrationEnd);
-  const campaignStart = new Date(CURRENT_LOCAL_ELECTION.campaignStart);
+  const preset = getLocalElectionPresetByElectionId(electionId);
+  const electionDay = new Date(preset.electionDay);
+  const registrationStart = new Date(preset.registrationStart);
+  const registrationEnd = new Date(preset.registrationEnd);
+  const campaignStart = new Date(preset.campaignStart);
 
   let dataPhase: DataPhase = "completed";
   if (now < registrationStart) {
@@ -577,9 +570,9 @@ export function buildElectionMeta(
   }
 
   return {
-    election_id: electionId,
-    election_name: electionName,
-    election_day: CURRENT_LOCAL_ELECTION.electionDay,
+    election_id: preset.electionId,
+    election_name: electionName || preset.electionName,
+    election_day: preset.electionDay,
     data_phase: dataPhase,
     as_of: now.toISOString(),
   };

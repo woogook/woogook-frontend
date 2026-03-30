@@ -3,6 +3,7 @@ import jejuSample from "../../../../2026_data/sample_ballot_response_partially_a
 import seoulSample from "../../../../2026_data/sample_ballot_response_resolved_seoul.json";
 import { buildCandidateArtifacts, buildElectionMeta } from "@/app/data";
 import { pool } from "@/lib/db";
+import { getActiveLocalElectionElectionId } from "@/lib/local-election-config";
 import {
   buildDatabaseUnavailableResponse,
   isDatabaseUnavailableError,
@@ -203,6 +204,7 @@ function enrichFallbackResponse(response: BallotResponse): BallotResponse {
 }
 
 async function fetchContests(city: string, sigungu: string, emd?: string) {
+  const electionId = getActiveLocalElectionElectionId();
   const result = await pool.query<ContestRow>(
     `
       select
@@ -222,21 +224,22 @@ async function fetchContests(city: string, sigungu: string, emd?: string) {
         c.parent_area_name,
         c.seats
       from local_election_contest c
-      where c.city_name_canonical = $1
-        and (c.sigungu_name is null or c.sigungu_name = $2)
+      where c.election_id = $1
+        and c.city_name_canonical = $2
+        and (c.sigungu_name is null or c.sigungu_name = $3)
         and (
-          $3::text is null
+          $4::text is null
           or c.geographic_scope in ('city_province', 'sigungu')
           or exists (
             select 1
             from local_election_contest_emd e
             where e.contest_id = c.contest_id
-              and e.emd_name = $3::text
+              and e.emd_name = $4::text
           )
         )
       order by c.election_code, c.display_name;
     `,
-    [city, sigungu, emd ?? null],
+    [electionId, city, sigungu, emd ?? null],
   );
 
   return result.rows;
