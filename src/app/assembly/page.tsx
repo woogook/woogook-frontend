@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { AssemblyLandingPage } from "@/features/assembly/AssemblyLandingPage";
 
 export const metadata: Metadata = {
-  title: "우리동네 국회의원 안내서",
-  description: "국회 도메인 화면과 문서 기준을 분리한 서비스 진입점",
+  title: "우리동네 국회의원 공약 이행률 확인",
+  description: "시·도·구군시와 국회의원을 선택해 공약 이행률을 확인합니다.",
 };
 
 export default function AssemblyPage() {
