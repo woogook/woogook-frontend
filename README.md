@@ -1,7 +1,7 @@
 # woogook-frontend
 
-`2026 지방선거` 유권자 지원을 위한 Next.js 프런트엔드입니다.
-주소를 입력하면 해당 지역의 투표용지와 후보자 정보를 확인하고 비교할 수 있습니다.
+국회와 지방선거 서비스를 도메인별로 나눠 제공하는 Next.js 프런트엔드입니다.
+루트 `/`는 서비스 허브이고, 실제 기능은 `/assembly`, `/local-election`로 분리합니다.
 
 ## 실행
 
@@ -11,6 +11,12 @@ npm run dev
 ```
 
 브라우저에서 `http://localhost:3000`을 열면 됩니다.
+
+## 주요 진입 경로
+
+- `/`: 서비스 허브
+- `/assembly`: 국회 서비스
+- `/local-election`: 지방선거 서비스
 
 ## 현재 스택
 
@@ -27,9 +33,24 @@ npm run dev
 - API 라우트 입력/응답 검증은 `src/lib/schemas.ts`에서 관리합니다.
 - 클라이언트 fetch와 캐시는 `src/lib/api-client.ts`와 `React Query`를 사용합니다.
 - UI 공용 컴포넌트는 `src/components/ui` 아래에 둡니다.
+- 지방선거 기능 조합은 `src/features/local-election` 아래로 모읍니다.
+- 정책, 원칙, 실무 기준 문서는 `docs/**` 아래에 둡니다.
 
-## 주요 화면
+## 작업 문서 진입
 
+- 공통 라우터: `AGENTS.md`
+- 공통 workflow: `docs/common/codex/workflows/*`
+- 국회 온보딩: `docs/assembly/onboarding/assembly-team-onboarding.md`
+
+## 샘플 데이터
+
+- build에서 사용하는 추적 대상 샘플 JSON은 `src/data/samples`에 둡니다.
+- Inspector나 별도 로컬 실험용 JSON은 `2026_data`에 둘 수 있지만, 앱 빌드는 이 디렉터리에 의존하지 않습니다.
+
+## 주요 화면 / 경로
+
+- 서비스 허브: `src/app/page.tsx`
+- 국회 엔트리: `src/app/assembly/page.tsx`
+- 지방선거 엔트리: `src/app/local-election/page.tsx`
 - 주소 선택: `src/app/components/AddressInput.tsx`
 - 투표지 조회: `src/app/api/ballots/route.ts`
-- 메인 화면: `src/app/page.tsx`

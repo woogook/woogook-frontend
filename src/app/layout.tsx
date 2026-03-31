@@ -18,9 +18,9 @@ const notoSerif = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  title: "내 선거 안내서 — 2026 지방선거 유권자 지원",
+  title: "우리동네 안내 서비스",
   description:
-    "주소를 입력하면 내가 뽑는 선출직과 후보를 한눈에 비교할 수 있는 지방선거 유권자 지원 서비스",
+    "국회와 지방선거 정보를 도메인별로 나눠 안내하는 프런트엔드",
 };
 
 export default function RootLayout({

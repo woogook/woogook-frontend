@@ -3,6 +3,9 @@
 ## 공통
 
 - NEC(National Election Commission): 중앙선거관리위원회
+- assembly: 국회 서비스 도메인
+- local-election: 지방선거 서비스 도메인
+- work-log: 기준 GitHub Issue에 남기는 작업 결정 기록 댓글
 
 ## 국회의원
 

@@ -1,71 +1,61 @@
 # AGENTS.md
 
-이 문서는 프로젝트에서 사용하는 로컬 전용 운영 메모다.
-프로젝트 전역에 적용되는 기본 작업 지침을 담고 있으며, 하위 디렉터리에 별도 `AGENTS.md`가 있으면 더 구체적인 문서가 우선한다.
+이 문서는 `woogook-frontend` 저장소의 공통 라우터다. 모든 Agent는 작업을 시작하기 전에 이 문서를 먼저 읽고, 요청 유형과 소유 도메인에 맞는 진입 문서를 추가로 읽는다.
 
-## 작업 지침
+## 기본 분기
 
-### 서브에이전트 활용
+1. 요청을 `일반 응답`과 `프로젝트 실행`으로 구분한다.
+2. `프로젝트 실행`이면 소유 도메인을 `assembly`, `local-election`, `common` 중 하나로 정한다.
+3. 소유 도메인에 맞는 `docs/*/canonical/llm-entry*.md`를 먼저 읽는다.
+4. 현재 단계에 맞는 `docs/common/codex/workflows/*.md`, `docs/common/codex/guides/*.md`를 읽는다.
 
-- 이 저장소에서 `메인 에이전트`는 `서브에이전트` 사용을 기본 작업 전략 중 하나로 간주한다.
-- 사용자 요청을 더 빠르고 정확하게 처리할 수 있고 상위 지침과 도구 정책이 허용하면, Agent는 별도 지시가 없어도 `서브에이전트` 활용을 적극적으로 검토한다.
-- `탐색`, `구현`, `검증`, `리뷰`, `문서화`처럼 성격이 다른 하위 작업을 독립적으로 나눌 수 있으면 `서브에이전트` 병렬 활용을 우선 검토한다.
-- 서로 다른 파일 또는 책임 범위를 가진 하위 작업이 둘 이상이면, 가능한 범위에서 적절한 수의 `서브에이전트`를 직접 배정한다.
-- `서브에이전트`에 작업을 위임할 때는 담당 범위, 수정 가능 파일, 기대 산출물을 구체적으로 지정한다.
-- 현재 단계에서 즉시 판단이 필요한 핵심 결정과 강하게 결합된 작업은 주 Agent가 직접 처리하고, 병렬로 진행 가능한 조사, 보조 구현, 검증, 리뷰는 `서브에이전트`에 우선 위임한다.
-- 시스템, 개발자, 사용자 지침이나 도구 권한이 `서브에이전트` 사용을 제한하면 그 제한을 우선한다.
+## 공통 원칙
 
-### 일반 작업 원칙
+- 문서, 커밋, PR 본문은 한글 우선으로 작성한다.
+- 용어와 표기는 `glossary.md`를 따른다.
+- 같은 저장소에서 둘 이상의 세션을 병행할 때는 `git worktree`를 사용한다.
+- GitHub 상태 변경은 connector 쓰기 권한을 전제하지 않고 `gh` 또는 `gh api`를 기본 경로로 사용한다.
+- 코드나 스크립트를 수정하면 관련 문서(`README.md`, `glossary.md`, `docs/**`) 영향 여부를 함께 검토한다.
 
-- 같은 저장소에서 둘 이상의 채팅 세션 작업을 병행할 때는, 세션별 변경 사항이 섞이지 않도록 각 세션을 별도 `git worktree`에서 작업한다.
-- 문서와 설명 문장은 `한글`로 작성하는 것을 원칙으로 하며, `영어` 표기가 더 정확하거나 자연스러운 경우에는 괄호를 사용해 한글과 영어를 함께 작성한다. 예: React Query(리액트 쿼리)
-- `디렉터리명`, `파일명`, `변수명` 등을 정할 때는 `glossary.md`의 내용을 먼저 참고하고, 가능한 한 그 표기를 따른다.
-- 코드 또는 스크립트 파일을 수정한 뒤에는 관련 문서(`README.md`, `glossary.md`, `docstring` 등)를 함께 점검한다. 관련 문서의 범위는 사용자 영향도, 운영 절차 변경 여부 등을 기준으로 Agent가 적절하게 판단한다.
-- 마크다운 문서를 작성할 때는 가독성을 위해 `heading 문법(# ~ ####)`을 사용해 문서 구조를 명확히 나눈다. `H1`은 문서 제목에 사용하고, 필요에 따라 `H2`~`H4`를 사용한다.
+## 도메인별 진입 문서
 
-### docstring
+### `assembly`
 
-- `docstring`이 있어야 하는 함수, 클래스, 모듈, 스크립트 등에 `docstring`이 없으면 새로 작성한다.
-- 이미 `docstring`이 있으면 동작 설명, 입력/출력, 부작용, 제약이 바뀌는 경우에만 수정한다.
-- 단순 리팩터링, 변수명 변경, 포맷 정리처럼 외부 동작 설명이 바뀌지 않으면 `docstring`은 수정하지 않아도 된다.
+- 먼저 읽기: `docs/assembly/canonical/llm-entry.md`
+- 온보딩: `docs/assembly/onboarding/assembly-team-onboarding.md`
 
-### Next.js 프런트엔드 작업
+### `local-election`
 
-- 이 저장소는 `Next.js 16`, `React 19`, `TypeScript`, `Tailwind CSS 4` 기반 프런트엔드다. 새 파일과 수정은 기존 `App Router` 구조와 `@/*` alias 패턴을 우선 따른다.
-- 현재 저장소 구조는 `README.md` 기준을 우선 따른다. API 입력/응답 검증은 `src/lib/schemas.ts`, 클라이언트 fetch와 캐시는 `src/lib/api-client.ts`, 공용 UI 컴포넌트는 `src/components/ui` 아래 패턴을 우선 사용한다.
-- `ts`, `tsx`, `js`, `jsx`, `css`, `mjs`, `json` 설정 파일을 수정한 경우 기본 검증으로 프로젝트 루트에서 `npm run lint`를 실행한다.
-- 라우팅, 빌드, 타입, 데이터 접근, 전역 스타일처럼 배포 결과에 직접 영향을 주는 변경이 있으면 `npm run build`까지 실행해 최종 검증한다.
-- 문서만 수정한 작업은 링크, 명령 예시, 섹션 구조가 현재 저장소 상태와 맞는지 수동 검토로 검증을 대신할 수 있다.
-- 검증 명령이나 실행 절차가 바뀌면 `README.md`도 함께 갱신한다.
+- 먼저 읽기: `docs/local-election/canonical/llm-entry.md`
 
-### Git 작업
+### `common`
 
-- `commit`을 작성하기 전에는 프로젝트 루트에 `agent-git-commit-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
-- `GitHub PR`을 생성하거나 `merge`하기 전에는 프로젝트 루트에 `agent-github-pr-and-merge-guide.md`가 있는지 먼저 확인하고, 문서가 있으면 그 지침을 우선 참고한다.
-- 별도 가이드 문서가 없으면 `conventional commits`와 GitHub PR 기본 관례를 따른다.
+- 먼저 읽기: `docs/common/canonical/llm-entry-common.md`
+- workflow 기준: `docs/common/canonical/llm-workflow-harness.md`
 
-## 구체적인 작업 내용 기록
+## 작업 단계별로 읽을 문서
 
-### 기록 위치와 파일명
+### 새 작업을 시작하거나 이슈를 만들 때
 
-- Agent가 수행한 구체적인 작업 내용을 `<project_root>/tmp/adr/<yymmdd>` 디렉터리에 `markdown` 문서로 기록한다.
-- 파일명은 `yyMMdd-HHmmss-<주제>.md` 형식을 사용하며, 주제는 문서의 성격이 잘 드러나도록 한글로 작성한다.
+- `docs/common/codex/workflows/issue-writing-guide.md`
 
-### 권장 문서 구조
+### 구현을 진행할 때
 
-- 제목
-- 배경
-- 변경 사항
-- 비채택안과 그 이유
-- 검증
-- 후속 메모
-- 기타
-- Git (optional)
+- `docs/common/codex/workflows/development-execution-guide.md`
 
-#### 비채택안과 그 이유
+### 문서 영향 여부를 검토할 때
 
-- 채택하지 않은 대안이 있었다면 1개 이상 명시한다.
-- 각 대안마다 `무엇을 검토했는지`, `왜 채택하지 않았는지`를 함께 적는다.
-- 가능하면 비용, 운영 복잡도, 데이터 정합성, 테스트 난이도, 마이그레이션 범위처럼 판단 근거를 구체적으로 적는다.
-- 향후 조건이 바뀌면 다시 검토할 수 있는 대안이라면 그 조건도 함께 적는다.
-- 실질적인 대안이 없었다면 `문서화할 수준의 별도 비채택안 없음`이라고 짧게 적어도 된다.
+- `docs/common/codex/workflows/documentation-review-guide.md`
+- `docs/common/codex/policies/documentation-policy.md`
+
+### commit, PR, merge를 진행할 때
+
+- `docs/common/codex/workflows/work-completion-guide.md`
+- `docs/common/codex/guides/local-hook-and-ci-enforcement-guide.md`
+- `docs/common/codex/guides/git-commit-guide.md`
+- `docs/common/codex/guides/github-pr-and-merge-guide.md`
+
+## 기록 원칙
+
+- 구체적인 작업 기록은 `tmp/adr/<yymmdd>/yyMMdd-HHmmss-<주제>.md`에 남긴다.
+- 작업 기록에는 `배경`, `변경 사항`, `비채택안`, `검증`, `후속 메모`를 포함한다.

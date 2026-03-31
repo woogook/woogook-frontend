@@ -1,5 +1,5 @@
-import seoulData from "../../2026_data/sample_ballot_response_resolved_seoul.json";
-import jejuData from "../../2026_data/sample_ballot_response_partially_ambiguous_jeju.json";
+import seoulData from "@/data/samples/sample_ballot_response_resolved_seoul.json";
+import jejuData from "@/data/samples/sample_ballot_response_partially_ambiguous_jeju.json";
 import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
 import type {
   BallotItem,
