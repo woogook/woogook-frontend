@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import jejuSample from "@/data/samples/sample_ballot_response_partially_ambiguous_jeju.json";
 import seoulSample from "@/data/samples/sample_ballot_response_resolved_seoul.json";
 import { buildCandidateArtifacts, buildElectionMeta } from "@/app/data";
+import {
+  loadCandidatePromiseOverlayIndex,
+  type CandidateRecordWithPromiseOverlay,
+} from "@/app/api/ballots/promise-overlay";
+import {
+  loadCandidateNewsOverlayIndex,
+  type CandidateRecordWithNewsOverlay,
+} from "@/app/api/ballots/news-overlay";
 import { pool } from "@/lib/db";
 import { getActiveLocalElectionElectionId } from "@/lib/local-election-config";
 import {
@@ -279,6 +287,14 @@ async function fetchCandidatesByContest(contestIds: string[]) {
     [contestIds],
   );
 
+  const promiseOverlayIndex = await loadCandidatePromiseOverlayIndex();
+  const newsOverlayIndex = await loadCandidateNewsOverlayIndex(
+    result.rows.map((row) => ({
+      candidate_id: row.candidate_id,
+      contest_id: row.contest_id,
+    })),
+  );
+
   for (const row of result.rows) {
     const payload = (row.payload || {}) as Record<string, unknown>;
     const record = buildCandidateArtifacts({
@@ -314,7 +330,9 @@ async function fetchCandidatesByContest(contestIds: string[]) {
       source_scope_label: (payload.source_scope_label as string) || "",
       source_kind: row.source_kind || (payload.source_kind as string) || "",
       source_file: row.source_file || (payload.source_file as string) || "",
-    } satisfies CandidateRecord);
+      promise_overlay: promiseOverlayIndex.get(row.candidate_id) ?? null,
+      news_overlay: newsOverlayIndex.get(row.candidate_id) ?? null,
+    } satisfies CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay);
 
     const candidates = map.get(row.contest_id) || [];
     candidates.push(record);
