@@ -1,6 +1,8 @@
 import seoulData from "@/data/samples/sample_ballot_response_resolved_seoul.json";
 import jejuData from "@/data/samples/sample_ballot_response_partially_ambiguous_jeju.json";
 import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
+import type { CandidateRecordWithPromiseOverlay } from "@/app/api/ballots/promise-overlay";
+import type { CandidateRecordWithNewsOverlay } from "@/app/api/ballots/news-overlay";
 import type {
   BallotItem,
   BallotResponse,
@@ -579,8 +581,17 @@ export function buildElectionMeta(
 }
 
 export function buildCandidateIssueMatches(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
 ): CandidateIssueMatch[] {
+  const promiseOverlay = candidate.promise_overlay;
+  if (promiseOverlay && promiseOverlay.issue_matches.length > 0) {
+    return promiseOverlay.issue_matches;
+  }
+  const newsOverlay = candidate.news_overlay;
+  if (newsOverlay && newsOverlay.issue_matches.length > 0) {
+    return newsOverlay.issue_matches;
+  }
+
   const normalizedJob = normalizeLookup(candidate.job);
   const normalizedEducation = normalizeLookup(candidate.education);
   const normalizedCareer = normalizeLookup(candidate.career);
@@ -642,8 +653,55 @@ export function buildCandidateIssueMatches(
 }
 
 export function buildCandidateBrief(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
 ): CandidateBrief {
+  const promiseOverlay = candidate.promise_overlay;
+  const newsOverlay = candidate.news_overlay;
+  if (promiseOverlay && promiseOverlay.promise_item_count > 0) {
+    const issueLabels = promiseOverlay.issue_keys.map((issueKey) => getIssueShortLabel(issueKey));
+    const isMock = promiseOverlay.promise_source_status === "public_statement";
+    return {
+      summary_lines: [
+        promiseOverlay.representative_title
+          ? `대표 공약: ${promiseOverlay.representative_title}`
+          : "대표 공약 요약은 추가 확인이 필요합니다.",
+        newsOverlay?.summary_text
+          ? `뉴스 단서: ${newsOverlay.summary_text}`
+          : issueLabels.length > 0
+            ? `주요 공약 분야: ${issueLabels.slice(0, 2).join("·")}`
+            : `공약 자료 ${promiseOverlay.promise_item_count}건이 확인됩니다.`,
+        `공약 자료 ${promiseOverlay.promise_item_count}건이 확인됩니다.`,
+      ],
+      differentiator: promiseOverlay.representative_title || candidate.job || null,
+      evidence_status:
+        !isMock || newsOverlay?.evidence_status === "enough" || newsOverlay?.evidence_status === "limited"
+          ? "enough"
+          : "limited",
+      promise_source_status: promiseOverlay.promise_source_status,
+      info_gap_flags: [
+        isMock
+          ? "일부 공약은 로컬 검증용 mock 데이터입니다."
+          : "공약 세부 실행 계획은 원문 확인 필요",
+      ],
+    };
+  }
+
+  if (newsOverlay && newsOverlay.evidence_status !== "missing") {
+    return {
+      summary_lines: [
+        newsOverlay.summary_text || "후보 뉴스 번들 기준 관련 근거가 확인됩니다.",
+        "공식 공약은 아직 직접 확보되지 않았고 뉴스 보조 근거 중심입니다.",
+      ],
+      differentiator: newsOverlay.summary_text,
+      evidence_status: newsOverlay.evidence_status,
+      promise_source_status: "not_secured",
+      info_gap_flags:
+        newsOverlay.info_gap_flags.length > 0
+          ? newsOverlay.info_gap_flags
+          : ["공식 공약은 아직 직접 확보되지 않았습니다."],
+    };
+  }
+
   const careerLines = parseCareer(candidate.career);
   const summaryLines = [
     candidate.job
@@ -679,13 +737,74 @@ export function buildCandidateBrief(
 }
 
 export function buildCandidateCompareEntry(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
 ): CandidateCompareEntry {
+  const promiseOverlay = candidate.promise_overlay;
+  const newsOverlay = candidate.news_overlay;
   const careerLines = parseCareer(candidate.career);
   const issueMatches = candidate.issue_matches || buildCandidateIssueMatches(candidate);
   const strongIssues = issueMatches
     .filter((match) => match.level === "very_high" || match.level === "high")
     .map((match) => getIssueShortLabel(match.issue_key));
+
+  if (promiseOverlay && promiseOverlay.promise_item_count > 0) {
+    const issueLabels = promiseOverlay.issue_keys.map((issueKey) => getIssueShortLabel(issueKey));
+    const isMock = promiseOverlay.promise_source_status === "public_statement";
+    return {
+      facts: [
+        { label: "정당", value: candidate.party_name || "무소속" },
+        { label: "직업", value: candidate.job || "정보 없음" },
+        { label: "대표 공약", value: promiseOverlay.representative_title || "정보 없음" },
+      ],
+      summary: [
+        issueLabels.length > 0
+          ? `공약 자료 기준 ${issueLabels.slice(0, 2).join("·")} 관련 방향이 직접 확인됩니다.`
+          : "공약 자료가 확보되어 후보별 정책 방향을 직접 비교할 수 있습니다.",
+        promiseOverlay.representative_title
+          ? `대표 공약은 '${promiseOverlay.representative_title}'입니다.`
+          : "대표 공약 문구는 추가 확인이 필요합니다.",
+      ],
+      source_refs: [
+        {
+          label: promiseOverlay.source_label || "공약 자료",
+          source_type: isMock ? "auxiliary" : "official",
+          as_of: candidate.registration_date || null,
+          url: promiseOverlay.source_url,
+        },
+      ],
+      info_gap_flags: [
+        isMock
+          ? "일부 공약은 로컬 검증용 mock 데이터입니다."
+          : "세부 실행 계획은 공약 원문 확인 필요",
+      ],
+    };
+  }
+
+  if (newsOverlay && newsOverlay.evidence_status !== "missing") {
+    return {
+      facts: [
+        { label: "정당", value: candidate.party_name || "무소속" },
+        { label: "직업", value: candidate.job || "정보 없음" },
+        { label: "뉴스 근거", value: newsOverlay.summary_text || "후보 뉴스 번들" },
+      ],
+      summary: [
+        newsOverlay.summary_text || "후보 뉴스 번들 기준 관련 근거가 확인됩니다.",
+        "공식 공약이 아니라 뉴스 보조 근거 중심의 비교입니다.",
+      ],
+      source_refs: [
+        {
+          label: "후보 뉴스 번들",
+          source_type: "auxiliary",
+          as_of: candidate.registration_date || null,
+          url: null,
+        },
+      ],
+      info_gap_flags:
+        newsOverlay.info_gap_flags.length > 0
+          ? newsOverlay.info_gap_flags
+          : ["공식 공약은 아직 직접 확보되지 않았습니다."],
+    };
+  }
 
   return {
     facts: [
@@ -724,7 +843,7 @@ export function buildCandidateCompareEntry(
 }
 
 export function buildCandidateArtifacts(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
 ): CandidateRecord {
   const issueMatches = buildCandidateIssueMatches(candidate);
   const brief = buildCandidateBrief(candidate);
@@ -741,7 +860,7 @@ export function buildCandidateArtifacts(
 }
 
 export function getRelevantIssueMatches(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
   issueProfile: UserIssueProfile | null | undefined,
 ): CandidateIssueMatch[] {
   if (!issueProfile || issueProfile.normalized_issue_keys.length === 0) {
@@ -757,7 +876,7 @@ export function getRelevantIssueMatches(
 }
 
 export function getCandidateIssueSortScore(
-  candidate: CandidateRecord,
+  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
   issueProfile: UserIssueProfile | null | undefined,
 ): number {
   const matches = getRelevantIssueMatches(candidate, issueProfile);
