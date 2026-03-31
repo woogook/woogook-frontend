@@ -217,17 +217,6 @@ export default function AssemblyPledgeForm() {
           공약 이행률 보기
         </Button>
 
-        {regionNotice ? (
-          <Alert variant="info" className="stagger-5 mt-3 animate-fade-in-up">
-            <div className="flex items-start gap-2">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <div>
-                <AlertTitle>기본 목록 사용</AlertTitle>
-                <AlertDescription>{regionNotice}</AlertDescription>
-              </div>
-            </div>
-          </Alert>
-        ) : null}
 
         <p
           className="stagger-6 mt-6 animate-fade-in-up text-[10px] leading-relaxed"
