@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import jejuSample from "../../../../2026_data/sample_ballot_response_partially_ambiguous_jeju.json";
-import seoulSample from "../../../../2026_data/sample_ballot_response_resolved_seoul.json";
+import jejuSample from "@/data/samples/sample_ballot_response_partially_ambiguous_jeju.json";
+import seoulSample from "@/data/samples/sample_ballot_response_resolved_seoul.json";
 import { buildCandidateArtifacts, buildElectionMeta } from "@/app/data";
 import { pool } from "@/lib/db";
 import { getActiveLocalElectionElectionId } from "@/lib/local-election-config";
