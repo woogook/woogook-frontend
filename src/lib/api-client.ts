@@ -14,6 +14,8 @@ import {
   localElectionChatMessageCreateRequestSchema,
   localElectionChatMessageResponseSchema,
   sigunguResponseSchema,
+  assemblyMemberListResponseSchema,
+  type AssemblyMemberListResponse,
   type BallotsSearchParams,
   type LocalElectionChatConversationCreateRequest,
   type LocalElectionChatMessageCreateRequest,
@@ -181,6 +183,40 @@ export function ballotsQueryOptions(params: BallotsSearchParams) {
     retry: 0,
   });
 }
+
+/**
+ * 국회 공약 기준 의원 목록 (GET api/assembly/v1/members)
+ * 브라우저는 동일 출처 Next 라우트만 호출하고 , route.ts 가 백엔드로 프록시한다. 
+ */
+export async function fetchAssemblyMembers(
+  region: string,
+  district: string,
+): Promise<AssemblyMemberListResponse> {
+  const query = new URLSearchParams({
+    region: region.trim(),
+    district: district.trim(),
+  });
+  return fetchJson(
+    `/api/assembly/v1/members?${query.toString()}`,
+    assemblyMemberListResponseSchema,
+  );
+}
+
+/**
+ * 구/군/시 선택 후 의원 목록을 불러올 때 사용하는 React Query 옵션.
+ * district 가 비어 있으면 요청하지 않음(enabled) - 구 선택 전에는 호출 되지 않게  
+ */
+export function assemblyMembersQueryOptions(region: string, district: string) {
+  const trimmedDistrict = district.trim();
+  return queryOptions({
+    queryKey: ["assembly", "members", region, trimmedDistrict],
+    queryFn: () => fetchAssemblyMembers(region, trimmedDistrict),
+    enabled: trimmedDistrict.length > 0, 
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  })
+}
+
 
 export async function createLocalElectionChatConversation(
   request: LocalElectionChatConversationCreateRequest,

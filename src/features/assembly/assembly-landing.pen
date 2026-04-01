@@ -1,0 +1,436 @@
+{
+  "version": "2.9",
+  "children": [
+    {
+      "type": "frame",
+      "id": "p0azB",
+      "x": 0,
+      "y": 0,
+      "name": "Section max-w-5xl",
+      "width": 1024,
+      "layout": "vertical",
+      "gap": 32,
+      "children": [
+        {
+          "type": "text",
+          "id": "omEQN",
+          "name": "eyebrow",
+          "fill": "#64748B",
+          "content": "ASSEMBLY DOMAIN",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 2.5
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Sik7b",
+      "x": 0,
+      "y": 0,
+      "name": "/assembly 모바일",
+      "width": 390,
+      "height": 900,
+      "fill": "#f9f8f5",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "qxRN1",
+          "name": "nav",
+          "width": "fill_container",
+          "height": 60,
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#e2e0db"
+          },
+          "padding": [
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "h2YVi",
+              "name": "navL",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Nza2V",
+                  "name": "ib",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#fdf8ef",
+                  "cornerRadius": 20,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "H0DEg",
+                  "name": "tc",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lBq6C",
+                      "name": "nt1",
+                      "fill": "#1e293b",
+                      "content": "공약 이행률",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ts5Ho",
+                      "name": "nt2",
+                      "fill": "#64748b",
+                      "content": "국회 서비스",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JPCiB",
+              "name": "navR",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YNYyC",
+                  "name": "pill1",
+                  "cornerRadius": 100,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    6,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Md6hG",
+                      "name": "pt1",
+                      "fill": "#1a1a1a",
+                      "content": "서비스 허브",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JYzAG",
+                  "name": "pill2",
+                  "cornerRadius": 100,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    6,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BDYmV",
+                      "name": "pt2",
+                      "fill": "#1a1a1a",
+                      "content": "지방선거",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "w33nx",
+          "name": "main",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            32,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "l92Em",
+              "name": "bdg",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "yh6EG",
+                  "name": "dot",
+                  "fill": "#a8842c",
+                  "width": 6,
+                  "height": 6
+                },
+                {
+                  "type": "text",
+                  "id": "5i3nM",
+                  "name": "bdl",
+                  "fill": "#a8842c",
+                  "content": "국회·지역",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 11,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "zztE3",
+              "name": "h1",
+              "fill": "#1e293b",
+              "textGrowth": "fixed-width",
+              "width": 350,
+              "content": "우리동네 국회의원 공약 이행률 확인",
+              "lineHeight": 1.2,
+              "fontFamily": "Noto Serif KR",
+              "fontSize": 26,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "F7AdG",
+              "name": "sb",
+              "fill": "#64748b",
+              "textGrowth": "fixed-width",
+              "width": 350,
+              "content": "시·도와 구·군·시를 고른 뒤 국회의원을 선택하면 공약 이행률을 확인할 수 있습니다.",
+              "lineHeight": 1.45,
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "GCToh",
+              "name": "fr1",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "c6ew6",
+                  "name": "lb1",
+                  "fill": "#64748b",
+                  "content": "시/도",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kcbZl",
+              "name": "bx1",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#ffffff",
+              "cornerRadius": 6,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e0db"
+              },
+              "padding": [
+                0,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "O05Mn",
+                  "name": "bx1t",
+                  "fill": "#94a3b8",
+                  "content": "시/도 선택",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BrzrJ",
+              "name": "fr2",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OjlT8",
+                  "name": "lb2",
+                  "fill": "#64748b",
+                  "content": "구/군/시",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "fAkeK",
+                  "name": "bx2",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "#ffffff",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YVq3N",
+                      "name": "bx2t",
+                      "fill": "#94a3b8",
+                      "content": "구/군/시 선택",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ldl7K",
+              "name": "fr3",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "s7ObA",
+                  "name": "lb3",
+                  "fill": "#64748b",
+                  "content": "국회의원 선택",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "dDwSh",
+                  "name": "bx3",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "#ffffff",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZBIrO",
+                      "name": "bx3t",
+                      "fill": "#94a3b8",
+                      "content": "국회의원을 선택하세요",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "00Xi7",
+              "name": "btn",
+              "width": "fill_container",
+              "height": 52,
+              "fill": "#1e293b",
+              "cornerRadius": 14,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ipJJd",
+                  "name": "btnt",
+                  "fill": "#ffffff",
+                  "content": "공약 이행률 보기",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 15,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "0jAgl",
+              "name": "fn",
+              "fill": "#94a3b8",
+              "textGrowth": "fixed-width",
+              "width": 340,
+              "content": "국회의원 목록은 예시 데이터입니다. API 연동 후 실제 명단이 표시됩니다. 공약·이행 출처는 순차 안내 예정.",
+              "lineHeight": 1.45,
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 10,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

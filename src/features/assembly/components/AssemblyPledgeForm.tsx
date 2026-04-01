@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { sigunguQueryOptions } from "@/lib/api-client";
+import { assemblyMembersQueryOptions, sigunguQueryOptions } from "@/lib/api-client";
 
 /** 현재 국회 공약 서비스는 서울특별시만 지원(데이터·API 시/도 명과 동일). */
 const ASSEMBLY_FIXED_CITY = "서울특별시";
 
+type SelectOption = string | { value: string; label: string };
+
 /**
  * 지역 선택 폼 — local-election AddressInput과 동일한 셀렉트 스타일(모바일 터치 영역 48px).
+ * options: 문자열 목록 또는 { value, label }(의원 선택 시 mona_cd / display_label).
  */
 function SelectField({
   label,
@@ -30,7 +31,7 @@ function SelectField({
   onChange: (next: string) => void;
   disabled?: boolean;
   placeholder: string;
-  options: string[];
+  options: SelectOption[];
 }) {
   return (
     <div>
@@ -56,11 +57,17 @@ function SelectField({
           }}
         >
           <option value="">{placeholder}</option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+          {options.map((option) =>
+            typeof option === "string" ? (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ) : (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ),
+          )}
         </select>
         <div
           className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
@@ -89,39 +96,43 @@ function SelectField({
   );
 }
 
-/** API 미연동 시 예시 의원 목록(선거구·이름 형식). 실제 연동 시 교체. */
-const DEMO_ASSEMBLY_MEMBERS = [
-  "가선거구 · (예시) 김OO",
-  "나선거구 · (예시) 이OO",
-];
-
 export default function AssemblyPledgeForm() {
   const router = useRouter();
   const [district, setDistrict] = useState("");
-  const [member, setMember] = useState("");
+  /** 선택한 국회의원 — API mona_cd와 동일한 값을 value로 둠. */
+  const [monaCd, setMonaCd] = useState("");
 
   const districtsQuery = useQuery(sigunguQueryOptions(ASSEMBLY_FIXED_CITY));
+  const membersQuery = useQuery(
+    assemblyMembersQueryOptions(ASSEMBLY_FIXED_CITY, district),
+  );
 
   const districts = districtsQuery.data?.items ?? [];
-  const regionNotice = districtsQuery.data?.fallbackMessage ?? null;
 
   const isDistrictLoading = districtsQuery.isPending || districtsQuery.isFetching;
+  const isMembersLoading =
+    Boolean(district) && (membersQuery.isPending || membersQuery.isFetching);
 
-  const memberOptions = district ? DEMO_ASSEMBLY_MEMBERS : [];
+  const memberOptions: SelectOption[] = district
+    ? (membersQuery.data?.items ?? []).map((item) => ({
+        value: item.mona_cd,
+        label: item.display_label,
+      }))
+    : [];
 
   const handleDistrictChange = (nextDistrict: string) => {
     setDistrict(nextDistrict);
-    setMember("");
+    setMonaCd("");
   };
 
   const handleSubmit = () => {
-    if (!district || !member) {
+    if (!district || !monaCd) {
       return;
     }
     const params = new URLSearchParams({
       city: ASSEMBLY_FIXED_CITY,
       sigungu: district,
-      member,
+      mona_cd: monaCd,
     });
     router.push(`/assembly/pledge?${params.toString()}`);
   };
@@ -196,11 +207,17 @@ export default function AssemblyPledgeForm() {
 
           <SelectField
             label="국회의원 선택"
-            value={member}
-            onChange={setMember}
-            disabled={!district}
+            value={monaCd}
+            onChange={setMonaCd}
+            disabled={!district || isMembersLoading}
             placeholder={
-              !district ? "구·군·시를 먼저 선택하세요" : "국회의원을 선택하세요"
+              !district
+                ? "구·군·시를 먼저 선택하세요"
+                : isMembersLoading
+                  ? "불러오는 중..."
+                  : memberOptions.length === 0
+                    ? "해당 구에 의원 데이터가 없습니다"
+                    : "국회의원을 선택하세요"
             }
             options={memberOptions}
           />
@@ -209,7 +226,7 @@ export default function AssemblyPledgeForm() {
         <Button
           type="button"
           onClick={handleSubmit}
-          disabled={!district || !member}
+          disabled={!district || !monaCd}
           variant="primary"
           size="lg"
           className="stagger-4 w-full animate-fade-in-up"
@@ -222,7 +239,7 @@ export default function AssemblyPledgeForm() {
           className="stagger-6 mt-6 animate-fade-in-up text-[10px] leading-relaxed"
           style={{ color: "var(--text-tertiary)" }}
         >
-          국회의원 목록은 예시 데이터입니다. 실제 명단은 API 연동 후 표시됩니다.
+          국회의원 목록은 서버 데이터를 사용합니다.
           <br />
           공약·이행 데이터 출처는 순차 안내 예정입니다. 특정 정당·후보를 지지하지 않습니다.
         </p>

@@ -279,6 +279,29 @@ export const emdResponseSchema = z.object({
   emd: z.array(z.string()),
 });
 
+export const assemblyMemberListMetaSchema = z.object({
+  region: z.string(),
+  district: z.string(),
+});
+
+export const assemblyMemberListItemSchema = z.object({
+  mona_cd: z.string(),
+  member_name: z.string(),
+  party_name: z.string(),
+  region: z.string(),
+  district: z.string(),
+  display_label: z.string(),
+});
+
+export const assemblyMemberListResponseSchema = z.object({
+  meta: assemblyMemberListMetaSchema,
+  items: z.array(assemblyMemberListItemSchema),
+});
+
+export type AssemblyMemberListMeta = z.infer<typeof assemblyMemberListMetaSchema>;
+export type AssemblyMemberListItem = z.infer<typeof assemblyMemberListItemSchema>;
+export type AssemblyMemberListResponse = z.infer<typeof assemblyMemberListResponseSchema>;
+
 export type BallotsSearchParams = z.infer<typeof ballotsSearchParamsSchema>;
 export type IssueKey = z.infer<typeof issueKeySchema>;
 export type IssueMatchLevel = z.infer<typeof issueMatchLevelSchema>;
