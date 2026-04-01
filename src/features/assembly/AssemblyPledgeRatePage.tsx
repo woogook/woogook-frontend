@@ -28,7 +28,7 @@ export function AssemblyPledgeRatePage() {
   const searchParams = useSearchParams();
   const city = searchParams.get("city");
   const sigungu = searchParams.get("sigungu");
-  const memberRaw = searchParams.get("member");
+  const monaCdRaw = searchParams.get("mona_cd");
 
   /** 스케치와 동일한 예시 프로필. API 연동 후 실제 의원 데이터로 교체. */
   const demoName = "배현진";
@@ -43,12 +43,12 @@ export function AssemblyPledgeRatePage() {
 
   const selectionNote =
     city && sigungu
-      ? memberRaw
-        ? `선택: ${city} ${sigungu} · ${safeDecodeURIComponent(memberRaw)}`
+      ? monaCdRaw
+        ? `선택: ${city} ${sigungu} · ${safeDecodeURIComponent(monaCdRaw)}`
         : `선택 지역: ${city} ${sigungu}`
       : null;
 
-  const contextParams = assemblyPledgeContextParams(city, sigungu, memberRaw);
+  const contextParams = assemblyPledgeContextParams(city, sigungu, monaCdRaw);
 
   return (
     <AssemblyAppShell backHref="/assembly" backLabel="지역·의원 선택">

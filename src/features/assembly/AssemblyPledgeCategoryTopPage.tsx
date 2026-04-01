@@ -25,7 +25,7 @@ export function AssemblyPledgeCategoryTopPage() {
   const searchParams = useSearchParams();
   const city = searchParams.get("city");
   const sigungu = searchParams.get("sigungu");
-  const member = searchParams.get("member");
+  const monaCd = searchParams.get("mona_cd");
   const categoryRaw = searchParams.get("category");
   const categoryLabel = categoryRaw ? safeDecodeURIComponent(categoryRaw) : null;
 
@@ -41,7 +41,7 @@ export function AssemblyPledgeCategoryTopPage() {
     }));
   }, []);
 
-  const backParams = assemblyPledgeContextParams(city, sigungu, member);
+  const backParams = assemblyPledgeContextParams(city, sigungu, monaCd);
   const backHref =
     backParams.toString().length > 0
       ? `/assembly/pledge?${backParams.toString()}`
@@ -93,7 +93,7 @@ export function AssemblyPledgeCategoryTopPage() {
                       <span
                         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
                         style={{
-                          background: "var(--amber-bg)",
+                          // background: "var(--amber-bg)",
                           color: "var(--amber)",
                           border: "1px solid var(--border)",
                         }}
