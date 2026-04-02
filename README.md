@@ -40,6 +40,8 @@ npm run dev
 
 - 공통 라우터: `AGENTS.md`
 - 공통 workflow: `docs/common/codex/workflows/*`
+- 배포 의사결정: `docs/common/canonical/frontend-deployment-decision.md`
+- 배포 runbook: `docs/common/runbooks/vercel-deployment-runbook.md`
 - 국회 온보딩: `docs/assembly/onboarding/assembly-team-onboarding.md`
 
 ## 샘플 데이터
