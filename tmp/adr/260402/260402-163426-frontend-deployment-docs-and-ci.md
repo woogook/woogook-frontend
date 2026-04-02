@@ -17,6 +17,7 @@
 - CI는 `Node.js 24 LTS`를 기준으로 `npm ci`, `npm run lint`, `npm run build`만 수행하도록 구성했다.
 - CI 시작 단계에서 실제 `Node.js`와 `npm` 버전을 출력하고, major version이 `24`가 아니면 실패하도록 version check step을 넣었다.
 - 기존 `tmp/adr/260402` 아래에 나뉘어 있던 세 개의 작업 기록을 이 문서로 통합했다.
+- code review 지적을 반영해 runbook에서 현재 구현된 workflow와 후속 예정 workflow를 분리하고, CI trigger 설명을 실제 `ci.yml` 기준으로 수정했다.
 
 ## 비채택안
 
@@ -45,6 +46,8 @@
   - 경고 1건: `src/app/components/CandidateCards.tsx`의 `@next/next/no-img-element`
 - `NODE24=$(npx -y -p node@24 -c 'which node') && "$NODE24" node_modules/next/dist/bin/next build`
   - 성공
+- `docs/common/runbooks/vercel-deployment-runbook.md`
+  - 현재 구현과 후속 목표가 혼동되지 않는지 수동 검토
 
 ## 후속 메모
 

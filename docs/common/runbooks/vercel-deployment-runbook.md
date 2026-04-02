@@ -29,9 +29,9 @@
 
 - Vercel의 Git integration만으로 팀 배포를 운영하지 않는다.
 - 기본 배포 경로는 `GitHub Actions + Vercel CLI`다.
-- `pull_request`에서는 CI만 수행한다.
-- preview deploy는 같은 저장소의 non-`main` branch `push`를 기준으로 한다.
-- production deploy는 `main` branch `push`를 기준으로 한다.
+- 현재 저장소에 실제로 추가된 workflow는 `.github/workflows/ci.yml` 하나다.
+- `ci.yml`은 `pull_request`와 `main` branch `push`에서만 실행된다.
+- preview / production deploy workflow는 backend/API와 Vercel 환경이 준비된 뒤 후속으로 추가한다.
 - 외부 fork PR에서는 secrets 기반 deploy를 시도하지 않는다.
 
 ## Phase 0. 사전 준비
@@ -144,9 +144,16 @@ GitHub 저장소 Secrets에 아래 값을 추가한다.
 
 ## Phase 4. GitHub Actions 설계
 
-권장 workflow 파일 구성은 아래와 같다.
+이 절은 `현재 구현된 workflow`와 `후속으로 추가할 workflow`를 함께 설명한다.
+
+### 4-0. workflow 파일 구성
+
+현재 구현
 
 - `.github/workflows/ci.yml`
+
+후속 추가 예정
+
 - `.github/workflows/vercel-preview.yml`
 - `.github/workflows/vercel-production.yml`
 
@@ -155,7 +162,7 @@ GitHub 저장소 Secrets에 아래 값을 추가한다.
 트리거
 
 - `pull_request`
-- `push`
+- `main` branch `push`
 
 기본 작업
 
@@ -164,6 +171,8 @@ GitHub 저장소 Secrets에 아래 값을 추가한다.
 - `npm run build`
 
 ### 4-2. Preview 배포
+
+아래 workflow는 아직 저장소에 추가되지 않았고, backend/API와 Vercel 환경이 준비된 뒤 도입한다.
 
 트리거
 
@@ -178,6 +187,8 @@ vercel deploy --prebuilt --token=$VERCEL_TOKEN
 ```
 
 ### 4-3. Production 배포
+
+아래 workflow는 아직 저장소에 추가되지 않았고, preview 검증 체계가 준비된 뒤 도입한다.
 
 트리거
 
