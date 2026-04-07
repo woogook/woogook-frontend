@@ -287,7 +287,8 @@ export const assemblyMemberListMetaSchema = z.object({
 export const assemblyMemberListItemSchema = z.object({
   mona_cd: z.string(),
   member_name: z.string(),
-  party_name: z.string(),
+  /** 백엔드 AssemblyMemberListItem.party_name — null 허용 */
+  party_name: z.string().nullable(),
   region: z.string(),
   district: z.string(),
   display_label: z.string(),

@@ -1,0 +1,736 @@
+{
+  "version": "2.10",
+  "children": [
+    {
+      "type": "frame",
+      "id": "sEy1",
+      "x": 0,
+      "y": 0,
+      "name": "Section — wireframe note",
+      "width": 1024,
+      "layout": "vertical",
+      "gap": 32,
+      "children": [
+        {
+          "type": "text",
+          "id": "sTx1",
+          "name": "eyebrow",
+          "fill": "#64748B",
+          "content": "ASSEMBLY · PLEDGE RATE",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 2.5
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "mRt99",
+      "x": 0,
+      "y": 0,
+      "name": "/assembly/pledge — 이행률 (AssemblyPledgeRatePage)",
+      "width": 390,
+      "height": 900,
+      "fill": "#f9f8f5",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "nR88",
+          "name": "nav",
+          "width": "fill_container",
+          "height": 60,
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#e2e0db"
+          },
+          "gap": 8,
+          "padding": [
+            0,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "bK77",
+              "name": "back",
+              "fill": "#475569",
+              "content": "← 지역·의원 선택",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 13,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mM77",
+          "name": "main",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            24,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "pW66",
+              "name": "profile_row",
+              "width": "fill_container",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "av55",
+                  "name": "avatar",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#f1f5f9",
+                  "cornerRadius": 16,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "pC44",
+                  "name": "profile_text",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nM33",
+                      "name": "name",
+                      "fill": "#1e293b",
+                      "content": "배현진",
+                      "fontFamily": "Noto Serif KR",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "tA22",
+                      "name": "terms",
+                      "fill": "#64748b",
+                      "content": "제 21·22대 국회의원",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "tB21",
+                      "name": "affil",
+                      "fill": "#64748b",
+                      "content": "국민의힘 - 서울 송파구 을",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "tC20",
+                      "name": "selection",
+                      "fill": "#94a3b8",
+                      "content": "선택: 서울특별시 송파구 (쿼리 예시)",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rS11",
+              "name": "overall_rate",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "rT10",
+                  "name": "rate_line",
+                  "fill": "#1e293b",
+                  "content": "전체 공약 이행률 62%",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Serif KR",
+                  "fontSize": 22,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "rN09",
+                  "name": "rate_note",
+                  "fill": "#94a3b8",
+                  "content": "데모 수치입니다. API 연동 후 표시됩니다.",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cRd1",
+              "name": "category_card",
+              "width": "fill_container",
+              "fill": "#ffffff",
+              "cornerRadius": 28,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#e2e0db"
+              },
+              "layout": "vertical",
+              "padding": 20,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cHd0",
+                  "name": "card_header",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "bottom": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "layout": "vertical",
+                  "padding": [
+                    0,
+                    0,
+                    12,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "cHt9",
+                      "name": "card_title",
+                      "fill": "#1e293b",
+                      "content": "카테고리 별 이행률",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Serif KR",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw00",
+                  "name": "row_0",
+                  "width": "fill_container",
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb00",
+                      "name": "l0",
+                      "fill": "#0f172a",
+                      "content": "경제·산업·재정",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg00",
+                      "name": "r0",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc00",
+                          "name": "p0",
+                          "fill": "#1e293b",
+                          "content": "58%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch00",
+                          "name": "c0",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw01",
+                  "name": "row_1",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb01",
+                      "name": "l1",
+                      "fill": "#0f172a",
+                      "content": "복지·보건·돌바·인구",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg01",
+                      "name": "r1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc01",
+                          "name": "p1",
+                          "fill": "#1e293b",
+                          "content": "71%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch01",
+                          "name": "c1",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw02",
+                  "name": "row_2",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb02",
+                      "name": "l2",
+                      "fill": "#0f172a",
+                      "content": "주거·국토·교통·지역균형",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg02",
+                      "name": "r2",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc02",
+                          "name": "p2",
+                          "fill": "#1e293b",
+                          "content": "45%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch02",
+                          "name": "c2",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw03",
+                  "name": "row_3",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb03",
+                      "name": "l3",
+                      "fill": "#0f172a",
+                      "content": "교육·인재·과학기술·디지털·문화",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg03",
+                      "name": "r3",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc03",
+                          "name": "p3",
+                          "fill": "#1e293b",
+                          "content": "52%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch03",
+                          "name": "c3",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw04",
+                  "name": "row_4",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb04",
+                      "name": "l4",
+                      "fill": "#0f172a",
+                      "content": "환경·에너지·기후",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg04",
+                      "name": "r4",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc04",
+                          "name": "p4",
+                          "fill": "#1e293b",
+                          "content": "49%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch04",
+                          "name": "c4",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw05",
+                  "name": "row_5",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb05",
+                      "name": "l5",
+                      "fill": "#0f172a",
+                      "content": "농림축산·수산·식품",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg05",
+                      "name": "r5",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc05",
+                          "name": "p5",
+                          "fill": "#1e293b",
+                          "content": "63%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch05",
+                          "name": "c5",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw06",
+                  "name": "row_6",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb06",
+                      "name": "l6",
+                      "fill": "#0f172a",
+                      "content": "거버너스·권리·안전·외교안보",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg06",
+                      "name": "r6",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc06",
+                          "name": "p6",
+                          "fill": "#1e293b",
+                          "content": "55%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch06",
+                          "name": "c6",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rw07",
+                  "name": "row_7",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#e2e0db"
+                  },
+                  "padding": [
+                    14,
+                    8
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "lb07",
+                      "name": "l7",
+                      "fill": "#0f172a",
+                      "content": "노동·일자리·기업활력",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rg07",
+                      "name": "r7",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pc07",
+                          "name": "p7",
+                          "fill": "#1e293b",
+                          "content": "60%",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ch07",
+                          "name": "c7",
+                          "fill": "#94a3b8",
+                          "content": "›",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 18,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "67E7M",
+          "layoutPosition": "absolute",
+          "x": 110,
+          "y": 185,
+          "fill": "#000000",
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#000000ff"
+          },
+          "textGrowth": "fixed-width-height",
+          "width": "fit_content(179)",
+          "height": "fit_content(19)",
+          "content": "배현진 의원 선거공보 보기 (PDF)",
+          "fontFamily": "Inter",
+          "fontSize": 11,
+          "fontWeight": "normal"
+        }
+      ]
+    }
+  ]
+}

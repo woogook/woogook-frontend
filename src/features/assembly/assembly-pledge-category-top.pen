@@ -1,0 +1,856 @@
+{
+  "version": "2.9",
+  "children": [
+    {
+      "type": "frame",
+      "id": "cEy1",
+      "name": "Section — wireframe note",
+      "children": [
+        {
+          "type": "text",
+          "id": "cTx1",
+          "name": "eyebrow",
+          "content": "ASSEMBLY · PLEDGE CATEGORY TOP",
+          "fill": "#64748B",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 2.5
+        }
+      ],
+      "width": 1024,
+      "layout": "vertical",
+      "gap": 32,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "frame",
+      "id": "cRt99",
+      "name": "/assembly/pledge/category — TOP5 (AssemblyPledgeCategoryTopPage)",
+      "children": [
+        {
+          "type": "frame",
+          "id": "cN88",
+          "name": "nav",
+          "children": [
+            {
+              "type": "text",
+              "id": "cB77",
+              "name": "back",
+              "content": "← 이행률 요약",
+              "fill": "#475569",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 13,
+              "fontWeight": "600"
+            }
+          ],
+          "width": "fill_container",
+          "height": 60,
+          "padding": [
+            0,
+            20
+          ],
+          "alignItems": "center",
+          "justifyContent": "flex_start",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#e2e0db"
+          },
+          "gap": 8
+        },
+        {
+          "type": "frame",
+          "id": "cM77",
+          "name": "main",
+          "children": [
+            {
+              "type": "text",
+              "id": "cE66",
+              "name": "top5",
+              "content": "TOP 5",
+              "fill": "#a8842c",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 12,
+              "fontWeight": "600",
+              "letterSpacing": 2
+            },
+            {
+              "type": "text",
+              "id": "cH55",
+              "name": "h1",
+              "content": "경제·산업·재정",
+              "fill": "#1e293b",
+              "fontFamily": "Noto Serif KR",
+              "fontSize": 22,
+              "fontWeight": "700",
+              "lineHeight": 1.25
+            },
+            {
+              "type": "text",
+              "id": "cS44",
+              "name": "sub",
+              "content": "이행 평가 상위 공약 (목업)",
+              "fill": "#64748b",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 15,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "cN33",
+              "name": "note",
+              "content": "진행도·판단 근거는 데모용입니다.",
+              "fill": "#94a3b8",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 11,
+              "fontWeight": "normal",
+              "lineHeight": 1.4
+            },
+            {
+              "type": "frame",
+              "id": "cL22",
+              "name": "list",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cd1",
+                  "name": "card_1",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rwC1",
+                      "name": "row_top_1",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rk1",
+                          "name": "rank_1",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rkt1",
+                              "name": "rkt1",
+                              "content": "1",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ],
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 100,
+                          "alignItems": "center",
+                          "justifyContent": "center",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bd1",
+                          "name": "badge_1",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bdt1",
+                              "name": "bdt1",
+                              "content": "진행중",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ],
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "cornerRadius": 8,
+                          "fill": "#fdf8ef",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ti1",
+                          "name": "title_1",
+                          "content": "지역 중소기업 R&D 세액공제 확대",
+                          "fill": "#1e293b",
+                          "fontFamily": "Noto Serif KR",
+                          "fontSize": 14,
+                          "fontWeight": "700",
+                          "textGrowth": "fixed-width",
+                          "width": 200
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sp1",
+                      "name": "sep_1",
+                      "children": [],
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#e2e0db"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rr1",
+                      "name": "rationale_toggle_1",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rl1",
+                          "name": "rl1",
+                          "content": "판단 근거",
+                          "fill": "#64748b",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rrt1",
+                          "name": "rrt1",
+                          "content": "⌄",
+                          "fill": "#94a3b8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "padding": [
+                        4,
+                        0
+                      ]
+                    }
+                  ],
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    12
+                  ],
+                  "gap": 8,
+                  "cornerRadius": 18,
+                  "fill": "#ffffff",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "cd2",
+                  "name": "card_2",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rwC2",
+                      "name": "row_top_2",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rk2",
+                          "name": "rank_2",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rkt2",
+                              "name": "rkt2",
+                              "content": "2",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ],
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 100,
+                          "alignItems": "center",
+                          "justifyContent": "center",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bd2",
+                          "name": "badge_2",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bdt2",
+                              "name": "bdt2",
+                              "content": "이행",
+                              "fill": "#15803d",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ],
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "cornerRadius": 8,
+                          "fill": "#ecfdf5",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ti2",
+                          "name": "title_2",
+                          "content": "청년 창업 자금 이자 지원",
+                          "fill": "#1e293b",
+                          "fontFamily": "Noto Serif KR",
+                          "fontSize": 14,
+                          "fontWeight": "700",
+                          "textGrowth": "fixed-width",
+                          "width": 200
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sp2",
+                      "name": "sep_2",
+                      "children": [],
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#e2e0db"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rr2",
+                      "name": "rationale_toggle_2",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rl2",
+                          "name": "rl2",
+                          "content": "판단 근거",
+                          "fill": "#64748b",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rrt2",
+                          "name": "rrt2",
+                          "content": "⌄",
+                          "fill": "#94a3b8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "padding": [
+                        4,
+                        0
+                      ]
+                    }
+                  ],
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    12
+                  ],
+                  "gap": 8,
+                  "cornerRadius": 18,
+                  "fill": "#ffffff",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "cd3",
+                  "name": "card_3",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rwC3",
+                      "name": "row_top_3",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rk3",
+                          "name": "rank_3",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rkt3",
+                              "name": "rkt3",
+                              "content": "3",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ],
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 100,
+                          "alignItems": "center",
+                          "justifyContent": "center",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bd3",
+                          "name": "badge_3",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bdt3",
+                              "name": "bdt3",
+                              "content": "대기",
+                              "fill": "#c2410c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ],
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "cornerRadius": 8,
+                          "fill": "#fff7ed",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ti3",
+                          "name": "title_3",
+                          "content": "소상공인 공공재단 이자 인하",
+                          "fill": "#1e293b",
+                          "fontFamily": "Noto Serif KR",
+                          "fontSize": 14,
+                          "fontWeight": "700",
+                          "textGrowth": "fixed-width",
+                          "width": 200
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sp3",
+                      "name": "sep_3",
+                      "children": [],
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#e2e0db"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rr3",
+                      "name": "rationale_toggle_3",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rl3",
+                          "name": "rl3",
+                          "content": "판단 근거",
+                          "fill": "#64748b",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rrt3",
+                          "name": "rrt3",
+                          "content": "⌄",
+                          "fill": "#94a3b8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "padding": [
+                        4,
+                        0
+                      ]
+                    }
+                  ],
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    12
+                  ],
+                  "gap": 8,
+                  "cornerRadius": 18,
+                  "fill": "#ffffff",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "cd4",
+                  "name": "card_4",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rwC4",
+                      "name": "row_top_4",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rk4",
+                          "name": "rank_4",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rkt4",
+                              "name": "rkt4",
+                              "content": "4",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ],
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 100,
+                          "alignItems": "center",
+                          "justifyContent": "center",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bd4",
+                          "name": "badge_4",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bdt4",
+                              "name": "bdt4",
+                              "content": "진행중",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ],
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "cornerRadius": 8,
+                          "fill": "#fdf8ef",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ti4",
+                          "name": "title_4",
+                          "content": "디지털 전환 지원 사업",
+                          "fill": "#1e293b",
+                          "fontFamily": "Noto Serif KR",
+                          "fontSize": 14,
+                          "fontWeight": "700",
+                          "textGrowth": "fixed-width",
+                          "width": 200
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sp4",
+                      "name": "sep_4",
+                      "children": [],
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#e2e0db"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rr4",
+                      "name": "rationale_toggle_4",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rl4",
+                          "name": "rl4",
+                          "content": "판단 근거",
+                          "fill": "#64748b",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rrt4",
+                          "name": "rrt4",
+                          "content": "⌄",
+                          "fill": "#94a3b8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "padding": [
+                        4,
+                        0
+                      ]
+                    }
+                  ],
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    12
+                  ],
+                  "gap": 8,
+                  "cornerRadius": 18,
+                  "fill": "#ffffff",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "cd5",
+                  "name": "card_5",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rwC5",
+                      "name": "row_top_5",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rk5",
+                          "name": "rank_5",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rkt5",
+                              "name": "rkt5",
+                              "content": "5",
+                              "fill": "#a8842c",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ],
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 100,
+                          "alignItems": "center",
+                          "justifyContent": "center",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bd5",
+                          "name": "badge_5",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "bdt5",
+                              "name": "bdt5",
+                              "content": "이행",
+                              "fill": "#15803d",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            }
+                          ],
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "cornerRadius": 8,
+                          "fill": "#ecfdf5",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "#e2e0db"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ti5",
+                          "name": "title_5",
+                          "content": "교육비 지원 확대",
+                          "fill": "#1e293b",
+                          "fontFamily": "Noto Serif KR",
+                          "fontSize": 14,
+                          "fontWeight": "700",
+                          "textGrowth": "fixed-width",
+                          "width": 200
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "gap": 8,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sp5",
+                      "name": "sep_5",
+                      "children": [],
+                      "width": "fill_container",
+                      "height": 1,
+                      "fill": "#e2e0db"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rr5",
+                      "name": "rationale_toggle_5",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rl5",
+                          "name": "rl5",
+                          "content": "판단 근거",
+                          "fill": "#64748b",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rrt5",
+                          "name": "rrt5",
+                          "content": "⌄",
+                          "fill": "#94a3b8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ],
+                      "width": "fill_container",
+                      "layout": "horizontal",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "padding": [
+                        4,
+                        0
+                      ]
+                    }
+                  ],
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "padding": [
+                    12,
+                    12
+                  ],
+                  "gap": 8,
+                  "cornerRadius": 18,
+                  "fill": "#ffffff",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#e2e0db"
+                  }
+                }
+              ],
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8
+            }
+          ],
+          "width": "fill_container",
+          "layout": "vertical",
+          "padding": [
+            24,
+            20
+          ],
+          "gap": 16
+        }
+      ],
+      "width": 390,
+      "height": 1100,
+      "fill": "#f9f8f5",
+      "layout": "vertical",
+      "x": 0,
+      "y": 0
+    }
+  ]
+}

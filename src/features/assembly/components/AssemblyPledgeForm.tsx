@@ -5,12 +5,36 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { assemblyMembersQueryOptions, sigunguQueryOptions } from "@/lib/api-client";
+import { CITIES } from "@/app/data";
+import {
+  ApiError,
+  assemblyMembersQueryOptions,
+  sigunguQueryOptions,
+} from "@/lib/api-client";
 
-/** 현재 국회 공약 서비스는 서울특별시만 지원(데이터·API 시/도 명과 동일). */
+/** 현재 국회 공약 서비스는 서울특별시·강동구만 지원(API·데이터 명칭과 동일). */
 const ASSEMBLY_FIXED_CITY = "서울특별시";
+const ASSEMBLY_ALLOWED_SIGUNGU = "강동구";
 
-type SelectOption = string | { value: string; label: string };
+type SelectOption =
+  | string
+  | { value: string; label: string; disabled?: boolean };
+
+/** API 응답·캐시와 무관하게 선거구(갑→을) 순으로 맞춤 */
+function compareAssemblyMembersByDistrictThenName(
+  a: { district: string; member_name: string },
+  b: { district: string; member_name: string },
+): number {
+  const byDistrict = a.district.localeCompare(b.district, "ko", {
+    sensitivity: "base",
+  });
+  if (byDistrict !== 0) {
+    return byDistrict;
+  }
+  return a.member_name.localeCompare(b.member_name, "ko", {
+    sensitivity: "base",
+  });
+}
 
 /**
  * 지역 선택 폼 — local-election AddressInput과 동일한 셀렉트 스타일(모바일 터치 영역 48px).
@@ -24,6 +48,7 @@ function SelectField({
   disabled,
   placeholder,
   options,
+  includeEmptyOption = true,
 }: {
   label: string;
   sublabel?: string;
@@ -32,6 +57,8 @@ function SelectField({
   disabled?: boolean;
   placeholder: string;
   options: SelectOption[];
+  /** false면 빈 value 옵션을 넣지 않음(시·도처럼 항상 값이 고정될 때). */
+  includeEmptyOption?: boolean;
 }) {
   return (
     <div>
@@ -49,21 +76,40 @@ function SelectField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
-          className="h-[48px] w-full cursor-pointer appearance-none rounded px-3 pr-9 text-[14px] disabled:opacity-40"
+          className="h-[48px] w-full cursor-pointer appearance-none rounded px-3 pr-9 text-[14px] disabled:opacity-40 [&_option:disabled]:text-slate-300 [&_option]:bg-white [&_option]:text-neutral-950"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
             color: value ? "var(--foreground)" : "var(--text-tertiary)",
+            /* 네이티브 드롭다운이 다크/시스템 톤으로 회색 글씨가 되는 경우 완화 */
+            colorScheme: "light",
           }}
         >
-          <option value="">{placeholder}</option>
+          {includeEmptyOption ? (
+            <option value="" style={{ color: "var(--text-tertiary)" }}>
+              {placeholder}
+            </option>
+          ) : null}
           {options.map((option) =>
             typeof option === "string" ? (
-              <option key={option} value={option}>
+              <option
+                key={option}
+                value={option}
+                style={{ color: "#0a0a0a", backgroundColor: "#ffffff" }}
+              >
                 {option}
               </option>
             ) : (
-              <option key={option.value} value={option.value}>
+              <option
+                key={option.value}
+                value={option.value}
+                disabled={option.disabled === true}
+                style={
+                  option.disabled === true
+                    ? undefined
+                    : { color: "#0a0a0a", backgroundColor: "#ffffff" }
+                }
+              >
                 {option.label}
               </option>
             ),
@@ -98,40 +144,63 @@ function SelectField({
 
 export default function AssemblyPledgeForm() {
   const router = useRouter();
-  const [district, setDistrict] = useState("");
   /** 선택한 국회의원 — API mona_cd와 동일한 값을 value로 둠. */
   const [monaCd, setMonaCd] = useState("");
 
   const districtsQuery = useQuery(sigunguQueryOptions(ASSEMBLY_FIXED_CITY));
-  const membersQuery = useQuery(
-    assemblyMembersQueryOptions(ASSEMBLY_FIXED_CITY, district),
-  );
 
   const districts = districtsQuery.data?.items ?? [];
 
+  /** 서비스 범위: 강동구만 실제 선택값으로 사용(.pen·기획과 동일). */
+  const districtValue =
+    districts.length > 0 && districts.includes(ASSEMBLY_ALLOWED_SIGUNGU)
+      ? ASSEMBLY_ALLOWED_SIGUNGU
+      : "";
+
+  const membersQuery = useQuery(
+    assemblyMembersQueryOptions(ASSEMBLY_FIXED_CITY, districtValue),
+  );
+
   const isDistrictLoading = districtsQuery.isPending || districtsQuery.isFetching;
   const isMembersLoading =
-    Boolean(district) && (membersQuery.isPending || membersQuery.isFetching);
+    Boolean(districtValue) &&
+    (membersQuery.isPending || membersQuery.isFetching);
 
-  const memberOptions: SelectOption[] = district
-    ? (membersQuery.data?.items ?? []).map((item) => ({
-        value: item.mona_cd,
-        label: item.display_label,
-      }))
+  const membersFetchErrorMessage =
+    membersQuery.isError && membersQuery.error instanceof ApiError
+      ? membersQuery.error.message
+      : membersQuery.isError
+        ? "의원 목록을 불러오지 못했습니다."
+        : null;
+
+  const memberOptions: SelectOption[] = districtValue
+    ? [...(membersQuery.data?.items ?? [])]
+        .sort(compareAssemblyMembersByDistrictThenName)
+        .map((item) => ({
+          value: item.mona_cd,
+          label: item.display_label,
+        }))
     : [];
 
-  const handleDistrictChange = (nextDistrict: string) => {
-    setDistrict(nextDistrict);
-    setMonaCd("");
-  };
+  const sidoOptions: SelectOption[] = CITIES.map((name) => ({
+    value: name,
+    label: name,
+    disabled: name !== ASSEMBLY_FIXED_CITY,
+  }));
+
+  const sigunguOptions: SelectOption[] = districts.map((name) => ({
+    value: name,
+    label: name,
+    disabled: name !== ASSEMBLY_ALLOWED_SIGUNGU,
+  }));
 
   const handleSubmit = () => {
-    if (!district || !monaCd) {
+    if (!districtValue || !monaCd) {
       return;
     }
     const params = new URLSearchParams({
       city: ASSEMBLY_FIXED_CITY,
-      sigungu: district,
+      sigungu: districtValue,
       mona_cd: monaCd,
     });
     router.push(`/assembly/pledge?${params.toString()}`);
@@ -164,36 +233,25 @@ export default function AssemblyPledgeForm() {
           className="stagger-2 mb-8 animate-fade-in-up text-[14px] leading-relaxed"
           style={{ color: "var(--text-secondary)" }}
         >
-          현재는 서울특별시만 지원합니다. 구·군·시와 국회의원을 고르면
-          <br />
-          공약 이행률을 확인할 수 있습니다.
+          시·도와 구·군·시를 고른 뒤 국회의원을 선택하면 공약 이행률을 확인할 수
+          있습니다. 현재는 서울특별시·강동구만 선택 가능합니다.
         </p>
 
         <div className="stagger-3 mb-5 animate-fade-in-up space-y-3">
-          <div>
-            <label
-              className="mb-1.5 block text-[11px] font-semibold tracking-wide"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              시/도
-              <span style={{ color: "var(--text-tertiary)" }}> (서비스 지역 고정)</span>
-            </label>
-            <div
-              className="flex h-[48px] items-center rounded border px-3 text-[14px]"
-              style={{
-                background: "var(--surface-alt)",
-                borderColor: "var(--border)",
-                color: "var(--foreground)",
-              }}
-            >
-              {ASSEMBLY_FIXED_CITY}
-            </div>
-          </div>
+          <SelectField
+            label="시/도"
+            value={ASSEMBLY_FIXED_CITY}
+            onChange={() => {}}
+            disabled={false}
+            placeholder="시/도 선택"
+            options={sidoOptions}
+            includeEmptyOption={false}
+          />
 
           <SelectField
             label="구/군/시"
-            value={district}
-            onChange={handleDistrictChange}
+            value={districtValue}
+            onChange={() => {}}
             disabled={isDistrictLoading || districts.length === 0}
             placeholder={
               isDistrictLoading
@@ -202,22 +260,27 @@ export default function AssemblyPledgeForm() {
                   ? "데이터 준비 중"
                   : "구/군/시 선택"
             }
-            options={districts}
+            options={sigunguOptions}
+            includeEmptyOption={districtValue === ""}
           />
 
           <SelectField
             label="국회의원 선택"
             value={monaCd}
             onChange={setMonaCd}
-            disabled={!district || isMembersLoading}
+            disabled={
+              !districtValue || isMembersLoading || Boolean(membersFetchErrorMessage)
+            }
             placeholder={
-              !district
+              !districtValue
                 ? "구·군·시를 먼저 선택하세요"
-                : isMembersLoading
-                  ? "불러오는 중..."
-                  : memberOptions.length === 0
-                    ? "해당 구에 의원 데이터가 없습니다"
-                    : "국회의원을 선택하세요"
+                : membersFetchErrorMessage
+                  ? membersFetchErrorMessage
+                  : isMembersLoading
+                    ? "불러오는 중..."
+                    : memberOptions.length === 0
+                      ? "해당 구에 의원 데이터가 없습니다"
+                      : "국회의원을 선택하세요"
             }
             options={memberOptions}
           />
@@ -226,7 +289,7 @@ export default function AssemblyPledgeForm() {
         <Button
           type="button"
           onClick={handleSubmit}
-          disabled={!district || !monaCd}
+          disabled={!districtValue || !monaCd}
           variant="primary"
           size="lg"
           className="stagger-4 w-full animate-fade-in-up"
