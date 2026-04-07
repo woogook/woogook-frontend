@@ -8,6 +8,7 @@ import {
   ASSEMBLY_CATEGORY_RATE_PERCENT_MOCK,
   assemblyOverallRatePercentMock,
 } from "@/features/assembly/assemblyPledgeRateDemo";
+import { getAssembly22CampaignBookletPublicPdfUrl } from "@/features/assembly/assemblyCampaignBookletUrl";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { ASSEMBLY_PLEDGE_CATEGORY_LABELS } from "@/features/assembly/pledgeCategories";
@@ -50,6 +51,9 @@ export function AssemblyPledgeRatePage() {
 
   const contextParams = assemblyPledgeContextParams(city, sigungu, monaCdRaw);
 
+  /** assembly-pledge-rate.pen: 프로필 블록 직후 · 전체 이행률 섹션 직전 */
+  const campaignBookletPdfUrl = getAssembly22CampaignBookletPublicPdfUrl();
+
   return (
     <AssemblyAppShell backHref="/assembly" backLabel="지역·의원 선택">
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
@@ -89,6 +93,31 @@ export function AssemblyPledgeRatePage() {
             ) : null}
           </div>
         </section>
+
+        <p className="mb-7 text-center">
+          {campaignBookletPdfUrl ? (
+            <a
+              href={campaignBookletPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-normal underline decoration-solid underline-offset-[3px] transition-opacity hover:opacity-80 active:opacity-65"
+              style={{ color: "var(--foreground)" }}
+            >
+              {demoName} 의원 선거공보 보기 (PDF)
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                window.alert("등록된 선거공보 PDF가 없습니다.");
+              }}
+              className="text-[11px] font-normal underline decoration-solid underline-offset-[3px] transition-opacity hover:opacity-80 active:opacity-65"
+              style={{ color: "var(--foreground)" }}
+            >
+              {demoName} 의원 선거공보 보기 (PDF)
+            </button>
+          )}
+        </p>
 
         {/* 전체 이행률 */}
         <section className="mb-6 text-center">

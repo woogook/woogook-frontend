@@ -1,0 +1,10 @@
+﻿# woogook-frontend: save all text as UTF-8 (Korean comments/strings safe)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{ts,tsx,js,jsx,mjs,cjs,json,css,md}]
+indent_style = space
