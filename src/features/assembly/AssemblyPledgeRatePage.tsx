@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, User } from "lucide-react";
+import type { CSSProperties } from "react";
+import { ChevronRight, FileText, User } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -34,7 +35,7 @@ export function AssemblyPledgeRatePage() {
   /** 스케치와 동일한 예시 프로필. API 연동 후 실제 의원 데이터로 교체. */
   const demoName = "배현진";
   const demoTerms = "제 21·22대 국회의원";
-  const demoAffiliation = "국민의힘 - 서울 송파구 을";
+  const demoAffiliation = "국민의힘 · 서울 송파구 을";
 
   const overallRateLabel = `${assemblyOverallRatePercentMock()}%`;
   const categoryRates = ASSEMBLY_PLEDGE_CATEGORY_LABELS.map((label) => ({
@@ -51,14 +52,26 @@ export function AssemblyPledgeRatePage() {
 
   const contextParams = assemblyPledgeContextParams(city, sigungu, monaCdRaw);
 
-  /** assembly-pledge-rate.pen: 프로필 블록 직후 · 전체 이행률 섹션 직전 */
   const campaignBookletPdfUrl = getAssembly22CampaignBookletPublicPdfUrl();
+
+  /** 프로필 카드 우측: 스케치와 동일한 알약형 선거공보 버튼 (URL 없으면 클릭 시 알림) */
+  const campaignBookletButtonClass =
+    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold leading-none shadow-sm transition-[opacity,filter] hover:brightness-[0.97] active:opacity-85";
+
+  const campaignBookletButtonStyle: CSSProperties = {
+    background: "#dbeafe",
+    color: "var(--navy)",
+    border: "1px solid rgba(37, 99, 235, 0.22)",
+  };
 
   return (
     <AssemblyAppShell backHref="/assembly" backLabel="지역·의원 선택">
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
-        {/* 프로필 헤더 */}
-        <section className="mb-8 flex gap-4">
+        {/* 프로필 카드: 아바타 · 텍스트 · 선거공보(PDF) */}
+        <section
+          className="mb-8 flex items-center gap-3 border-b pb-8"
+          style={{ borderColor: "var(--border)" }}
+        >
           <div
             className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl"
             style={{
@@ -80,44 +93,45 @@ export function AssemblyPledgeRatePage() {
             >
               {demoName}
             </p>
-            <p className="mt-1 text-[13px] leading-snug" style={{ color: "var(--text-secondary)" }}>
+            <p className="mt-1 text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
               {demoTerms}
             </p>
-            <p className="mt-0.5 text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>
+            <p className="mt-0.5 text-[12px] leading-snug" style={{ color: "var(--foreground)" }}>
               {demoAffiliation}
             </p>
             {selectionNote ? (
-              <p className="mt-2 text-[11px] leading-snug" style={{ color: "var(--text-tertiary)" }}>
+              <p className="mt-2 text-[11px] leading-snug" style={{ color: "var(--foreground)" }}>
                 {selectionNote}
               </p>
             ) : null}
           </div>
-        </section>
-
-        <p className="mb-7 text-center">
           {campaignBookletPdfUrl ? (
             <a
               href={campaignBookletPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-normal underline decoration-solid underline-offset-[3px] transition-opacity hover:opacity-80 active:opacity-65"
-              style={{ color: "var(--foreground)" }}
+              className={campaignBookletButtonClass}
+              style={campaignBookletButtonStyle}
+              aria-label={`${demoName} 의원 선거공보 PDF 열기`}
             >
-              {demoName} 의원 선거공보 보기 (PDF)
+              <FileText className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+              선거공보 (PDF)
             </a>
           ) : (
             <button
               type="button"
+              className={campaignBookletButtonClass}
+              style={campaignBookletButtonStyle}
+              aria-label={`${demoName} 의원 선거공보 PDF — 미등록 시 안내`}
               onClick={() => {
                 window.alert("등록된 선거공보 PDF가 없습니다.");
               }}
-              className="text-[11px] font-normal underline decoration-solid underline-offset-[3px] transition-opacity hover:opacity-80 active:opacity-65"
-              style={{ color: "var(--foreground)" }}
             >
-              {demoName} 의원 선거공보 보기 (PDF)
+              <FileText className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+              선거공보 (PDF)
             </button>
           )}
-        </p>
+        </section>
 
         {/* 전체 이행률 */}
         <section className="mb-6 text-center">
