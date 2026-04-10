@@ -445,6 +445,16 @@ export function hasActiveIssues(profile: UserIssueProfile | null | undefined): b
   );
 }
 
+export function getActiveIssueProfile(
+  profile: UserIssueProfile | null | undefined,
+): UserIssueProfile | null {
+  if (!profile) {
+    return null;
+  }
+
+  return hasActiveIssues(profile) ? profile : null;
+}
+
 export function normalizeCustomIssueKeywords(customKeywords: string[]): IssueKey[] {
   const normalized = new Set<IssueKey>();
   for (const keyword of customKeywords) {

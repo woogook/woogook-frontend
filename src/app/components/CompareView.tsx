@@ -35,7 +35,6 @@ import { CandidatePhoto } from "./CandidateCards";
 
 const CLIENT_SESSION_STORAGE_KEY = "woogook.local-election.chat.client-session.v1";
 const COMPARE_CHAT_STORAGE_KEY_PREFIX = "woogook.local-election.chat.compare.v1.";
-const DEFAULT_INITIAL_CHAT_QUESTION = "내 관심 이슈 기준으로 다시 요약해줘";
 const TABLE_COLUMN_WIDTH = 180;
 const TABLE_COLUMN_GAP = 8;
 const TABLE_SCROLL_EDGE_PADDING = 16;
@@ -84,7 +83,6 @@ export default function CompareView({
   const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [hasAutoPrompted, setHasAutoPrompted] = useState(false);
 
   const candidates = ballot.candidates;
   const issueLabels = getIssueProfileLabelList(issueProfile);
@@ -193,7 +191,6 @@ export default function CompareView({
     setPendingQuestion(null);
     setChatError(null);
     setIsSending(false);
-    setHasAutoPrompted((stored?.messages.length ?? 0) > 0);
   }, [chatStorageKey]);
 
   useEffect(() => {
@@ -295,15 +292,6 @@ export default function CompareView({
   );
 
   useEffect(() => {
-    if (!assistantOpen || hasAutoPrompted || isSending || chatMessages.length > 0) {
-      return;
-    }
-
-    setHasAutoPrompted(true);
-    void sendQuestion(DEFAULT_INITIAL_CHAT_QUESTION);
-  }, [assistantOpen, chatMessages.length, hasAutoPrompted, isSending, sendQuestion]);
-
-  useEffect(() => {
     if (candidates.length <= 1) {
       setTableMode("all");
     }
@@ -402,19 +390,21 @@ export default function CompareView({
           <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
             비교 기준
           </p>
-          {issueLabels.length > 0 ? (
+          {showIssueContext ? (
             <>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {issueLabels.map((label) => (
-                  <span
-                    key={label}
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                    style={{ background: "var(--amber-bg)", color: "var(--amber)" }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
+              {issueLabels.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {issueLabels.map((label) => (
+                    <span
+                      key={label}
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                      style={{ background: "var(--amber-bg)", color: "var(--amber)" }}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {issueCriteria[0] && (
                 <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   {getIssueCriterionHint(ballot.office_level, issueCriteria[0])}
@@ -1205,6 +1195,7 @@ function buildCompareChatContextSignature(
   return JSON.stringify({
     contestId: ballot.contest_id,
     candidateIds: ballot.candidates.map((candidate) => candidate.candidate_id),
+    hasIssueProfileSnapshot: issueProfile !== null,
     normalizedIssueKeys: issueProfile?.normalized_issue_keys || [],
     customKeywords: issueProfile?.custom_keywords || [],
     selectionBasis,
