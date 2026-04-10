@@ -5,6 +5,7 @@
 - NEC(National Election Commission): 중앙선거관리위원회
 - assembly: 국회 서비스 도메인
 - local-election: 지방선거 서비스 도메인
+- agent control-plane: agent가 작업 진입, 도메인 판단, workflow 단계, 검증 경로를 찾는 저장소 소유 기준면
 - work-log: 기준 GitHub Issue에 남기는 작업 결정 기록 댓글
 
 ## 국회의원

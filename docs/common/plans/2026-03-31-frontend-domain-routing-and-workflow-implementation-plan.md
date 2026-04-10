@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> 상태: `superseded`. 이 문서는 과거 v1-lite 도입 계획 기록이다. 현재 작업 진입과 workflow 기준은 `docs/common/canonical/agent-control-plane-v2-cutover-map.md`, `.agents/README.md`, `.agents/workflows/*.md`, `.agents/contracts/common.yaml`을 따른다.
+
 **Goal:** `woogook-frontend`에 국회/지방선거 도메인 라우팅 분리, 도메인 문서 진입 구조, GitHub Issue/PR workflow 기준을 한 번에 도입한다.
 
 **Architecture:** 루트 `AGENTS.md`는 라우터로 축소하고, 실제 운영 규칙은 `docs/common`, `docs/assembly`, `docs/local-election` 아래로 위임한다. 화면은 `/`, `/assembly`, `/local-election`로 나누고, 기존 지방선거 상태머신은 `src/features/local-election`으로 이동해 도메인 경계를 분명히 한다.

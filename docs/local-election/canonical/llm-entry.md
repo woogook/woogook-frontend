@@ -2,11 +2,13 @@
 
 ## 먼저 읽을 문서
 
-1. `README.md`
-2. `docs/common/codex/workflows/development-execution-guide.md`
-3. `docs/common/codex/guides/local-hook-and-ci-enforcement-guide.md`
+1. `glossary.md`
+2. `.agents/README.md`
+3. `.agents/entry/local-election.md`
+4. 현재 단계에 맞는 `.agents/workflows/*.md`
 
 ## 기본 수정 경로
 
 - `src/app/local-election/**`
 - `src/features/local-election/**`
+- `docs/local-election/**`

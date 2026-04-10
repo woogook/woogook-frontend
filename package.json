@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "workflow:issues": "python3 scripts/llm_workflow_sync.py find-open-issues",
-    "workflow:prepare-pr": "python3 scripts/prepare_pr.py --issue 999",
-    "workflow:validate-pr": "python3 scripts/validate_llm_workflow.py tmp/pr-body.md"
+    "agents:sync:issue": "python3 scripts/agents_sync.py issue",
+    "agents:sync:pull-request": "python3 scripts/agents_sync.py pull-request",
+    "agents:sync:post-merge-report": "python3 scripts/agents_sync.py post-merge-report",
+    "agents:test": "python3 -m unittest discover -s tests -p 'test_*.py'",
+    "agents:validate": "python3 scripts/validate_agents_harness.py"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
