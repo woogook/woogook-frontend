@@ -15,6 +15,7 @@ import {
   UserIssueProfile,
   formatKoreanDate,
   formatKoreanDateTime,
+  getActiveIssueProfile,
   getDataPhaseLabel,
   makeEmptyIssueProfile,
 } from "@/features/local-election/data";
@@ -229,7 +230,7 @@ export default function LocalElectionPage() {
     navigate(issueOriginView);
   };
 
-  const currentIssueProfile = selectedBallot
+  const issueDraftProfile = selectedBallot
     ? issueProfiles[selectedBallot.contest_id] ||
       makeEmptyIssueProfile(
         selectedBallot.candidates[0]?.election_id ||
@@ -238,6 +239,7 @@ export default function LocalElectionPage() {
         selectedBallot.contest_id,
       )
     : null;
+  const activeIssueProfile = getActiveIssueProfile(issueDraftProfile);
   const compareCandidates = useMemo(() => {
     if (!selectedBallot) {
       return [];
@@ -490,10 +492,10 @@ export default function LocalElectionPage() {
           />
         )}
 
-        {view === "issues" && selectedBallot && currentIssueProfile && (
+        {view === "issues" && selectedBallot && issueDraftProfile && (
           <IssueStep
             ballot={selectedBallot}
-            initialProfile={currentIssueProfile}
+            initialProfile={issueDraftProfile}
             onSubmit={handleIssueSubmit}
             onBack={handleIssueBack}
           />
@@ -502,7 +504,7 @@ export default function LocalElectionPage() {
         {view === "candidates" && selectedBallot && (
           <CandidateCards
             ballot={selectedBallot}
-            issueProfile={currentIssueProfile}
+            issueProfile={activeIssueProfile}
             onSelectCandidate={handleSelectCandidate}
             onCompare={handleOpenCompareFlow}
             onBack={() => navigate("issues")}
@@ -513,7 +515,7 @@ export default function LocalElectionPage() {
         {view === "compare_scope" && selectedBallot && (
           <CompareScopeView
             ballot={selectedBallot}
-            issueProfile={currentIssueProfile}
+            issueProfile={activeIssueProfile}
             onBack={() => navigate("candidates")}
             onEditIssues={() => handleOpenIssueStep("compare_scope")}
             onSelectCandidate={(candidate) => handleSelectCandidate(candidate, "compare_scope")}
@@ -525,7 +527,7 @@ export default function LocalElectionPage() {
           <CompareView
             ballot={compareBallot}
             totalCandidateCount={selectedBallot?.candidates.length || 0}
-            issueProfile={currentIssueProfile}
+            issueProfile={activeIssueProfile}
             selectionBasis={compareSelectionBasis}
             selectionLabel={compareSelectionLabel}
             onSelectCandidate={(candidate) => handleSelectCandidate(candidate, "compare")}
@@ -538,7 +540,7 @@ export default function LocalElectionPage() {
           <DetailView
             candidate={selectedCandidate}
             ballot={selectedBallot}
-            issueProfile={currentIssueProfile}
+            issueProfile={activeIssueProfile}
             onBack={() => navigate(detailReturnView)}
             onEditIssues={() => handleOpenIssueStep("detail")}
           />
