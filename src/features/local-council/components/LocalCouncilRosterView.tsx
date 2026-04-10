@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   LocalCouncilDataSource,
   LocalCouncilResolveResponse,
@@ -10,6 +11,7 @@ import {
   getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeLabel,
   getRosterPersonInitial,
+  isLocalCouncilRosterPerson,
 } from "@/features/local-council/data";
 
 interface LocalCouncilRosterViewProps {
@@ -26,6 +28,10 @@ function PersonCard({
   person: LocalCouncilRosterPerson;
   onSelect: (person: LocalCouncilRosterPerson) => void;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasProfileImage = Boolean(person.profile_image_url) && !imageFailed;
+  const profileImageUrl = person.profile_image_url || "";
+
   return (
     <button
       type="button"
@@ -34,17 +40,25 @@ function PersonCard({
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <div
-        className="flex h-11 w-11 items-center justify-center rounded-lg text-sm font-bold"
+        className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg text-sm font-bold"
         style={{
           background: "var(--amber-bg)",
           color: "var(--amber)",
           border: "1px solid var(--border)",
         }}
       >
-        {person.profile_image_url ? (
-          <span className="sr-only">{person.person_name}</span>
-        ) : (
-          getRosterPersonInitial(person)
+        <span aria-hidden="true">{getRosterPersonInitial(person)}</span>
+        {hasProfileImage && (
+          <>
+            {/* Backend-provided image URLs are arbitrary; keep plain img local instead of Next Image. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={profileImageUrl}
+              alt={person.person_name}
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          </>
         )}
       </div>
       <div className="min-w-0">
@@ -72,10 +86,9 @@ export default function LocalCouncilRosterView({
   onSelectPerson,
   onBack,
 }: LocalCouncilRosterViewProps) {
-  const districtHead =
-    "person_key" in resolveData.roster.district_head
-      ? (resolveData.roster.district_head as LocalCouncilRosterPerson)
-      : null;
+  const districtHead = isLocalCouncilRosterPerson(resolveData.roster.district_head)
+    ? resolveData.roster.district_head
+    : null;
   const members = resolveData.roster.council_members;
 
   return (
@@ -95,7 +108,7 @@ export default function LocalCouncilRosterView({
             {getLocalCouncilDataSourceLabel(dataSource)}
           </p>
           <h1 className="mt-2 text-3xl font-bold" style={{ color: "var(--navy)" }}>
-            {resolveData.district.district_name || "서울특별시 강동구"}
+            {resolveData.district.district_name || "선택 지역"}
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             {getLocalCouncilFreshnessLabel(resolveData.roster.freshness)}
@@ -146,7 +159,11 @@ export default function LocalCouncilRosterView({
             구청장
           </h2>
           {districtHead ? (
-            <PersonCard person={districtHead} onSelect={onSelectPerson} />
+            <PersonCard
+              key={districtHead.person_key}
+              person={districtHead}
+              onSelect={onSelectPerson}
+            />
           ) : (
             <p
               className="rounded-lg border p-4 text-sm"

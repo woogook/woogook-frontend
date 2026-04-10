@@ -52,6 +52,25 @@ export function getLocalCouncilFreshnessLabel(freshness: Record<string, unknown>
   return `기준 ${timestamp}`;
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function isLocalCouncilRosterPerson(
+  value: unknown,
+): value is LocalCouncilRosterPerson {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    isNonEmptyString(record.person_key) &&
+    isNonEmptyString(record.person_name) &&
+    isNonEmptyString(record.office_type)
+  );
+}
+
 export function getRosterPersonInitial(person: LocalCouncilRosterPerson) {
   return person.person_name.slice(0, 1) || "?";
 }
