@@ -73,6 +73,49 @@ function RecordList({
   );
 }
 
+function buildElectedBasisDisplayRecord(record: Record<string, unknown>) {
+  const titleValue = getPayloadText(record, ["election_name", "election_id", "huboid"]);
+  const title =
+    typeof record.election_name === "string" && record.election_name.trim()
+      ? record.election_name
+      : typeof record.election_id === "string" && record.election_id.trim()
+        ? `선거 ID ${record.election_id}`
+        : typeof record.huboid === "string" && record.huboid.trim()
+          ? `후보 ID ${record.huboid}`
+          : titleValue || "당선 근거";
+
+  const metaParts: string[] = [];
+  const districtName = getPayloadText(record, ["district_name"]);
+  if (districtName) {
+    metaParts.push(`선거구 ${districtName}`);
+  }
+
+  const electedAt = getPayloadText(record, ["elected_at"]);
+  if (electedAt) {
+    metaParts.push(`당선 ${electedAt}`);
+  }
+
+  const electionType = getPayloadText(record, ["sgTypecode"]);
+  if (electionType) {
+    metaParts.push(`선거 유형 ${electionType}`);
+  }
+
+  const fallbackIdentifier =
+    typeof record.election_id === "string" && record.election_id.trim()
+      ? `선거 ID ${record.election_id}`
+      : typeof record.huboid === "string" && record.huboid.trim()
+        ? `후보 ID ${record.huboid}`
+        : null;
+  if (metaParts.length === 0 && fallbackIdentifier) {
+    metaParts.push(fallbackIdentifier);
+  }
+
+  return {
+    headline: title,
+    summary: metaParts.join(" · "),
+  };
+}
+
 export default function LocalCouncilPersonDetailView({
   person,
   dataSource,
@@ -94,7 +137,9 @@ export default function LocalCouncilPersonDetailView({
         ? [person.official_profile]
         : [];
   const electedBasisRecords =
-    Object.keys(person.elected_basis).length > 0 ? [person.elected_basis] : [];
+    Object.keys(person.elected_basis).length > 0
+      ? [buildElectedBasisDisplayRecord(person.elected_basis)]
+      : [];
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-8">
@@ -162,7 +207,7 @@ export default function LocalCouncilPersonDetailView({
           title="당선 근거"
           records={electedBasisRecords}
           titleKeys={["headline", "basis_label", "summary", "title", "office_label"]}
-          metaKeys={["election_name", "district_name", "elected_at", "source_kind"]}
+          metaKeys={["summary", "meta", "basis_label"]}
         />
         <RecordList
           title="위원회"
