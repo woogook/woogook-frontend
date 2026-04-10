@@ -12,6 +12,7 @@ import {
   getLocalCouncilSummaryModeLabel,
   getPayloadText,
 } from "@/features/local-council/data";
+import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
 
 interface LocalCouncilPersonDetailViewProps {
   person: LocalCouncilPersonDossierResponse;
@@ -73,41 +74,54 @@ function RecordList({
   );
 }
 
-function buildElectedBasisDisplayRecord(record: Record<string, unknown>) {
-  const titleValue = getPayloadText(record, ["election_name", "election_id", "huboid"]);
-  const title =
-    typeof record.election_name === "string" && record.election_name.trim()
-      ? record.election_name
-      : typeof record.election_id === "string" && record.election_id.trim()
-        ? `선거 ID ${record.election_id}`
-        : typeof record.huboid === "string" && record.huboid.trim()
-          ? `후보 ID ${record.huboid}`
-          : titleValue || "당선 근거";
+function buildElectedBasisDisplayRecord(
+  record: Record<string, unknown>,
+  officeType: string,
+) {
+  const electionId =
+    typeof record.election_id === "string" && record.election_id.trim()
+      ? record.election_id.trim()
+      : null;
+  const matchedPreset = electionId ? getLocalElectionPresetByElectionId(electionId) : null;
+  const preset = matchedPreset && matchedPreset.electionId === electionId ? matchedPreset : null;
+  const officeLabel = getLocalCouncilOfficeLabel(officeType);
+  const officeElectionLabel =
+    officeType === "basic_council"
+      ? "기초의원선거"
+      : officeType === "metro_council"
+        ? "광역의원선거"
+        : officeType === "basic_head"
+          ? "기초자치단체장선거"
+          : `${officeLabel} 선거`;
+  const huboid =
+    typeof record.huboid === "string" && record.huboid.trim() ? record.huboid.trim() : null;
+  const sgTypecode =
+    typeof record.sgTypecode === "string" && record.sgTypecode.trim()
+      ? record.sgTypecode.trim()
+      : null;
+
+  const title = preset
+    ? `${preset.electionName} 당선 기록`
+    : `${officeLabel} 당선 기록`;
 
   const metaParts: string[] = [];
+  if (preset) {
+    metaParts.push(`선거일 ${preset.electionDay}`);
+  }
+  metaParts.push(`${officeElectionLabel} 기준`);
+  if (huboid) {
+    metaParts.push(`중앙선거관리위원회 후보 식별자 ${huboid}`);
+  }
+  if (sgTypecode) {
+    metaParts.push(`선거 구분 코드 ${sgTypecode}`);
+  }
   const districtName = getPayloadText(record, ["district_name"]);
   if (districtName) {
     metaParts.push(`선거구 ${districtName}`);
   }
-
   const electedAt = getPayloadText(record, ["elected_at"]);
   if (electedAt) {
     metaParts.push(`당선 ${electedAt}`);
-  }
-
-  const electionType = getPayloadText(record, ["sgTypecode"]);
-  if (electionType) {
-    metaParts.push(`선거 유형 ${electionType}`);
-  }
-
-  const fallbackIdentifier =
-    typeof record.election_id === "string" && record.election_id.trim()
-      ? `선거 ID ${record.election_id}`
-      : typeof record.huboid === "string" && record.huboid.trim()
-        ? `후보 ID ${record.huboid}`
-        : null;
-  if (metaParts.length === 0 && fallbackIdentifier) {
-    metaParts.push(fallbackIdentifier);
   }
 
   return {
@@ -124,7 +138,10 @@ export default function LocalCouncilPersonDetailView({
   const profileSections = Array.isArray(person.official_profile.official_profile_sections)
     ? person.official_profile.official_profile_sections.filter(
         (item): item is Record<string, unknown> =>
-          Boolean(item) && typeof item === "object" && !Array.isArray(item),
+          Boolean(item) &&
+          typeof item === "object" &&
+          !Array.isArray(item) &&
+          Boolean(getPayloadText(item, ["headline", "section_title", "office_label"])),
       )
     : [];
   const hasOfficialProfileTopLevelDisplayData = Boolean(
@@ -138,7 +155,7 @@ export default function LocalCouncilPersonDetailView({
         : [];
   const electedBasisRecords =
     Object.keys(person.elected_basis).length > 0
-      ? [buildElectedBasisDisplayRecord(person.elected_basis)]
+      ? [buildElectedBasisDisplayRecord(person.elected_basis, person.office_type)]
       : [];
 
   return (
