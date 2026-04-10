@@ -84,6 +84,12 @@ export default function LocalCouncilPersonDetailView({
           Boolean(item) && typeof item === "object" && !Array.isArray(item),
       )
     : [];
+  const profileRecords =
+    profileSections.length > 0
+      ? profileSections
+      : Object.keys(person.official_profile).length > 0
+        ? [person.official_profile]
+        : [];
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-8">
@@ -143,7 +149,7 @@ export default function LocalCouncilPersonDetailView({
       <div className="mt-6 grid gap-4">
         <RecordList
           title="공식 프로필"
-          records={profileSections}
+          records={profileRecords}
           titleKeys={["headline", "section_title", "office_label"]}
           metaKeys={["section_title", "office_label"]}
         />

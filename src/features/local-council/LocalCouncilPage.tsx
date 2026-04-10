@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -19,6 +19,37 @@ import LocalCouncilPersonDetailView from "@/features/local-council/components/Lo
 import LocalCouncilRosterView from "@/features/local-council/components/LocalCouncilRosterView";
 
 type View = "address" | "roster" | "detail";
+type LocalCouncilHistoryState = {
+  view?: View;
+  personKey?: string;
+};
+
+function isView(value: unknown): value is View {
+  return value === "address" || value === "roster" || value === "detail";
+}
+
+function getHistoryState(value: unknown): LocalCouncilHistoryState {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    view: isView(record.view) ? record.view : undefined,
+    personKey:
+      typeof record.personKey === "string" && record.personKey.trim()
+        ? record.personKey
+        : undefined,
+  };
+}
+
+function getFallbackView(hasResolveResult: boolean): View {
+  return hasResolveResult ? "roster" : "address";
+}
+
+function createHistoryState(view: View, personKey?: string): LocalCouncilHistoryState {
+  return personKey ? { view, personKey } : { view };
+}
 
 export default function LocalCouncilPage() {
   const [view, setView] = useState<View>("address");
@@ -26,10 +57,18 @@ export default function LocalCouncilPage() {
     useState<LocalCouncilResult<LocalCouncilResolveResponse> | null>(null);
   const [personResult, setPersonResult] =
     useState<LocalCouncilResult<LocalCouncilPersonDossierResponse> | null>(null);
+  const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const viewRef = useRef<View>("address");
+  const resolveResultRef =
+    useRef<LocalCouncilResult<LocalCouncilResolveResponse> | null>(null);
+  const personResultRef =
+    useRef<LocalCouncilResult<LocalCouncilPersonDossierResponse> | null>(null);
+  const selectedPersonKeyRef = useRef<string | null>(null);
+  const detailRequestIdRef = useRef(0);
 
   const rootStyle: CSSProperties = {
     background: "var(--background)",
@@ -37,35 +76,145 @@ export default function LocalCouncilPage() {
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [view]);
 
-  const navigate = (nextView: View) => {
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  useEffect(() => {
+    resolveResultRef.current = resolveResult;
+  }, [resolveResult]);
+
+  useEffect(() => {
+    personResultRef.current = personResult;
+  }, [personResult]);
+
+  useEffect(() => {
+    selectedPersonKeyRef.current = selectedPersonKey;
+  }, [selectedPersonKey]);
+
+  const cancelDetailRequest = () => {
+    detailRequestIdRef.current += 1;
+    setDetailLoading(false);
+  };
+
+  const pushView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
+    viewRef.current = nextView;
     setView(nextView);
-    window.history.pushState({ view: nextView }, "");
+    window.history.pushState(historyState ?? createHistoryState(nextView), "");
+  };
+
+  const replaceView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
+    viewRef.current = nextView;
+    setView(nextView);
+    window.history.replaceState(historyState ?? createHistoryState(nextView), "");
   };
 
   useEffect(() => {
-    window.history.replaceState({ view: "address" }, "");
-    const handlePopState = (event: PopStateEvent) => {
-      const targetView = event.state?.view as View | undefined;
-      setView(targetView || "address");
+    const reconcileHistoryState = (rawState: unknown) => {
+      const historyState = getHistoryState(rawState);
+      const hasResolveResult = Boolean(resolveResultRef.current);
+      const requestedView = historyState.view || "address";
+
+      if (requestedView === "detail") {
+        const currentPersonKey = selectedPersonKeyRef.current;
+        const matchingPersonResult = Boolean(personResultRef.current) && Boolean(currentPersonKey);
+        const matchesHistoryKey =
+          historyState.personKey && currentPersonKey
+            ? historyState.personKey === currentPersonKey
+            : Boolean(currentPersonKey);
+
+        if (matchingPersonResult && matchesHistoryKey) {
+          replaceView("detail", createHistoryState("detail", currentPersonKey ?? undefined));
+          return;
+        }
+
+        const fallbackView = getFallbackView(hasResolveResult);
+        if (fallbackView === "address") {
+          cancelDetailRequest();
+          setResolveResult(null);
+          setPersonResult(null);
+          setSelectedPersonKey(null);
+          setError(null);
+          setDetailError(null);
+          resolveResultRef.current = null;
+          personResultRef.current = null;
+          selectedPersonKeyRef.current = null;
+        } else {
+          setPersonResult(null);
+          setSelectedPersonKey(null);
+          setDetailError(null);
+          setDetailLoading(false);
+          personResultRef.current = null;
+          selectedPersonKeyRef.current = null;
+        }
+        replaceView(fallbackView, createHistoryState(fallbackView));
+        return;
+      }
+
+      if (requestedView === "roster") {
+        if (hasResolveResult) {
+          replaceView("roster", createHistoryState("roster"));
+          return;
+        }
+
+        cancelDetailRequest();
+        setResolveResult(null);
+        setPersonResult(null);
+        setSelectedPersonKey(null);
+        setError(null);
+        setDetailError(null);
+        resolveResultRef.current = null;
+        personResultRef.current = null;
+        selectedPersonKeyRef.current = null;
+        replaceView("address", createHistoryState("address"));
+        return;
+      }
+
+      cancelDetailRequest();
+      setResolveResult(null);
+      setPersonResult(null);
+      setSelectedPersonKey(null);
+      setError(null);
+      setDetailError(null);
+      resolveResultRef.current = null;
+      personResultRef.current = null;
+      selectedPersonKeyRef.current = null;
+      replaceView("address", createHistoryState("address"));
     };
+
+    if (!getHistoryState(window.history.state).view) {
+      window.history.replaceState(createHistoryState("address"), "");
+    }
+    reconcileHistoryState(window.history.state);
+
+    const handlePopState = (event: PopStateEvent) => {
+      reconcileHistoryState(event.state);
+    };
+
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const handleAddressSubmit = async (city: string, district: string, dong: string) => {
+    cancelDetailRequest();
     setLoading(true);
     setError(null);
     setDetailError(null);
     setResolveResult(null);
     setPersonResult(null);
+    setSelectedPersonKey(null);
+    resolveResultRef.current = null;
+    personResultRef.current = null;
+    selectedPersonKeyRef.current = null;
 
     try {
       const result = await fetchLocalCouncilResolve({ city, district, dong });
       setResolveResult(result);
-      navigate("roster");
+      resolveResultRef.current = result;
+      pushView("roster", createHistoryState("roster"));
     } catch (err) {
       console.error(err);
       setError(
@@ -79,22 +228,60 @@ export default function LocalCouncilPage() {
   };
 
   const handleSelectPerson = async (person: LocalCouncilRosterPerson) => {
+    const requestId = ++detailRequestIdRef.current;
     setDetailLoading(true);
     setDetailError(null);
     setPersonResult(null);
+    setSelectedPersonKey(null);
+    personResultRef.current = null;
+    selectedPersonKeyRef.current = null;
 
     try {
       const result = await fetchLocalCouncilPerson(person.person_key);
+      if (requestId !== detailRequestIdRef.current || viewRef.current !== "roster") {
+        return;
+      }
       setPersonResult(result);
-      navigate("detail");
+      setSelectedPersonKey(person.person_key);
+      personResultRef.current = result;
+      selectedPersonKeyRef.current = person.person_key;
+      pushView("detail", createHistoryState("detail", person.person_key));
     } catch (err) {
+      if (requestId !== detailRequestIdRef.current || viewRef.current !== "roster") {
+        return;
+      }
       console.error(err);
       setDetailError(
         err instanceof Error ? err.message : "선택한 인물 정보를 찾지 못했습니다.",
       );
     } finally {
-      setDetailLoading(false);
+      if (requestId === detailRequestIdRef.current) {
+        setDetailLoading(false);
+      }
     }
+  };
+
+  const handleRosterBack = () => {
+    cancelDetailRequest();
+    setResolveResult(null);
+    setPersonResult(null);
+    setSelectedPersonKey(null);
+    setError(null);
+    setDetailError(null);
+    resolveResultRef.current = null;
+    personResultRef.current = null;
+    selectedPersonKeyRef.current = null;
+    replaceView("address", createHistoryState("address"));
+  };
+
+  const handleDetailBack = () => {
+    cancelDetailRequest();
+    setPersonResult(null);
+    setSelectedPersonKey(null);
+    setDetailError(null);
+    personResultRef.current = null;
+    selectedPersonKeyRef.current = null;
+    replaceView("roster", createHistoryState("roster"));
   };
 
   return (
@@ -151,7 +338,7 @@ export default function LocalCouncilPage() {
               resolveData={resolveResult.data}
               dataSource={resolveResult.dataSource}
               onSelectPerson={handleSelectPerson}
-              onBack={() => navigate("address")}
+              onBack={handleRosterBack}
             />
             {detailLoading && (
               <p
@@ -175,7 +362,7 @@ export default function LocalCouncilPage() {
           <LocalCouncilPersonDetailView
             person={personResult.data}
             dataSource={personResult.dataSource}
-            onBack={() => navigate("roster")}
+            onBack={handleDetailBack}
           />
         )}
       </div>
