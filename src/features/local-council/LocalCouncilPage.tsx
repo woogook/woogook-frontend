@@ -48,7 +48,15 @@ function getFallbackView(hasResolveResult: boolean): View {
 }
 
 function createHistoryState(view: View, personKey?: string): LocalCouncilHistoryState {
-  return personKey ? { view, personKey } : { view };
+  return { view, personKey };
+}
+
+function buildBrowserHistoryState(localState: LocalCouncilHistoryState) {
+  const current = window.history.state;
+  if (current && typeof current === "object") {
+    return { ...current, ...localState };
+  }
+  return localState;
 }
 
 function hasViewState(state: LocalCouncilHistoryState) {
@@ -72,6 +80,7 @@ export default function LocalCouncilPage() {
   const personResultRef =
     useRef<LocalCouncilResult<LocalCouncilPersonDossierResponse> | null>(null);
   const selectedPersonKeyRef = useRef<string | null>(null);
+  const resolveRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
 
   const rootStyle: CSSProperties = {
@@ -104,6 +113,11 @@ export default function LocalCouncilPage() {
     setDetailLoading(false);
   };
 
+  const cancelResolveRequest = () => {
+    resolveRequestIdRef.current += 1;
+    setLoading(false);
+  };
+
   const updateViewOnly = (nextView: View) => {
     viewRef.current = nextView;
     setView(nextView);
@@ -112,13 +126,19 @@ export default function LocalCouncilPage() {
   const pushView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
     viewRef.current = nextView;
     setView(nextView);
-    window.history.pushState(historyState ?? createHistoryState(nextView), "");
+    window.history.pushState(
+      buildBrowserHistoryState(historyState ?? createHistoryState(nextView)),
+      "",
+    );
   };
 
   const replaceView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
     viewRef.current = nextView;
     setView(nextView);
-    window.history.replaceState(historyState ?? createHistoryState(nextView), "");
+    window.history.replaceState(
+      buildBrowserHistoryState(historyState ?? createHistoryState(nextView)),
+      "",
+    );
   };
 
   useEffect(() => {
@@ -170,7 +190,10 @@ export default function LocalCouncilPage() {
     };
 
     if (!getHistoryState(window.history.state).view) {
-      window.history.replaceState(createHistoryState("address"), "");
+      window.history.replaceState(
+        buildBrowserHistoryState(createHistoryState("address")),
+        "",
+      );
     }
     reconcileHistoryState(window.history.state);
 
@@ -183,6 +206,7 @@ export default function LocalCouncilPage() {
   }, []);
 
   const handleAddressSubmit = async (city: string, district: string, dong: string) => {
+    const requestId = ++resolveRequestIdRef.current;
     cancelDetailRequest();
     setLoading(true);
     setError(null);
@@ -196,10 +220,16 @@ export default function LocalCouncilPage() {
 
     try {
       const result = await fetchLocalCouncilResolve({ city, district, dong });
+      if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
+        return;
+      }
       setResolveResult(result);
       resolveResultRef.current = result;
       pushView("roster", createHistoryState("roster"));
     } catch (err) {
+      if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
+        return;
+      }
       console.error(err);
       setError(
         err instanceof Error
@@ -207,7 +237,9 @@ export default function LocalCouncilPage() {
           : "현직자 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
       );
     } finally {
-      setLoading(false);
+      if (requestId === resolveRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -242,6 +274,7 @@ export default function LocalCouncilPage() {
   };
 
   const handleRosterBack = () => {
+    cancelResolveRequest();
     cancelDetailRequest();
     if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
       window.history.back();
@@ -251,6 +284,7 @@ export default function LocalCouncilPage() {
   };
 
   const handleDetailBack = () => {
+    cancelResolveRequest();
     cancelDetailRequest();
     if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
       window.history.back();
