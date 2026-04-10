@@ -10,6 +10,7 @@ import {
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeLabel,
+  getLocalCouncilSourceCoverageSummary,
   getRosterPersonInitial,
   isLocalCouncilRosterPerson,
 } from "@/features/local-council/data";
@@ -112,6 +113,9 @@ export default function LocalCouncilRosterView({
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             {getLocalCouncilFreshnessLabel(resolveData.roster.freshness)}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            {getLocalCouncilSourceCoverageSummary(resolveData.roster.source_coverage)}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 text-center">

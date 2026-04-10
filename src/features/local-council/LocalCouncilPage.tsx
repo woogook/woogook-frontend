@@ -14,6 +14,7 @@ import type {
   LocalCouncilResolveResponse,
   LocalCouncilRosterPerson,
 } from "@/lib/schemas";
+import { isLocalCouncilRosterPerson } from "@/features/local-council/data";
 import LocalCouncilAddressStep from "@/features/local-council/components/LocalCouncilAddressStep";
 import LocalCouncilPersonDetailView from "@/features/local-council/components/LocalCouncilPersonDetailView";
 import LocalCouncilRosterView from "@/features/local-council/components/LocalCouncilRosterView";
@@ -63,6 +64,25 @@ function hasViewState(state: LocalCouncilHistoryState) {
   return state.view === "address" || state.view === "roster" || state.view === "detail";
 }
 
+function findSelectedRosterPerson(
+  result: LocalCouncilResult<LocalCouncilResolveResponse> | null,
+  personKey: string | null,
+) {
+  if (!result || !personKey) {
+    return null;
+  }
+
+  const districtHead = result.data.roster.district_head;
+  if (isLocalCouncilRosterPerson(districtHead) && districtHead.person_key === personKey) {
+    return districtHead;
+  }
+
+  return (
+    result.data.roster.council_members.find((member) => member.person_key === personKey) ||
+    null
+  );
+}
+
 export default function LocalCouncilPage() {
   const [view, setView] = useState<View>("address");
   const [resolveResult, setResolveResult] =
@@ -82,6 +102,7 @@ export default function LocalCouncilPage() {
   const selectedPersonKeyRef = useRef<string | null>(null);
   const resolveRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
+  const selectedRosterPerson = findSelectedRosterPerson(resolveResult, selectedPersonKey);
 
   const rootStyle: CSSProperties = {
     background: "var(--background)",
@@ -371,6 +392,7 @@ export default function LocalCouncilPage() {
           <LocalCouncilPersonDetailView
             person={personResult.data}
             dataSource={personResult.dataSource}
+            partyName={selectedRosterPerson?.party_name ?? null}
             onBack={handleDetailBack}
           />
         )}

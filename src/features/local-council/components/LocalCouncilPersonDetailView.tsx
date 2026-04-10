@@ -17,6 +17,7 @@ import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config"
 interface LocalCouncilPersonDetailViewProps {
   person: LocalCouncilPersonDossierResponse;
   dataSource: LocalCouncilDataSource;
+  partyName?: string | null;
   onBack: () => void;
 }
 
@@ -95,10 +96,6 @@ function buildElectedBasisDisplayRecord(
           : `${officeLabel} 선거`;
   const huboid =
     typeof record.huboid === "string" && record.huboid.trim() ? record.huboid.trim() : null;
-  const sgTypecode =
-    typeof record.sgTypecode === "string" && record.sgTypecode.trim()
-      ? record.sgTypecode.trim()
-      : null;
 
   const title = preset
     ? `${preset.electionName} 당선 기록`
@@ -111,9 +108,6 @@ function buildElectedBasisDisplayRecord(
   metaParts.push(`${officeElectionLabel} 기준`);
   if (huboid) {
     metaParts.push(`중앙선거관리위원회 후보 식별자 ${huboid}`);
-  }
-  if (sgTypecode) {
-    metaParts.push(`선거 구분 코드 ${sgTypecode}`);
   }
   const districtName = getPayloadText(record, ["district_name"]);
   if (districtName) {
@@ -137,6 +131,7 @@ function hasOfficialProfileDisplayText(record: Record<string, unknown>) {
 export default function LocalCouncilPersonDetailView({
   person,
   dataSource,
+  partyName,
   onBack,
 }: LocalCouncilPersonDetailViewProps) {
   const profileSections = Array.isArray(person.official_profile.official_profile_sections)
@@ -194,6 +189,7 @@ export default function LocalCouncilPersonDetailView({
         </h1>
         <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
           {getLocalCouncilOfficeLabel(person.office_type)}
+          {partyName ? ` · ${partyName}` : ""}
         </p>
         <h2 className="mt-6 text-xl font-bold" style={{ color: "var(--navy)" }}>
           {person.summary.headline}

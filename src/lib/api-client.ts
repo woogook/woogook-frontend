@@ -65,6 +65,21 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function parseResponseWithSchema<T>(payload: unknown, schema: ZodType<T>): T {
+  try {
+    return schema.parse(payload);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("[requestJson] schema parse error", error);
+      throw new ApiError(
+        502,
+        "응답 형식이 예상과 다릅니다. 잠시 후 다시 시도해주세요.",
+      );
+    }
+    throw error;
+  }
+}
+
 async function requestJson<T>(
   input: string,
   schema: ZodType<T>,
@@ -87,7 +102,7 @@ async function requestJson<T>(
     );
   }
 
-  return schema.parse(payload);
+  return parseResponseWithSchema(payload, schema);
 }
 
 async function fetchJson<T>(input: string, schema: ZodType<T>): Promise<T> {

@@ -52,6 +52,32 @@ export function getLocalCouncilFreshnessLabel(freshness: Record<string, unknown>
   return `기준 ${timestamp}`;
 }
 
+export function getLocalCouncilSourceCoverageSummary(
+  sourceCoverage: Record<string, unknown>,
+) {
+  const coverageLabels: Record<string, string> = {
+    district_head_official_profile: "구청장 프로필",
+    district_head_official_activity: "구청장 활동",
+    district_head_finance_activity: "구청장 재정",
+    council_member_elected_basis: "구의원 당선 근거",
+    council_member_official_activity: "구의원 활동",
+  };
+
+  const availableLabels = Object.entries(sourceCoverage)
+    .filter(([, value]) => typeof value === "string" && value.trim() === "present")
+    .map(([key]) => coverageLabels[key] || key);
+
+  if (availableLabels.length === 0) {
+    return "근거 범위 확인 필요";
+  }
+
+  if (availableLabels.length <= 2) {
+    return `${availableLabels.join(" · ")} 준비`;
+  }
+
+  return `${availableLabels.slice(0, 2).join(" · ")} 외 ${availableLabels.length - 2}개 준비`;
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
