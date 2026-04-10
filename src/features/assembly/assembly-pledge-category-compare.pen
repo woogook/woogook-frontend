@@ -3,33 +3,10 @@
   "children": [
     {
       "type": "frame",
-      "id": "cEy1",
+      "id": "wa_cRt99",
       "x": 0,
       "y": 0,
-      "name": "Section — wireframe note",
-      "width": 1024,
-      "layout": "vertical",
-      "gap": 32,
-      "children": [
-        {
-          "type": "text",
-          "id": "cTx1",
-          "name": "eyebrow",
-          "fill": "#64748B",
-          "content": "ASSEMBLY · PLEDGE CATEGORY TOP",
-          "fontFamily": "Noto Sans KR",
-          "fontSize": 13,
-          "fontWeight": "600",
-          "letterSpacing": 2.5
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "cRt99",
-      "x": 0,
-      "y": 0,
-      "name": "/assembly/pledge/category — TOP5 (AssemblyPledgeCategoryTopPage)",
+      "name": "앵커+전체 목록 (파란 강조) — compare pen",
       "width": 390,
       "height": 1100,
       "fill": "#f9f8f5",
@@ -37,7 +14,7 @@
       "children": [
         {
           "type": "frame",
-          "id": "cN88",
+          "id": "wa_cN88",
           "name": "nav",
           "width": "fill_container",
           "height": 60,
@@ -57,7 +34,7 @@
           "children": [
             {
               "type": "text",
-              "id": "cB77",
+              "id": "wa_cB77",
               "name": "back",
               "fill": "#475569",
               "content": "← 이행률 요약",
@@ -69,7 +46,7 @@
         },
         {
           "type": "frame",
-          "id": "cM77",
+          "id": "wa_cM77",
           "name": "main",
           "width": "fill_container",
           "layout": "vertical",
@@ -81,804 +58,7 @@
           "children": [
             {
               "type": "text",
-              "id": "cE66",
-              "name": "top5",
-              "fill": "#a8842c",
-              "content": "TOP 5",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 12,
-              "fontWeight": "600",
-              "letterSpacing": 2
-            },
-            {
-              "type": "text",
-              "id": "cH55",
-              "name": "h1",
-              "fill": "#1e293b",
-              "content": "경제·산업·재정",
-              "lineHeight": 1.25,
-              "fontFamily": "Noto Serif KR",
-              "fontSize": 22,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "cS44",
-              "name": "sub",
-              "fill": "#64748b",
-              "content": "이행 평가 상위 공약 (목업)",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 15,
-              "fontWeight": "normal"
-            },
-            {
-              "type": "text",
-              "id": "cN33",
-              "name": "note",
-              "fill": "#94a3b8",
-              "content": "진행도·판단 근거는 데모용입니다.",
-              "lineHeight": 1.4,
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 11,
-              "fontWeight": "normal"
-            },
-            {
-              "type": "frame",
-              "id": "cL22",
-              "name": "list",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 8,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "cd1",
-                  "name": "card_1",
-                  "width": "fill_container",
-                  "fill": "#ffffff",
-                  "cornerRadius": 18,
-                  "stroke": {
-                    "align": "inside",
-                    "thickness": 1,
-                    "fill": "#e2e0db"
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "rwC1",
-                      "name": "row_top_1",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rk1",
-                          "name": "rank_1",
-                          "width": 28,
-                          "height": 28,
-                          "cornerRadius": 100,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rkt1",
-                              "name": "rkt1",
-                              "fill": "#a8842c",
-                              "content": "1",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bd1",
-                          "name": "badge_1",
-                          "fill": "#fdf8ef",
-                          "cornerRadius": 8,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "bdt1",
-                              "name": "bdt1",
-                              "fill": "#a8842c",
-                              "content": "진행중",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 11,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "ti1",
-                          "name": "title_1",
-                          "fill": "#1e293b",
-                          "textGrowth": "fixed-width",
-                          "width": 200,
-                          "content": "지역 중소기업 R&D 세액공제 확대",
-                          "fontFamily": "Noto Serif KR",
-                          "fontSize": 14,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "sp1",
-                      "name": "sep_1",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "#e2e0db"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rr1",
-                      "name": "rationale_toggle_1",
-                      "width": "fill_container",
-                      "padding": [
-                        4,
-                        0
-                      ],
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "rl1",
-                          "name": "rl1",
-                          "fill": "#64748b",
-                          "content": "판단 근거",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rrt1",
-                          "name": "rrt1",
-                          "fill": "#94a3b8",
-                          "content": "⌄",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cd2",
-                  "name": "card_2",
-                  "width": "fill_container",
-                  "fill": "#ffffff",
-                  "cornerRadius": 18,
-                  "stroke": {
-                    "align": "inside",
-                    "thickness": 1,
-                    "fill": "#e2e0db"
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "rwC2",
-                      "name": "row_top_2",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rk2",
-                          "name": "rank_2",
-                          "width": 28,
-                          "height": 28,
-                          "cornerRadius": 100,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rkt2",
-                              "name": "rkt2",
-                              "fill": "#a8842c",
-                              "content": "2",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bd2",
-                          "name": "badge_2",
-                          "fill": "#f4f4f5",
-                          "cornerRadius": 8,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#d4d4d8"
-                          },
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "bdt2",
-                              "name": "bdt2",
-                              "fill": "#52525b",
-                              "content": "이행",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 11,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "ti2",
-                          "name": "title_2",
-                          "fill": "#1e293b",
-                          "textGrowth": "fixed-width",
-                          "width": 200,
-                          "content": "청년 창업 자금 이자 지원",
-                          "fontFamily": "Noto Serif KR",
-                          "fontSize": 14,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "sp2",
-                      "name": "sep_2",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "#e2e0db"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rr2",
-                      "name": "rationale_toggle_2",
-                      "width": "fill_container",
-                      "padding": [
-                        4,
-                        0
-                      ],
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "rl2",
-                          "name": "rl2",
-                          "fill": "#64748b",
-                          "content": "판단 근거",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rrt2",
-                          "name": "rrt2",
-                          "fill": "#94a3b8",
-                          "content": "⌄",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cd3",
-                  "name": "card_3",
-                  "width": "fill_container",
-                  "fill": "#ffffff",
-                  "cornerRadius": 18,
-                  "stroke": {
-                    "align": "inside",
-                    "thickness": 1,
-                    "fill": "#e2e0db"
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "rwC3",
-                      "name": "row_top_3",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rk3",
-                          "name": "rank_3",
-                          "width": 28,
-                          "height": 28,
-                          "cornerRadius": 100,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rkt3",
-                              "name": "rkt3",
-                              "fill": "#a8842c",
-                              "content": "3",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bd3",
-                          "name": "badge_3",
-                          "fill": "#fef2f2",
-                          "cornerRadius": 8,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#fecaca"
-                          },
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "bdt3",
-                              "name": "bdt3",
-                              "fill": "#dc2626",
-                              "content": "대기",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 11,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "ti3",
-                          "name": "title_3",
-                          "fill": "#1e293b",
-                          "textGrowth": "fixed-width",
-                          "width": 200,
-                          "content": "소상공인 공공재단 이자 인하",
-                          "fontFamily": "Noto Serif KR",
-                          "fontSize": 14,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "sp3",
-                      "name": "sep_3",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "#e2e0db"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rr3",
-                      "name": "rationale_toggle_3",
-                      "width": "fill_container",
-                      "padding": [
-                        4,
-                        0
-                      ],
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "rl3",
-                          "name": "rl3",
-                          "fill": "#64748b",
-                          "content": "판단 근거",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rrt3",
-                          "name": "rrt3",
-                          "fill": "#94a3b8",
-                          "content": "⌄",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cd4",
-                  "name": "card_4",
-                  "width": "fill_container",
-                  "fill": "#ffffff",
-                  "cornerRadius": 18,
-                  "stroke": {
-                    "align": "inside",
-                    "thickness": 1,
-                    "fill": "#e2e0db"
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "rwC4",
-                      "name": "row_top_4",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rk4",
-                          "name": "rank_4",
-                          "width": 28,
-                          "height": 28,
-                          "cornerRadius": 100,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rkt4",
-                              "name": "rkt4",
-                              "fill": "#a8842c",
-                              "content": "4",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bd4",
-                          "name": "badge_4",
-                          "fill": "#fdf8ef",
-                          "cornerRadius": 8,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "bdt4",
-                              "name": "bdt4",
-                              "fill": "#a8842c",
-                              "content": "진행중",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 11,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "ti4",
-                          "name": "title_4",
-                          "fill": "#1e293b",
-                          "textGrowth": "fixed-width",
-                          "width": 200,
-                          "content": "디지털 전환 지원 사업",
-                          "fontFamily": "Noto Serif KR",
-                          "fontSize": 14,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "sp4",
-                      "name": "sep_4",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "#e2e0db"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rr4",
-                      "name": "rationale_toggle_4",
-                      "width": "fill_container",
-                      "padding": [
-                        4,
-                        0
-                      ],
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "rl4",
-                          "name": "rl4",
-                          "fill": "#64748b",
-                          "content": "판단 근거",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rrt4",
-                          "name": "rrt4",
-                          "fill": "#94a3b8",
-                          "content": "⌄",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cd5",
-                  "name": "card_5",
-                  "width": "fill_container",
-                  "fill": "#ffffff",
-                  "cornerRadius": 18,
-                  "stroke": {
-                    "align": "inside",
-                    "thickness": 1,
-                    "fill": "#e2e0db"
-                  },
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "rwC5",
-                      "name": "row_top_5",
-                      "width": "fill_container",
-                      "gap": 8,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "rk5",
-                          "name": "rank_5",
-                          "width": 28,
-                          "height": 28,
-                          "cornerRadius": 100,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#e2e0db"
-                          },
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rkt5",
-                              "name": "rkt5",
-                              "fill": "#a8842c",
-                              "content": "5",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "bd5",
-                          "name": "badge_5",
-                          "fill": "#f4f4f5",
-                          "cornerRadius": 8,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1,
-                            "fill": "#d4d4d8"
-                          },
-                          "padding": [
-                            4,
-                            8
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "bdt5",
-                              "name": "bdt5",
-                              "fill": "#52525b",
-                              "content": "이행",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 11,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "ti5",
-                          "name": "title_5",
-                          "fill": "#1e293b",
-                          "textGrowth": "fixed-width",
-                          "width": 200,
-                          "content": "교육비 지원 확대",
-                          "fontFamily": "Noto Serif KR",
-                          "fontSize": 14,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "sp5",
-                      "name": "sep_5",
-                      "width": "fill_container",
-                      "height": 1,
-                      "fill": "#e2e0db"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rr5",
-                      "name": "rationale_toggle_5",
-                      "width": "fill_container",
-                      "padding": [
-                        4,
-                        0
-                      ],
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "rl5",
-                          "name": "rl5",
-                          "fill": "#64748b",
-                          "content": "판단 근거",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rrt5",
-                          "name": "rrt5",
-                          "fill": "#94a3b8",
-                          "content": "⌄",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "RBPRa",
-      "x": 1096,
-      "y": 0,
-      "name": "/assembly/pledge/category — 앵커+전체 목록 (와이어)",
-      "width": 390,
-      "height": 1100,
-      "fill": "#f9f8f5",
-      "layout": "vertical",
-      "children": [
-        {
-          "type": "frame",
-          "id": "rmRRE",
-          "name": "nav",
-          "width": "fill_container",
-          "height": 60,
-          "stroke": {
-            "align": "inside",
-            "thickness": {
-              "bottom": 1
-            },
-            "fill": "#e2e0db"
-          },
-          "gap": 8,
-          "padding": [
-            0,
-            20
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "uz7KI",
-              "name": "back",
-              "fill": "#475569",
-              "content": "← 이행률 요약",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 13,
-              "fontWeight": "600"
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "jLjjK",
-          "name": "main",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 16,
-          "padding": [
-            24,
-            20
-          ],
-          "children": [
-            {
-              "type": "text",
-              "id": "gVYwY",
+              "id": "wa_cE66",
               "name": "top5",
               "fill": "#a8842c",
               "content": "전체 공약 (상태순)",
@@ -889,7 +69,7 @@
             },
             {
               "type": "text",
-              "id": "j1hCf",
+              "id": "wa_cH55",
               "name": "h1",
               "fill": "#1e293b",
               "content": "경제·산업·재정",
@@ -900,7 +80,7 @@
             },
             {
               "type": "text",
-              "id": "Ql1LO",
+              "id": "wa_cS44",
               "name": "sub",
               "fill": "#64748b",
               "content": "완료 → 진행중 → 미착수 · 더보기/무한스크롤",
@@ -910,10 +90,10 @@
             },
             {
               "type": "text",
-              "id": "swmvx",
+              "id": "wa_cN33",
               "name": "note",
               "fill": "#94a3b8",
-              "content": "앵커 promise_id: 해당 카드 강조·근거 표시·스크롤 위치",
+              "content": "앵커 promise_id: 해당 카드 강조·근거·스크롤",
               "lineHeight": 1.4,
               "fontFamily": "Noto Sans KR",
               "fontSize": 11,
@@ -921,7 +101,7 @@
             },
             {
               "type": "frame",
-              "id": "rVrsR",
+              "id": "wa_cL22",
               "name": "list",
               "width": "fill_container",
               "layout": "vertical",
@@ -929,7 +109,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "LjakJ",
+                  "id": "wa_cd1",
                   "name": "card_1",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -945,7 +125,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "CJBzm",
+                      "id": "wa_rwC1",
                       "name": "row_top_1",
                       "width": "fill_container",
                       "gap": 8,
@@ -953,7 +133,7 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "DDUGe",
+                          "id": "wa_rk1",
                           "name": "rank_1",
                           "width": 28,
                           "height": 28,
@@ -968,7 +148,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "SMZkY",
+                              "id": "wa_rkt1",
                               "name": "rkt1",
                               "fill": "#a8842c",
                               "content": "1",
@@ -980,7 +160,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "seoCH",
+                          "id": "wa_bd1",
                           "name": "badge_1",
                           "fill": "#fdf8ef",
                           "cornerRadius": 8,
@@ -996,7 +176,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "YQjUz",
+                              "id": "wa_bdt1",
                               "name": "bdt1",
                               "fill": "#a8842c",
                               "content": "진행중",
@@ -1008,7 +188,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "oZEUQ",
+                          "id": "wa_ti1",
                           "name": "title_1",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1022,7 +202,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "QQuhI",
+                      "id": "wa_sp1",
                       "name": "sep_1",
                       "width": "fill_container",
                       "height": 1,
@@ -1030,7 +210,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "0y7vo",
+                      "id": "wa_rr1",
                       "name": "rationale_toggle_1",
                       "width": "fill_container",
                       "padding": [
@@ -1042,7 +222,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "k9RKK",
+                          "id": "wa_rl1",
                           "name": "rl1",
                           "fill": "#64748b",
                           "content": "판단 근거",
@@ -1052,7 +232,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "ugPvW",
+                          "id": "wa_rrt1",
                           "name": "rrt1",
                           "fill": "#94a3b8",
                           "content": "⌄",
@@ -1066,7 +246,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "F7FOG",
+                  "id": "wa_cd2",
                   "name": "card_2",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -1082,7 +262,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "Pr89B",
+                      "id": "wa_rwC2",
                       "name": "row_top_2",
                       "width": "fill_container",
                       "gap": 8,
@@ -1090,7 +270,7 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "agHm7",
+                          "id": "wa_rk2",
                           "name": "rank_2",
                           "width": 28,
                           "height": 28,
@@ -1105,7 +285,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "a02U0",
+                              "id": "wa_rkt2",
                               "name": "rkt2",
                               "fill": "#a8842c",
                               "content": "2",
@@ -1117,7 +297,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "cEQpK",
+                          "id": "wa_bd2",
                           "name": "badge_2",
                           "fill": "#f4f4f5",
                           "cornerRadius": 8,
@@ -1133,7 +313,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "oRdf9",
+                              "id": "wa_bdt2",
                               "name": "bdt2",
                               "fill": "#52525b",
                               "content": "이행",
@@ -1145,7 +325,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "y4Sfz",
+                          "id": "wa_ti2",
                           "name": "title_2",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1159,7 +339,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "9xEOc",
+                      "id": "wa_sp2",
                       "name": "sep_2",
                       "width": "fill_container",
                       "height": 1,
@@ -1167,7 +347,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "UOmHh",
+                      "id": "wa_rr2",
                       "name": "rationale_toggle_2",
                       "width": "fill_container",
                       "padding": [
@@ -1179,7 +359,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "RxHih",
+                          "id": "wa_rl2",
                           "name": "rl2",
                           "fill": "#64748b",
                           "content": "판단 근거",
@@ -1189,7 +369,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "x4Aqt",
+                          "id": "wa_rrt2",
                           "name": "rrt2",
                           "fill": "#94a3b8",
                           "content": "⌄",
@@ -1203,7 +383,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "JJwqo",
+                  "id": "wa_cd3",
                   "name": "card_3",
                   "width": "fill_container",
                   "fill": "#eff6ff",
@@ -1219,7 +399,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "oRclF",
+                      "id": "wa_rwC3",
                       "name": "row_top_3",
                       "width": "fill_container",
                       "gap": 8,
@@ -1227,7 +407,7 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "jpMCf",
+                          "id": "wa_rk3",
                           "name": "rank_3",
                           "width": 28,
                           "height": 28,
@@ -1242,7 +422,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "3drHK",
+                              "id": "wa_rkt3",
                               "name": "rkt3",
                               "fill": "#a8842c",
                               "content": "3",
@@ -1254,7 +434,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "D9YCA",
+                          "id": "wa_bd3",
                           "name": "badge_3",
                           "fill": "#fef2f2",
                           "cornerRadius": 8,
@@ -1270,7 +450,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "oHfv8",
+                              "id": "wa_bdt3",
                               "name": "bdt3",
                               "fill": "#dc2626",
                               "content": "대기",
@@ -1282,7 +462,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "QWYX2",
+                          "id": "wa_ti3",
                           "name": "title_3",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1296,7 +476,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "btUye",
+                      "id": "wa_sp3",
                       "name": "sep_3",
                       "width": "fill_container",
                       "height": 1,
@@ -1304,7 +484,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "E0kvU",
+                      "id": "wa_rr3",
                       "name": "rationale_toggle_3",
                       "width": "fill_container",
                       "padding": [
@@ -1316,7 +496,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "wewgw",
+                          "id": "wa_rl3",
                           "name": "rl3",
                           "fill": "#64748b",
                           "content": "판단 근거",
@@ -1326,7 +506,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "bG4gO",
+                          "id": "wa_rrt3",
                           "name": "rrt3",
                           "fill": "#94a3b8",
                           "content": "⌄",
@@ -1340,7 +520,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "A3thj",
+                  "id": "wa_cd4",
                   "name": "card_4",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -1356,7 +536,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "slmF5",
+                      "id": "wa_rwC4",
                       "name": "row_top_4",
                       "width": "fill_container",
                       "gap": 8,
@@ -1364,7 +544,7 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "Zht3F",
+                          "id": "wa_rk4",
                           "name": "rank_4",
                           "width": 28,
                           "height": 28,
@@ -1379,7 +559,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "S2fDU",
+                              "id": "wa_rkt4",
                               "name": "rkt4",
                               "fill": "#a8842c",
                               "content": "4",
@@ -1391,7 +571,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "Ubuqd",
+                          "id": "wa_bd4",
                           "name": "badge_4",
                           "fill": "#fdf8ef",
                           "cornerRadius": 8,
@@ -1407,7 +587,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "Wdt4s",
+                              "id": "wa_bdt4",
                               "name": "bdt4",
                               "fill": "#a8842c",
                               "content": "진행중",
@@ -1419,7 +599,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "cqveH",
+                          "id": "wa_ti4",
                           "name": "title_4",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1433,7 +613,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "M1lB0",
+                      "id": "wa_sp4",
                       "name": "sep_4",
                       "width": "fill_container",
                       "height": 1,
@@ -1441,7 +621,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "M0to7",
+                      "id": "wa_rr4",
                       "name": "rationale_toggle_4",
                       "width": "fill_container",
                       "padding": [
@@ -1453,7 +633,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "fHc9y",
+                          "id": "wa_rl4",
                           "name": "rl4",
                           "fill": "#64748b",
                           "content": "판단 근거",
@@ -1463,7 +643,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "P1JwH",
+                          "id": "wa_rrt4",
                           "name": "rrt4",
                           "fill": "#94a3b8",
                           "content": "⌄",
@@ -1477,7 +657,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "qDlry",
+                  "id": "wa_cd5",
                   "name": "card_5",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -1493,7 +673,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "2SUxG",
+                      "id": "wa_rwC5",
                       "name": "row_top_5",
                       "width": "fill_container",
                       "gap": 8,
@@ -1501,7 +681,7 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "e95G7",
+                          "id": "wa_rk5",
                           "name": "rank_5",
                           "width": 28,
                           "height": 28,
@@ -1516,7 +696,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "Hcy3Z",
+                              "id": "wa_rkt5",
                               "name": "rkt5",
                               "fill": "#a8842c",
                               "content": "5",
@@ -1528,7 +708,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "kdHKj",
+                          "id": "wa_bd5",
                           "name": "badge_5",
                           "fill": "#f4f4f5",
                           "cornerRadius": 8,
@@ -1544,7 +724,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "HJeFl",
+                              "id": "wa_bdt5",
                               "name": "bdt5",
                               "fill": "#52525b",
                               "content": "이행",
@@ -1556,7 +736,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "CIOVc",
+                          "id": "wa_ti5",
                           "name": "title_5",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1570,7 +750,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "CXQhG",
+                      "id": "wa_sp5",
                       "name": "sep_5",
                       "width": "fill_container",
                       "height": 1,
@@ -1578,7 +758,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "BokQU",
+                      "id": "wa_rr5",
                       "name": "rationale_toggle_5",
                       "width": "fill_container",
                       "padding": [
@@ -1590,7 +770,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "kYw4A",
+                          "id": "wa_rl5",
                           "name": "rl5",
                           "fill": "#64748b",
                           "content": "판단 근거",
@@ -1600,7 +780,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "RMhKo",
+                          "id": "wa_rrt5",
                           "name": "rrt5",
                           "fill": "#94a3b8",
                           "content": "⌄",
@@ -1616,22 +796,23 @@
             },
             {
               "type": "frame",
-              "id": "evbeJ",
+              "id": "wa_footMore",
               "name": "pagination_footer",
               "width": "fill_container",
-              "gap": 8,
+              "layout": "horizontal",
+              "justifyContent": "center",
+              "alignItems": "center",
               "padding": [
                 20,
                 0,
                 8,
                 0
               ],
-              "justifyContent": "center",
-              "alignItems": "center",
+              "gap": 8,
               "children": [
                 {
                   "type": "text",
-                  "id": "FAl5E",
+                  "id": "wa_footTxt",
                   "fill": "#2563eb",
                   "content": "더 보기 · 다음 페이지 (cursor)",
                   "fontFamily": "Noto Sans KR",
@@ -1646,10 +827,10 @@
     },
     {
       "type": "frame",
-      "id": "2UbLT",
-      "x": 1542,
-      "y": 0,
-      "name": "비교용 B — 순위 숨김·근거 인라인·보라 톤",
+      "id": "wb_cRt99",
+      "x": 0,
+      "y": 1124,
+      "name": "비교 B — 순번·근거 펼침·보라 톤",
       "width": 390,
       "height": 1100,
       "fill": "#faf5ff",
@@ -1657,11 +838,10 @@
       "children": [
         {
           "type": "frame",
-          "id": "LtWgf",
+          "id": "wb_cN88",
           "name": "nav",
           "width": "fill_container",
           "height": 60,
-          "fill": "#ede9fe",
           "stroke": {
             "align": "inside",
             "thickness": {
@@ -1678,7 +858,7 @@
           "children": [
             {
               "type": "text",
-              "id": "JOKbo",
+              "id": "wb_cB77",
               "name": "back",
               "fill": "#475569",
               "content": "← 이행률 요약",
@@ -1686,11 +866,12 @@
               "fontSize": 13,
               "fontWeight": "600"
             }
-          ]
+          ],
+          "fill": "#ede9fe"
         },
         {
           "type": "frame",
-          "id": "xG8qN",
+          "id": "wb_cM77",
           "name": "main",
           "width": "fill_container",
           "layout": "vertical",
@@ -1702,7 +883,7 @@
           "children": [
             {
               "type": "text",
-              "id": "3F8V1",
+              "id": "wb_cE66",
               "name": "top5",
               "fill": "#6d28d9",
               "content": "【비교 B】상태순 전체 공약",
@@ -1713,7 +894,7 @@
             },
             {
               "type": "text",
-              "id": "D08sh",
+              "id": "wb_cH55",
               "name": "h1",
               "fill": "#1e293b",
               "content": "경제·산업·재정",
@@ -1724,20 +905,20 @@
             },
             {
               "type": "text",
-              "id": "yFu4H",
+              "id": "wb_cS44",
               "name": "sub",
               "fill": "#5b21b6",
-              "content": "원형 순위 숨김 · 근거는 회색 박스로 항상 노출 · 앵커 카드만 보라 강조",
+              "content": "순번 유지 · 근거는 탭(판단 근거)으로 펼침",
               "fontFamily": "Noto Sans KR",
               "fontSize": 15,
               "fontWeight": "normal"
             },
             {
               "type": "text",
-              "id": "QillG",
+              "id": "wb_cN33",
               "name": "note",
               "fill": "#7c3aed",
-              "content": "← RBPRa(앵커 와이어)와 색·순위·문구를 나란히 비교",
+              "content": "← 왼쪽 프레임(앵커)과 나란히 비교",
               "lineHeight": 1.4,
               "fontFamily": "Noto Sans KR",
               "fontSize": 11,
@@ -1745,7 +926,7 @@
             },
             {
               "type": "frame",
-              "id": "pAhXy",
+              "id": "wb_cL22",
               "name": "list",
               "width": "fill_container",
               "layout": "vertical",
@@ -1753,7 +934,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "DAT4Q",
+                  "id": "wb_cd1",
                   "name": "card_1",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -1769,7 +950,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "zwTP3",
+                      "id": "wb_rwC1",
                       "name": "row_top_1",
                       "width": "fill_container",
                       "gap": 8,
@@ -1777,11 +958,8 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "YXUrA",
-                          "x": 0,
-                          "y": 6,
+                          "id": "wb_rk1",
                           "name": "rank_1",
-                          "enabled": false,
                           "width": 28,
                           "height": 28,
                           "cornerRadius": 100,
@@ -1795,7 +973,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "xDKrW",
+                              "id": "wb_rkt1",
                               "name": "rkt1",
                               "fill": "#a8842c",
                               "content": "1",
@@ -1807,7 +985,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "aJN0K",
+                          "id": "wb_bd1",
                           "name": "badge_1",
                           "fill": "#fdf8ef",
                           "cornerRadius": 8,
@@ -1823,7 +1001,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "OFYQU",
+                              "id": "wb_bdt1",
                               "name": "bdt1",
                               "fill": "#a8842c",
                               "content": "진행중",
@@ -1835,7 +1013,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "If0HZ",
+                          "id": "wb_ti1",
                           "name": "title_1",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1849,7 +1027,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "kS5D4",
+                      "id": "wb_sp1",
                       "name": "sep_1",
                       "width": "fill_container",
                       "height": 1,
@@ -1857,34 +1035,34 @@
                     },
                     {
                       "type": "frame",
-                      "id": "uNPmj",
-                      "name": "rationale_inline_1",
+                      "id": "wb_rr1",
+                      "name": "rationale_toggle_1",
                       "width": "fill_container",
-                      "fill": "#f4f4f5",
-                      "cornerRadius": 10,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "padding": 10,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
-                          "id": "pTT29",
+                          "id": "wb_rl1",
+                          "name": "rl1",
                           "fill": "#64748b",
-                          "content": "근거 요약",
+                          "content": "판단 근거",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 11,
+                          "fontSize": 12,
                           "fontWeight": "600"
                         },
                         {
                           "type": "text",
-                          "id": "vmYls",
-                          "fill": "#3f3f46",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "예산안·시행령 개정안 대조. (데모)",
-                          "lineHeight": 1.35,
+                          "id": "wb_rrt1",
+                          "name": "rrt1",
+                          "fill": "#94a3b8",
+                          "content": "⌄",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
+                          "fontSize": 14,
                           "fontWeight": "normal"
                         }
                       ]
@@ -1893,7 +1071,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "VrZfM",
+                  "id": "wb_cd2",
                   "name": "card_2",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -1909,7 +1087,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "9zCMG",
+                      "id": "wb_rwC2",
                       "name": "row_top_2",
                       "width": "fill_container",
                       "gap": 8,
@@ -1917,11 +1095,8 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "UcTmV",
-                          "x": 0,
-                          "y": 0,
+                          "id": "wb_rk2",
                           "name": "rank_2",
-                          "enabled": false,
                           "width": 28,
                           "height": 28,
                           "cornerRadius": 100,
@@ -1935,7 +1110,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "qEyYr",
+                              "id": "wb_rkt2",
                               "name": "rkt2",
                               "fill": "#a8842c",
                               "content": "2",
@@ -1947,7 +1122,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "WQ3lE",
+                          "id": "wb_bd2",
                           "name": "badge_2",
                           "fill": "#f4f4f5",
                           "cornerRadius": 8,
@@ -1963,7 +1138,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "G5EmB",
+                              "id": "wb_bdt2",
                               "name": "bdt2",
                               "fill": "#52525b",
                               "content": "이행",
@@ -1975,7 +1150,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "lNNcV",
+                          "id": "wb_ti2",
                           "name": "title_2",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -1989,7 +1164,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "3hyTk",
+                      "id": "wb_sp2",
                       "name": "sep_2",
                       "width": "fill_container",
                       "height": 1,
@@ -1997,34 +1172,34 @@
                     },
                     {
                       "type": "frame",
-                      "id": "7Vqrc",
-                      "name": "rationale_inline_2",
+                      "id": "wb_rr2",
+                      "name": "rationale_toggle_2",
                       "width": "fill_container",
-                      "fill": "#f4f4f5",
-                      "cornerRadius": 10,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "padding": 10,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
-                          "id": "zj5dC",
+                          "id": "wb_rl2",
+                          "name": "rl2",
                           "fill": "#64748b",
-                          "content": "근거 요약",
+                          "content": "판단 근거",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 11,
+                          "fontSize": 12,
                           "fontWeight": "600"
                         },
                         {
                           "type": "text",
-                          "id": "2cFkC",
-                          "fill": "#3f3f46",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "국회 본회의 통과 일자·공포번호 확인.",
-                          "lineHeight": 1.35,
+                          "id": "wb_rrt2",
+                          "name": "rrt2",
+                          "fill": "#94a3b8",
+                          "content": "⌄",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
+                          "fontSize": 14,
                           "fontWeight": "normal"
                         }
                       ]
@@ -2033,7 +1208,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "SNIcj",
+                  "id": "wb_cd3",
                   "name": "card_3",
                   "width": "fill_container",
                   "fill": "#e9d5ff",
@@ -2049,7 +1224,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "h6yeg",
+                      "id": "wb_rwC3",
                       "name": "row_top_3",
                       "width": "fill_container",
                       "gap": 8,
@@ -2057,11 +1232,8 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "bJhs4",
-                          "x": 0,
-                          "y": 0,
+                          "id": "wb_rk3",
                           "name": "rank_3",
-                          "enabled": false,
                           "width": 28,
                           "height": 28,
                           "cornerRadius": 100,
@@ -2075,7 +1247,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "iCPZi",
+                              "id": "wb_rkt3",
                               "name": "rkt3",
                               "fill": "#a8842c",
                               "content": "3",
@@ -2087,7 +1259,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "uaqBl",
+                          "id": "wb_bd3",
                           "name": "badge_3",
                           "fill": "#fef2f2",
                           "cornerRadius": 8,
@@ -2103,7 +1275,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "wCnQc",
+                              "id": "wb_bdt3",
                               "name": "bdt3",
                               "fill": "#dc2626",
                               "content": "대기",
@@ -2115,7 +1287,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "trgIp",
+                          "id": "wb_ti3",
                           "name": "title_3",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -2129,7 +1301,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "nzXvf",
+                      "id": "wb_sp3",
                       "name": "sep_3",
                       "width": "fill_container",
                       "height": 1,
@@ -2137,34 +1309,34 @@
                     },
                     {
                       "type": "frame",
-                      "id": "acxSe",
-                      "name": "rationale_inline_3",
+                      "id": "wb_rr3",
+                      "name": "rationale_toggle_3",
                       "width": "fill_container",
-                      "fill": "#ede9fe",
-                      "cornerRadius": 10,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "padding": 10,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
-                          "id": "zJPIT",
-                          "fill": "#6d28d9",
-                          "content": "앵커 공약 — 근거 (항상 표시)",
+                          "id": "wb_rl3",
+                          "name": "rl3",
+                          "fill": "#64748b",
+                          "content": "판단 근거",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 11,
+                          "fontSize": 12,
                           "fontWeight": "600"
                         },
                         {
                           "type": "text",
-                          "id": "DdOfh",
-                          "fill": "#4c1d95",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "URL의 promise_id로 들어오면 이 카드가 강조·스크롤됩니다.",
-                          "lineHeight": 1.35,
+                          "id": "wb_rrt3",
+                          "name": "rrt3",
+                          "fill": "#94a3b8",
+                          "content": "⌄",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
+                          "fontSize": 14,
                           "fontWeight": "normal"
                         }
                       ]
@@ -2173,7 +1345,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "lhfjJ",
+                  "id": "wb_cd4",
                   "name": "card_4",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -2189,7 +1361,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "Dh8bw",
+                      "id": "wb_rwC4",
                       "name": "row_top_4",
                       "width": "fill_container",
                       "gap": 8,
@@ -2197,11 +1369,8 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "vXQAc",
-                          "x": 0,
-                          "y": 0,
+                          "id": "wb_rk4",
                           "name": "rank_4",
-                          "enabled": false,
                           "width": 28,
                           "height": 28,
                           "cornerRadius": 100,
@@ -2215,7 +1384,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "xsc4P",
+                              "id": "wb_rkt4",
                               "name": "rkt4",
                               "fill": "#a8842c",
                               "content": "4",
@@ -2227,7 +1396,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "mRhwx",
+                          "id": "wb_bd4",
                           "name": "badge_4",
                           "fill": "#fdf8ef",
                           "cornerRadius": 8,
@@ -2243,7 +1412,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "S9MZW",
+                              "id": "wb_bdt4",
                               "name": "bdt4",
                               "fill": "#a8842c",
                               "content": "진행중",
@@ -2255,7 +1424,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "Qoril",
+                          "id": "wb_ti4",
                           "name": "title_4",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -2269,7 +1438,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "IhaB2",
+                      "id": "wb_sp4",
                       "name": "sep_4",
                       "width": "fill_container",
                       "height": 1,
@@ -2277,34 +1446,34 @@
                     },
                     {
                       "type": "frame",
-                      "id": "OEJhU",
-                      "name": "rationale_inline_4",
+                      "id": "wb_rr4",
+                      "name": "rationale_toggle_4",
                       "width": "fill_container",
-                      "fill": "#f4f4f5",
-                      "cornerRadius": 10,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "padding": 10,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
-                          "id": "32d0l",
+                          "id": "wb_rl4",
+                          "name": "rl4",
                           "fill": "#64748b",
-                          "content": "근거 요약",
+                          "content": "판단 근거",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 11,
+                          "fontSize": 12,
                           "fontWeight": "600"
                         },
                         {
                           "type": "text",
-                          "id": "Xb0Bf",
-                          "fill": "#3f3f46",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "사업 공고문·집행 실적 보도자료 링크.",
-                          "lineHeight": 1.35,
+                          "id": "wb_rrt4",
+                          "name": "rrt4",
+                          "fill": "#94a3b8",
+                          "content": "⌄",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
+                          "fontSize": 14,
                           "fontWeight": "normal"
                         }
                       ]
@@ -2313,7 +1482,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "qS1Mx",
+                  "id": "wb_cd5",
                   "name": "card_5",
                   "width": "fill_container",
                   "fill": "#ffffff",
@@ -2329,7 +1498,7 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "sCGYV",
+                      "id": "wb_rwC5",
                       "name": "row_top_5",
                       "width": "fill_container",
                       "gap": 8,
@@ -2337,11 +1506,8 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "53zXt",
-                          "x": 0,
-                          "y": 0,
+                          "id": "wb_rk5",
                           "name": "rank_5",
-                          "enabled": false,
                           "width": 28,
                           "height": 28,
                           "cornerRadius": 100,
@@ -2355,7 +1521,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "WTtzO",
+                              "id": "wb_rkt5",
                               "name": "rkt5",
                               "fill": "#a8842c",
                               "content": "5",
@@ -2367,7 +1533,7 @@
                         },
                         {
                           "type": "frame",
-                          "id": "2LuER",
+                          "id": "wb_bd5",
                           "name": "badge_5",
                           "fill": "#f4f4f5",
                           "cornerRadius": 8,
@@ -2383,7 +1549,7 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "CLyb6",
+                              "id": "wb_bdt5",
                               "name": "bdt5",
                               "fill": "#52525b",
                               "content": "이행",
@@ -2395,7 +1561,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "gI2CC",
+                          "id": "wb_ti5",
                           "name": "title_5",
                           "fill": "#1e293b",
                           "textGrowth": "fixed-width",
@@ -2409,7 +1575,7 @@
                     },
                     {
                       "type": "frame",
-                      "id": "QjNKr",
+                      "id": "wb_sp5",
                       "name": "sep_5",
                       "width": "fill_container",
                       "height": 1,
@@ -2417,34 +1583,34 @@
                     },
                     {
                       "type": "frame",
-                      "id": "JQeoM",
-                      "name": "rationale_inline_5",
+                      "id": "wb_rr5",
+                      "name": "rationale_toggle_5",
                       "width": "fill_container",
-                      "fill": "#f4f4f5",
-                      "cornerRadius": 10,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "padding": 10,
+                      "padding": [
+                        4,
+                        0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
-                          "id": "MZPwf",
+                          "id": "wb_rl5",
+                          "name": "rl5",
                           "fill": "#64748b",
-                          "content": "근거 요약",
+                          "content": "판단 근거",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 11,
+                          "fontSize": 12,
                           "fontWeight": "600"
                         },
                         {
                           "type": "text",
-                          "id": "o3wLN",
-                          "fill": "#3f3f46",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "교육청 협약·지원 규모 수치 확인.",
-                          "lineHeight": 1.35,
+                          "id": "wb_rrt5",
+                          "name": "rrt5",
+                          "fill": "#94a3b8",
+                          "content": "⌄",
                           "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
+                          "fontSize": 14,
                           "fontWeight": "normal"
                         }
                       ]
@@ -2455,22 +1621,23 @@
             },
             {
               "type": "frame",
-              "id": "mZ9lJ",
+              "id": "wb_footMore",
               "name": "pagination_footer",
               "width": "fill_container",
-              "gap": 8,
+              "layout": "horizontal",
+              "justifyContent": "center",
+              "alignItems": "center",
               "padding": [
                 20,
                 0,
                 8,
                 0
               ],
-              "justifyContent": "center",
-              "alignItems": "center",
+              "gap": 8,
               "children": [
                 {
                   "type": "text",
-                  "id": "dEKdg",
+                  "id": "wb_footTxt",
                   "fill": "#2563eb",
                   "content": "▼ 더 불러오기 (무한 스크롤)",
                   "fontFamily": "Noto Sans KR",
@@ -2480,6 +1647,46 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "cmpNote",
+      "name": "README - two wireframe screens",
+      "x": 0,
+      "y": 2248,
+      "width": 390,
+      "layout": "vertical",
+      "gap": 12,
+      "padding": 20,
+      "fill": "#f1f5f9",
+      "cornerRadius": 12,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#cbd5e1"
+      },
+      "children": [
+        {
+          "type": "text",
+          "id": "cmpNoteT1",
+          "fill": "#0f172a",
+          "content": "assembly-pledge-category-compare.pen",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 14,
+          "fontWeight": "700"
+        },
+        {
+          "type": "text",
+          "id": "cmpNoteT2",
+          "fill": "#475569",
+          "textGrowth": "fixed-width",
+          "width": 350,
+          "content": "TOP5는 assembly-pledge-category-top.pen · 이 파일은 앵커(파란) vs 비교B(보라) 두 화면만. 모두 x=0에 세로 스탁.",
+          "fontFamily": "Noto Sans KR",
+          "fontSize": 12,
+          "lineHeight": 1.45
         }
       ]
     }

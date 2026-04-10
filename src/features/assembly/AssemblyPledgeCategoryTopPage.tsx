@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getAssemblyCategoryTop5Mock } from "@/features/assembly/assemblyCategoryTopMock";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
@@ -19,7 +19,8 @@ function safeDecodeURIComponent(value: string): string {
 }
 
 /**
- * 카테고리별 이행 우수 공약 TOP 5 — 목업 데이터 표시. API 연동 시 동일 레이아웃에 데이터만 교체.
+ * 카테고리별 이행 우수 공약 목록(목업 TOP 5). API 연동 시 동일 레이아웃에 데이터만 교체.
+ * 딥링크: `?promise_id=<공약ID>` — 해당 행으로 스크롤 후 잠시 강조(피드·뉴스 연동용).
  */
 export function AssemblyPledgeCategoryTopPage() {
   const searchParams = useSearchParams();
@@ -28,11 +29,18 @@ export function AssemblyPledgeCategoryTopPage() {
   const monaCd = searchParams.get("mona_cd");
   const categoryRaw = searchParams.get("category");
   const categoryLabel = categoryRaw ? safeDecodeURIComponent(categoryRaw) : null;
+  /** 피드·뉴스 등에서 `?promise_id=...`로 특정 공약 행으로 스크롤·강조 */
+  const focusPromiseId = searchParams.get("promise_id")?.trim() || null;
 
   const pledges = getAssemblyCategoryTop5Mock(categoryLabel);
 
   /** 공약별 판단 근거 펼침 — 기본 접어 두어 한 화면에 5건이 보이도록 함 */
   const [rationaleOpenById, setRationaleOpenById] = useState<Record<string, boolean>>({});
+  /** 와이어 pagination_footer — API 연동 전 안내용 */
+  const [loadMoreAcknowledged, setLoadMoreAcknowledged] = useState(false);
+  /** 딥링크로 들어온 행 잠시 강조 */
+  const [flashRowId, setFlashRowId] = useState<string | null>(null);
+  const pledgeRowRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const toggleRationale = useCallback((promiseId: string) => {
     setRationaleOpenById((prev) => ({
@@ -40,6 +48,20 @@ export function AssemblyPledgeCategoryTopPage() {
       [promiseId]: !prev[promiseId],
     }));
   }, []);
+
+  useEffect(() => {
+    if (!pledges || !focusPromiseId) {
+      return;
+    }
+    const row = pledgeRowRefs.current[focusPromiseId];
+    if (!row) {
+      return;
+    }
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFlashRowId(focusPromiseId);
+    const timer = window.setTimeout(() => setFlashRowId(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [pledges, focusPromiseId]);
 
   const backParams = assemblyPledgeContextParams(city, sigungu, monaCd);
   const backHref =
@@ -53,14 +75,8 @@ export function AssemblyPledgeCategoryTopPage() {
         {pledges && categoryLabel ? (
           <>
             <header className="mb-4">
-              <p
-                className="text-[12px] font-semibold tracking-widest"
-                style={{ color: "var(--amber)" }}
-              >
-                TOP 5
-              </p>
               <h1
-                className="mt-2 text-[1.25rem] font-bold leading-snug tracking-tight sm:text-[1.45rem]"
+                className="text-[1.25rem] font-bold leading-snug tracking-tight sm:text-[1.45rem]"
                 style={{
                   color: "var(--navy)",
                   fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
@@ -79,13 +95,19 @@ export function AssemblyPledgeCategoryTopPage() {
             <ol className="space-y-2">
               {pledges.map((item, index) => {
                 const rationaleOpen = Boolean(rationaleOpenById[item.promise_id]);
+                const isFlashing = flashRowId === item.promise_id;
                 return (
                   <li
                     key={item.promise_id}
-                    className="rounded-[18px] border px-3 py-2.5"
+                    id={`assembly-pledge-row-${item.promise_id}`}
+                    ref={(el) => {
+                      pledgeRowRefs.current[item.promise_id] = el;
+                    }}
+                    className="rounded-[18px] border px-3 py-2.5 transition-[box-shadow] duration-300"
                     style={{
                       background: "var(--surface)",
-                      borderColor: "var(--border)",
+                      borderColor: isFlashing ? "var(--amber)" : "var(--border)",
+                      boxShadow: isFlashing ? "0 0 0 2px var(--amber-light)" : undefined,
                     }}
                   >
                     {/* 순위 · 진행도 · 공약 제목 — 한 줄(제목은 말줄임) */}
@@ -162,6 +184,22 @@ export function AssemblyPledgeCategoryTopPage() {
                 );
               })}
             </ol>
+
+            <footer className="mt-5 flex flex-col items-center gap-2 px-0 pb-2 pt-5">
+              <button
+                type="button"
+                onClick={() => setLoadMoreAcknowledged(true)}
+                className="cursor-pointer text-[13px] font-semibold active:opacity-70"
+                style={{ color: "#2563eb" }}
+              >
+                더보기
+              </button>
+              {loadMoreAcknowledged ? (
+                <p className="max-w-[320px] text-center text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+                  목업은 현재 목록만 표시합니다. 추가 공약·무한 스크롤은 API 연동 후 연결됩니다.
+                </p>
+              ) : null}
+            </footer>
           </>
         ) : (
           <div className="py-12 text-center">

@@ -15,7 +15,9 @@ import {
   localElectionChatMessageResponseSchema,
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
+  assemblyMemberMetaCardSchema,
   type AssemblyMemberListResponse,
+  type AssemblyMemberMetaCard,
   type BallotsSearchParams,
   type LocalElectionChatConversationCreateRequest,
   type LocalElectionChatMessageCreateRequest,
@@ -211,12 +213,35 @@ export function assemblyMembersQueryOptions(region: string, district: string) {
   return queryOptions({
     queryKey: ["assembly", "members", region, trimmedDistrict],
     queryFn: () => fetchAssemblyMembers(region, trimmedDistrict),
-    enabled: trimmedDistrict.length > 0, 
+    enabled: trimmedDistrict.length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 0,
-  })
+  });
 }
 
+/**
+ * 국회 의원 메타 카드 (GET …/members/{mona_cd}/card) — assembly_member 한 행.
+ */
+export async function fetchAssemblyMemberMetaCard(
+  monaCd: string,
+): Promise<AssemblyMemberMetaCard> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/card`,
+    assemblyMemberMetaCardSchema,
+  );
+}
+
+export function assemblyMemberMetaCardQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "card", trimmed],
+    queryFn: () => fetchAssemblyMemberMetaCard(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
 
 export async function createLocalElectionChatConversation(
   request: LocalElectionChatConversationCreateRequest,

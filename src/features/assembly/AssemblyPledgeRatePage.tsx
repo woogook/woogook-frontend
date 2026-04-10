@@ -1,6 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, FileText, User } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -13,29 +15,53 @@ import { getAssembly22CampaignBookletPublicPdfUrl } from "@/features/assembly/as
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { ASSEMBLY_PLEDGE_CATEGORY_LABELS } from "@/features/assembly/pledgeCategories";
+import { assemblyMemberMetaCardQueryOptions } from "@/lib/api-client";
 
-function safeDecodeURIComponent(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
+/** mona_cd 없을 때 스케치용 플레이스홀더 (이행률 데모은 그대로). */
+const DEMO_NAME = "배현진";
+const DEMO_TERMS = "제 21·22대 국회의원";
+const DEMO_AFFILIATION = "국민의힘 · 서울 송파구 을";
+
+function formatPartyDistrictLine(
+  party: string | null | undefined,
+  district: string | null | undefined,
+): string | null {
+  const parts = [party?.trim() || "", district?.trim() || ""].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/** key로 리마운트하면 로드 실패 상태가 초기화되어 effect 없이 안전하게 쓸 수 있음. */
+function AssemblyProfileAvatar({ imageUrl }: { imageUrl: string | null }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  if (!imageUrl || loadFailed) {
+    return <User className="h-9 w-9" strokeWidth={1.5} />;
   }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- 외부 프로필 URL, 도메인 가변
+    <img
+      src={imageUrl}
+      alt=""
+      className="h-full w-full object-cover"
+      onError={() => setLoadFailed(true)}
+    />
+  );
 }
 
 /**
  * 공약 이행률 상세(프로필 + 전체 요약 + 카테고리별 표) — 모바일 우선.
- * 수치·소속은 스케치 기준 예시 데이터이며 API 연동 시 교체합니다.
+ * mona_cd 가 있으면 GET …/members/{mona_cd}/card 로 프로필·공보 URL을 채움.
  */
 export function AssemblyPledgeRatePage() {
   const searchParams = useSearchParams();
   const city = searchParams.get("city");
   const sigungu = searchParams.get("sigungu");
   const monaCdRaw = searchParams.get("mona_cd");
+  const monaCdTrimmed = (monaCdRaw ?? "").trim();
+  const useApiProfile = monaCdTrimmed.length > 0;
 
-  /** 스케치와 동일한 예시 프로필. API 연동 후 실제 의원 데이터로 교체. */
-  const demoName = "배현진";
-  const demoTerms = "제 21·22대 국회의원";
-  const demoAffiliation = "국민의힘 · 서울 송파구 을";
+  const { data: memberCard, isPending, isError, error } = useQuery(
+    assemblyMemberMetaCardQueryOptions(monaCdTrimmed),
+  );
 
   const overallRateLabel = `${assemblyOverallRatePercentMock()}%`;
   const categoryRates = ASSEMBLY_PLEDGE_CATEGORY_LABELS.map((label) => ({
@@ -45,16 +71,42 @@ export function AssemblyPledgeRatePage() {
 
   const selectionNote =
     city && sigungu
-      ? monaCdRaw
-        ? `선택: ${city} ${sigungu} · ${safeDecodeURIComponent(monaCdRaw)}`
+      ? monaCdTrimmed
+        ? `선택: ${city} ${sigungu}`
         : `선택 지역: ${city} ${sigungu}`
       : null;
 
   const contextParams = assemblyPledgeContextParams(city, sigungu, monaCdRaw);
 
-  const campaignBookletPdfUrl = getAssembly22CampaignBookletPublicPdfUrl();
+  const envBookletUrl = getAssembly22CampaignBookletPublicPdfUrl();
+  /** 로딩/에러 시 env 공보 URL은 쓰지 않음(의원 불일치 방지). mona_cd 없을 때만 env 사용. */
+  let campaignBookletPdfUrl = "";
+  if (!useApiProfile) {
+    campaignBookletPdfUrl = envBookletUrl;
+  } else if (!isPending && !isError && memberCard) {
+    campaignBookletPdfUrl =
+      memberCard.campaign_booklet_pdf_url?.trim() || envBookletUrl || "";
+  }
 
-  /** 프로필 카드 우측: 스케치와 동일한 알약형 선거공보 버튼 (URL 없으면 클릭 시 알림) */
+  const displayName = useApiProfile && memberCard ? memberCard.name : DEMO_NAME;
+  const displayTerms =
+    useApiProfile && memberCard
+      ? memberCard.election_count_text?.trim() || null
+      : DEMO_TERMS;
+  const displayAffiliation =
+    useApiProfile && memberCard
+      ? formatPartyDistrictLine(memberCard.party_name, memberCard.district_label)
+      : DEMO_AFFILIATION;
+  const displayCommittee =
+    useApiProfile && memberCard
+      ? memberCard.current_committee_name?.trim() || null
+      : null;
+
+  const profileImageUrl =
+    useApiProfile && memberCard?.profile_image_url?.trim()
+      ? memberCard.profile_image_url.trim()
+      : null;
+
   const campaignBookletButtonClass =
     "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold leading-none shadow-sm transition-[opacity,filter] hover:brightness-[0.97] active:opacity-85";
 
@@ -67,7 +119,6 @@ export function AssemblyPledgeRatePage() {
   return (
     <AssemblyAppShell backHref="/assembly" backLabel="지역·의원 선택">
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
-        {/* 프로필 카드: 아바타 · 텍스트 · 선거공보(PDF) */}
         <section
           className="mb-8 flex items-center gap-3 border-b pb-8"
           style={{ borderColor: "var(--border)" }}
@@ -81,38 +132,104 @@ export function AssemblyPledgeRatePage() {
             }}
             aria-hidden
           >
-            <User className="h-9 w-9" strokeWidth={1.5} />
+            {useApiProfile && isPending ? (
+              <div
+                className="h-full w-full animate-pulse"
+                style={{ background: "var(--border)" }}
+              />
+            ) : (
+              <AssemblyProfileAvatar
+                key={`${monaCdTrimmed}-${profileImageUrl ?? ""}`}
+                imageUrl={profileImageUrl}
+              />
+            )}
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
-            <p
-              className="text-[1.35rem] font-bold leading-tight tracking-tight"
-              style={{
-                color: "var(--navy)",
-                fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-              }}
-            >
-              {demoName}
-            </p>
-            <p className="mt-1 text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
-              {demoTerms}
-            </p>
-            <p className="mt-0.5 text-[12px] leading-snug" style={{ color: "var(--foreground)" }}>
-              {demoAffiliation}
-            </p>
-            {selectionNote ? (
-              <p className="mt-2 text-[11px] leading-snug" style={{ color: "var(--foreground)" }}>
-                {selectionNote}
+            {useApiProfile && isPending ? (
+              <div className="space-y-2">
+                <div
+                  className="h-7 w-32 max-w-full animate-pulse rounded-md"
+                  style={{ background: "var(--border)" }}
+                />
+                <div
+                  className="h-4 w-48 max-w-full animate-pulse rounded-md"
+                  style={{ background: "var(--border)" }}
+                />
+                <div
+                  className="h-3.5 w-40 max-w-full animate-pulse rounded-md"
+                  style={{ background: "var(--border)" }}
+                />
+              </div>
+            ) : useApiProfile && isError ? (
+              <p className="text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
+                의원 정보를 불러오지 못했습니다.
+                {error && "message" in error && typeof error.message === "string"
+                  ? ` (${error.message})`
+                  : null}
               </p>
-            ) : null}
+            ) : (
+              <>
+                <p
+                  className="text-[1.35rem] font-bold leading-tight tracking-tight"
+                  style={{
+                    color: "var(--navy)",
+                    fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                  }}
+                >
+                  {displayName}
+                </p>
+                {displayTerms ? (
+                  <p
+                    className="mt-1 text-[13px] leading-snug"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {displayTerms}
+                  </p>
+                ) : null}
+                {displayAffiliation ? (
+                  <p
+                    className="mt-0.5 text-[12px] leading-snug"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {displayAffiliation}
+                  </p>
+                ) : null}
+                {displayCommittee ? (
+                  <p
+                    className="mt-0.5 text-[12px] leading-snug"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {displayCommittee}
+                  </p>
+                ) : null}
+                {selectionNote ? (
+                  <p
+                    className="mt-2 text-[11px] leading-snug"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    {selectionNote}
+                  </p>
+                ) : null}
+              </>
+            )}
           </div>
-          {campaignBookletPdfUrl ? (
+          {useApiProfile && isPending ? (
+            <div
+              className={`${campaignBookletButtonClass} opacity-50`}
+              style={campaignBookletButtonStyle}
+              aria-hidden
+            >
+              <FileText className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} />
+              선거공보
+            </div>
+          ) : campaignBookletPdfUrl ? (
             <a
               href={campaignBookletPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={campaignBookletButtonClass}
               style={campaignBookletButtonStyle}
-              aria-label={`${demoName} 의원 선거공보 PDF 열기`}
+              aria-label={`${displayName} 의원 선거공보 PDF 열기`}
             >
               <FileText className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
               선거공보 (PDF)
@@ -122,7 +239,7 @@ export function AssemblyPledgeRatePage() {
               type="button"
               className={campaignBookletButtonClass}
               style={campaignBookletButtonStyle}
-              aria-label={`${demoName} 의원 선거공보 PDF — 미등록 시 안내`}
+              aria-label={`${displayName} 의원 선거공보 PDF — 미등록 시 안내`}
               onClick={() => {
                 window.alert("등록된 선거공보 PDF가 없습니다.");
               }}
@@ -133,7 +250,6 @@ export function AssemblyPledgeRatePage() {
           )}
         </section>
 
-        {/* 전체 이행률 */}
         <section className="mb-6 text-center">
           <p
             className="text-[1.35rem] font-bold leading-snug sm:text-[1.5rem]"
@@ -149,7 +265,6 @@ export function AssemblyPledgeRatePage() {
           </p>
         </section>
 
-        {/* 카테고리별 */}
         <section
           className="rounded-[28px] border p-5 sm:p-6"
           style={{

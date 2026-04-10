@@ -299,9 +299,22 @@ export const assemblyMemberListResponseSchema = z.object({
   items: z.array(assemblyMemberListItemSchema),
 });
 
+/** GET /api/assembly/v1/members/{mona_cd}/card — 백엔드 AssemblyMemberMetaCard */
+export const assemblyMemberMetaCardSchema = z.object({
+  member_mona_cd: z.string(),
+  name: z.string(),
+  party_name: z.string().nullable().optional(),
+  profile_image_url: z.string().nullable().optional(),
+  district_label: z.string().nullable().optional(),
+  current_committee_name: z.string().nullable().optional(),
+  election_count_text: z.string().nullable().optional(),
+  campaign_booklet_pdf_url: z.string().nullable().optional(),
+});
+
 export type AssemblyMemberListMeta = z.infer<typeof assemblyMemberListMetaSchema>;
 export type AssemblyMemberListItem = z.infer<typeof assemblyMemberListItemSchema>;
 export type AssemblyMemberListResponse = z.infer<typeof assemblyMemberListResponseSchema>;
+export type AssemblyMemberMetaCard = z.infer<typeof assemblyMemberMetaCardSchema>;
 
 export type BallotsSearchParams = z.infer<typeof ballotsSearchParamsSchema>;
 export type IssueKey = z.infer<typeof issueKeySchema>;
