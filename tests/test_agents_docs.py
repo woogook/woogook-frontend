@@ -163,6 +163,23 @@ class AgentDocsTests(unittest.TestCase):
             with self.subTest(section=section):
                 self.assertIn(section, text)
 
+    def test_requested_pr_review_followup_scope_rule_uses_plain_paragraph(self) -> None:
+        text = read(".agents/workflows/requested-pr-review-follow-up.md")
+
+        self.assertIn(
+            "이 규칙은 각 reviewer의 inline review thread에만 적용하고",
+            text,
+        )
+        self.assertNotIn("> 이 규칙은", text)
+
+    def test_pr_template_metadata_guidance_is_hidden_comment(self) -> None:
+        text = read(".github/pull_request_template.md")
+        first_line = text.splitlines()[0]
+
+        self.assertTrue(first_line.startswith("<!-- "))
+        self.assertTrue(first_line.endswith(" -->"))
+        self.assertIn("assignee와 labels", first_line)
+
     def test_local_council_entry_has_canonical_placeholder(self) -> None:
         entry_text = read(".agents/entry/local-council.md")
 

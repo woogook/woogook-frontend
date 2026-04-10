@@ -47,7 +47,7 @@
 
 ## reviewer-specific follow-up
 
-> 이 규칙은 각 reviewer의 inline review thread에만 적용하고, top-level PR comment나 다른 reviewer에는 적용하지 않는다.
+이 규칙은 각 reviewer의 inline review thread에만 적용하고, top-level PR comment나 다른 reviewer에는 적용하지 않는다.
 
 ### Gemini
 

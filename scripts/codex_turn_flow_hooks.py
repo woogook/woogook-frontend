@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 import time
-import traceback
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -638,20 +637,21 @@ def parse_finalize_pending_args(argv: list[str]) -> dict[str, object] | None:
     return parsed
 
 
-def log_unhandled_exception(exc: Exception) -> None:
+def log_hook_warning(message: str, exc: Exception) -> None:
     print(
-        f"Unexpected error in codex_turn_flow_hooks.py: {exc}",
+        f"codex_turn_flow_hooks.py warning: {message}: "
+        f"{type(exc).__name__}: {exc}",
         file=sys.stderr,
     )
-    traceback.print_exc(file=sys.stderr)
 
 
 def main() -> int:
-    try:
-        finalize_args = parse_finalize_pending_args(sys.argv[1:])
-        if finalize_args is not None:
-            if float(finalize_args["delay_seconds"]) > 0:
-                time.sleep(float(finalize_args["delay_seconds"]))
+    finalize_args = parse_finalize_pending_args(sys.argv[1:])
+    if finalize_args is not None:
+        try:
+            delay_seconds = float(finalize_args["delay_seconds"])
+            if delay_seconds > 0:
+                time.sleep(delay_seconds)
             finalize_pending_stop(
                 repo_root=Path(str(finalize_args["repo_root"])),
                 turn_id=str(finalize_args["turn_id"]),
@@ -660,19 +660,33 @@ def main() -> int:
                 require_issue=bool(finalize_args["require_issue"]),
                 require_worktree=bool(finalize_args["require_worktree"]),
             )
-            return 0
-        raw = sys.stdin.read()
-        if not raw.strip():
-            return 0
-        payload = json.loads(raw)
-        if not isinstance(payload, dict):
-            return 0
-        result = handle_hook_event(payload)
-        if result:
-            print(json.dumps(result, ensure_ascii=False))
-    except Exception as exc:
-        log_unhandled_exception(exc)
+        except (OSError, ValueError, TypeError) as exc:
+            log_hook_warning("finalize-pending skipped", exc)
         return 0
+
+    try:
+        raw = sys.stdin.read()
+    except OSError as exc:
+        log_hook_warning("failed to read hook stdin", exc)
+        return 0
+    if not raw.strip():
+        return 0
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        log_hook_warning("ignored malformed hook payload", exc)
+        return 0
+    if not isinstance(payload, dict):
+        return 0
+
+    try:
+        result = handle_hook_event(payload)
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
+        log_hook_warning("hook event handling skipped", exc)
+        return 0
+    if result:
+        print(json.dumps(result, ensure_ascii=False))
     return 0
 
 

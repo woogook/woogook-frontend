@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -153,6 +155,24 @@ class CodexTurnFlowHookTests(unittest.TestCase):
             module.classify_prompt("merge 후 정리해줘")["primary_stage"],
             "post-merge",
         )
+
+    def test_main_logs_malformed_json_as_specific_hook_warning(self) -> None:
+        module = load_module(SCRIPT_PATH, "codex_turn_flow_hooks")
+        stderr = io.StringIO()
+
+        with (
+            mock.patch.object(module.sys, "argv", ["codex_turn_flow_hooks.py"]),
+            mock.patch.object(module.sys, "stdin", io.StringIO("{not-json")),
+            mock.patch.object(module.sys, "stderr", stderr),
+        ):
+            exit_code = module.main()
+
+        self.assertEqual(exit_code, 0)
+        warning = stderr.getvalue()
+        self.assertIn("ignored malformed hook payload", warning)
+        self.assertIn("JSONDecodeError", warning)
+        self.assertNotIn("Unexpected error", warning)
+        self.assertNotIn("Traceback", warning)
 
 
 if __name__ == "__main__":

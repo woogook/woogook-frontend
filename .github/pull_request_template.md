@@ -1,4 +1,4 @@
-PR 생성 시 가능한 경우 assignee와 labels를 함께 설정하고, projects는 저장소 명시 정책이 있을 때만 추가한다.
+<!-- PR 생성 시 가능한 경우 assignee와 labels를 함께 설정하고, projects는 저장소 명시 정책이 있을 때만 추가한다. -->
 
 ## 배경
 
