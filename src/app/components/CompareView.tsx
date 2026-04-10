@@ -35,7 +35,6 @@ import { CandidatePhoto } from "./CandidateCards";
 
 const CLIENT_SESSION_STORAGE_KEY = "woogook.local-election.chat.client-session.v1";
 const COMPARE_CHAT_STORAGE_KEY_PREFIX = "woogook.local-election.chat.compare.v1.";
-const DEFAULT_INITIAL_CHAT_QUESTION = "내 관심 이슈 기준으로 다시 요약해줘";
 const TABLE_COLUMN_WIDTH = 180;
 const TABLE_COLUMN_GAP = 8;
 const TABLE_SCROLL_EDGE_PADDING = 16;
@@ -84,7 +83,6 @@ export default function CompareView({
   const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [hasAutoPrompted, setHasAutoPrompted] = useState(false);
 
   const candidates = ballot.candidates;
   const issueLabels = getIssueProfileLabelList(issueProfile);
@@ -193,7 +191,6 @@ export default function CompareView({
     setPendingQuestion(null);
     setChatError(null);
     setIsSending(false);
-    setHasAutoPrompted((stored?.messages.length ?? 0) > 0);
   }, [chatStorageKey]);
 
   useEffect(() => {
@@ -293,28 +290,6 @@ export default function CompareView({
     },
     [ensureConversation, isSending],
   );
-
-  useEffect(() => {
-    if (
-      !assistantOpen ||
-      !showIssueContext ||
-      hasAutoPrompted ||
-      isSending ||
-      chatMessages.length > 0
-    ) {
-      return;
-    }
-
-    setHasAutoPrompted(true);
-    void sendQuestion(DEFAULT_INITIAL_CHAT_QUESTION);
-  }, [
-    assistantOpen,
-    chatMessages.length,
-    hasAutoPrompted,
-    isSending,
-    sendQuestion,
-    showIssueContext,
-  ]);
 
   useEffect(() => {
     if (candidates.length <= 1) {
