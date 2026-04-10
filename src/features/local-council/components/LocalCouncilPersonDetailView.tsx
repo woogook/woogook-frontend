@@ -84,12 +84,17 @@ export default function LocalCouncilPersonDetailView({
           Boolean(item) && typeof item === "object" && !Array.isArray(item),
       )
     : [];
+  const hasOfficialProfileTopLevelDisplayData = Boolean(
+    getPayloadText(person.official_profile, ["headline", "section_title", "office_label"]),
+  );
   const profileRecords =
     profileSections.length > 0
       ? profileSections
-      : Object.keys(person.official_profile).length > 0
+      : hasOfficialProfileTopLevelDisplayData
         ? [person.official_profile]
         : [];
+  const electedBasisRecords =
+    Object.keys(person.elected_basis).length > 0 ? [person.elected_basis] : [];
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-8">
@@ -152,6 +157,12 @@ export default function LocalCouncilPersonDetailView({
           records={profileRecords}
           titleKeys={["headline", "section_title", "office_label"]}
           metaKeys={["section_title", "office_label"]}
+        />
+        <RecordList
+          title="당선 근거"
+          records={electedBasisRecords}
+          titleKeys={["headline", "basis_label", "summary", "title", "office_label"]}
+          metaKeys={["election_name", "district_name", "elected_at", "source_kind"]}
         />
         <RecordList
           title="위원회"
