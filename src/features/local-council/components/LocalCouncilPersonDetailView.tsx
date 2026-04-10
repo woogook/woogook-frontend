@@ -130,6 +130,10 @@ function buildElectedBasisDisplayRecord(
   };
 }
 
+function hasOfficialProfileDisplayText(record: Record<string, unknown>) {
+  return Boolean(getPayloadText(record, ["headline", "section_title"]));
+}
+
 export default function LocalCouncilPersonDetailView({
   person,
   dataSource,
@@ -141,12 +145,10 @@ export default function LocalCouncilPersonDetailView({
           Boolean(item) &&
           typeof item === "object" &&
           !Array.isArray(item) &&
-          Boolean(getPayloadText(item, ["headline", "section_title", "office_label"])),
+          hasOfficialProfileDisplayText(item),
       )
     : [];
-  const hasOfficialProfileTopLevelDisplayData = Boolean(
-    getPayloadText(person.official_profile, ["headline", "section_title", "office_label"]),
-  );
+  const hasOfficialProfileTopLevelDisplayData = hasOfficialProfileDisplayText(person.official_profile);
   const profileRecords =
     profileSections.length > 0
       ? profileSections
