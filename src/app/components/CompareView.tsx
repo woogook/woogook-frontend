@@ -295,13 +295,26 @@ export default function CompareView({
   );
 
   useEffect(() => {
-    if (!assistantOpen || hasAutoPrompted || isSending || chatMessages.length > 0) {
+    if (
+      !assistantOpen ||
+      !showIssueContext ||
+      hasAutoPrompted ||
+      isSending ||
+      chatMessages.length > 0
+    ) {
       return;
     }
 
     setHasAutoPrompted(true);
     void sendQuestion(DEFAULT_INITIAL_CHAT_QUESTION);
-  }, [assistantOpen, chatMessages.length, hasAutoPrompted, isSending, sendQuestion]);
+  }, [
+    assistantOpen,
+    chatMessages.length,
+    hasAutoPrompted,
+    isSending,
+    sendQuestion,
+    showIssueContext,
+  ]);
 
   useEffect(() => {
     if (candidates.length <= 1) {
@@ -402,19 +415,21 @@ export default function CompareView({
           <p className="text-[12px] font-semibold mb-2" style={{ color: "var(--navy)" }}>
             비교 기준
           </p>
-          {issueLabels.length > 0 ? (
+          {showIssueContext ? (
             <>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {issueLabels.map((label) => (
-                  <span
-                    key={label}
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                    style={{ background: "var(--amber-bg)", color: "var(--amber)" }}
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
+              {issueLabels.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {issueLabels.map((label) => (
+                    <span
+                      key={label}
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                      style={{ background: "var(--amber-bg)", color: "var(--amber)" }}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {issueCriteria[0] && (
                 <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   {getIssueCriterionHint(ballot.office_level, issueCriteria[0])}
@@ -1205,6 +1220,7 @@ function buildCompareChatContextSignature(
   return JSON.stringify({
     contestId: ballot.contest_id,
     candidateIds: ballot.candidates.map((candidate) => candidate.candidate_id),
+    hasIssueProfileSnapshot: issueProfile !== null,
     normalizedIssueKeys: issueProfile?.normalized_issue_keys || [],
     customKeywords: issueProfile?.custom_keywords || [],
     selectionBasis,
