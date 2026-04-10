@@ -2,11 +2,14 @@
 
 - 문서 유형: `specs`
 - 소유 도메인: `common`
-- 상태: `proposed`
+- 상태: `superseded`
 - 관련 이슈: `없음`
 - 관련 PR: `없음`
-- 정본 여부: `예`
-- 최종 갱신일: `2026-03-31`
+- 정본 여부: `아니오`
+- 최종 갱신일: `2026-04-11`
+- 대체 문서: `docs/common/canonical/agent-control-plane-v2-cutover-map.md`
+
+> 이 문서는 과거 v1-lite 도입 설계 기록이다. 현재 작업 진입과 workflow 기준은 `AGENTS.md`, `.agents/README.md`, `.agents/workflows/*.md`, `.agents/contracts/common.yaml`을 따른다.
 
 ## 목적
 

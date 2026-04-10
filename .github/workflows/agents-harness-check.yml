@@ -1,0 +1,23 @@
+name: agents-harness-check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Validate agents harness
+        run: python3 scripts/validate_agents_harness.py
+
+      - name: Run agents harness tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
