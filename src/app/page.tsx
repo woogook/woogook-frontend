@@ -13,6 +13,12 @@ const serviceCards = [
     title: "내 선거 안내서",
     description: "주소 기반 투표지 확인과 후보 비교 흐름은 지방선거 도메인으로 유지합니다.",
   },
+  {
+    href: "/local-council",
+    label: "현직 지방의원",
+    title: "우리동네 지방의원",
+    description: "주소 기반으로 구청장과 구의원의 공식 근거 요약을 확인합니다.",
+  },
 ];
 
 export default function Home() {
@@ -41,7 +47,7 @@ export default function Home() {
           발전합니다.
         </p>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
           {serviceCards.map((card) => (
             <Link
               key={card.href}
