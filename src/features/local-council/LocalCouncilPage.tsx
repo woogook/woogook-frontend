@@ -51,6 +51,10 @@ function createHistoryState(view: View, personKey?: string): LocalCouncilHistory
   return personKey ? { view, personKey } : { view };
 }
 
+function hasViewState(state: LocalCouncilHistoryState) {
+  return state.view === "address" || state.view === "roster" || state.view === "detail";
+}
+
 export default function LocalCouncilPage() {
   const [view, setView] = useState<View>("address");
   const [resolveResult, setResolveResult] =
@@ -100,6 +104,11 @@ export default function LocalCouncilPage() {
     setDetailLoading(false);
   };
 
+  const updateViewOnly = (nextView: View) => {
+    viewRef.current = nextView;
+    setView(nextView);
+  };
+
   const pushView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
     viewRef.current = nextView;
     setView(nextView);
@@ -116,39 +125,29 @@ export default function LocalCouncilPage() {
     const reconcileHistoryState = (rawState: unknown) => {
       const historyState = getHistoryState(rawState);
       const hasResolveResult = Boolean(resolveResultRef.current);
+      const hasPersonResult = Boolean(personResultRef.current);
       const requestedView = historyState.view || "address";
 
       if (requestedView === "detail") {
         const currentPersonKey = selectedPersonKeyRef.current;
-        const matchingPersonResult = Boolean(personResultRef.current) && Boolean(currentPersonKey);
+        const matchingPersonResult = hasPersonResult && Boolean(currentPersonKey);
         const matchesHistoryKey =
           historyState.personKey && currentPersonKey
             ? historyState.personKey === currentPersonKey
             : Boolean(currentPersonKey);
 
         if (matchingPersonResult && matchesHistoryKey) {
-          replaceView("detail", createHistoryState("detail", currentPersonKey ?? undefined));
+          updateViewOnly("detail");
           return;
         }
 
         const fallbackView = getFallbackView(hasResolveResult);
+        cancelDetailRequest();
+        setDetailError(null);
         if (fallbackView === "address") {
-          cancelDetailRequest();
-          setResolveResult(null);
-          setPersonResult(null);
-          setSelectedPersonKey(null);
-          setError(null);
-          setDetailError(null);
-          resolveResultRef.current = null;
-          personResultRef.current = null;
-          selectedPersonKeyRef.current = null;
+          updateViewOnly("address");
         } else {
-          setPersonResult(null);
-          setSelectedPersonKey(null);
-          setDetailError(null);
-          setDetailLoading(false);
-          personResultRef.current = null;
-          selectedPersonKeyRef.current = null;
+          updateViewOnly("roster");
         }
         replaceView(fallbackView, createHistoryState(fallbackView));
         return;
@@ -156,33 +155,18 @@ export default function LocalCouncilPage() {
 
       if (requestedView === "roster") {
         if (hasResolveResult) {
-          replaceView("roster", createHistoryState("roster"));
+          cancelDetailRequest();
+          updateViewOnly("roster");
           return;
         }
 
         cancelDetailRequest();
-        setResolveResult(null);
-        setPersonResult(null);
-        setSelectedPersonKey(null);
-        setError(null);
-        setDetailError(null);
-        resolveResultRef.current = null;
-        personResultRef.current = null;
-        selectedPersonKeyRef.current = null;
         replaceView("address", createHistoryState("address"));
         return;
       }
 
       cancelDetailRequest();
-      setResolveResult(null);
-      setPersonResult(null);
-      setSelectedPersonKey(null);
-      setError(null);
-      setDetailError(null);
-      resolveResultRef.current = null;
-      personResultRef.current = null;
-      selectedPersonKeyRef.current = null;
-      replaceView("address", createHistoryState("address"));
+      updateViewOnly("address");
     };
 
     if (!getHistoryState(window.history.state).view) {
@@ -231,10 +215,6 @@ export default function LocalCouncilPage() {
     const requestId = ++detailRequestIdRef.current;
     setDetailLoading(true);
     setDetailError(null);
-    setPersonResult(null);
-    setSelectedPersonKey(null);
-    personResultRef.current = null;
-    selectedPersonKeyRef.current = null;
 
     try {
       const result = await fetchLocalCouncilPerson(person.person_key);
@@ -263,24 +243,19 @@ export default function LocalCouncilPage() {
 
   const handleRosterBack = () => {
     cancelDetailRequest();
-    setResolveResult(null);
-    setPersonResult(null);
-    setSelectedPersonKey(null);
-    setError(null);
-    setDetailError(null);
-    resolveResultRef.current = null;
-    personResultRef.current = null;
-    selectedPersonKeyRef.current = null;
+    if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
     replaceView("address", createHistoryState("address"));
   };
 
   const handleDetailBack = () => {
     cancelDetailRequest();
-    setPersonResult(null);
-    setSelectedPersonKey(null);
-    setDetailError(null);
-    personResultRef.current = null;
-    selectedPersonKeyRef.current = null;
+    if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
     replaceView("roster", createHistoryState("roster"));
   };
 
