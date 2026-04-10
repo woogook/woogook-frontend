@@ -108,7 +108,7 @@ export default function LocalCouncilRosterView({
             {getLocalCouncilDataSourceLabel(dataSource)}
           </p>
           <h1 className="mt-2 text-3xl font-bold" style={{ color: "var(--navy)" }}>
-            {resolveData.district.district_name || "선택 지역"}
+            {resolveData.district.district_name || "서울특별시 강동구"}
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             {getLocalCouncilFreshnessLabel(resolveData.roster.freshness)}
