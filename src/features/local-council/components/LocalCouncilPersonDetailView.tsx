@@ -134,8 +134,9 @@ export default function LocalCouncilPersonDetailView({
   partyName,
   onBack,
 }: LocalCouncilPersonDetailViewProps) {
-  const profileSections = Array.isArray(person.official_profile.official_profile_sections)
-    ? person.official_profile.official_profile_sections.filter(
+  const officialProfileSections = person.official_profile["official_profile_sections"];
+  const profileSections = Array.isArray(officialProfileSections)
+    ? officialProfileSections.filter(
         (item): item is Record<string, unknown> =>
           Boolean(item) &&
           typeof item === "object" &&
