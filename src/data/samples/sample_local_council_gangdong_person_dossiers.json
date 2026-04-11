@@ -1,0 +1,181 @@
+{
+  "seoul-gangdong:district-head": {
+    "person_name": "이수희",
+    "office_type": "basic_head",
+    "summary": {
+      "headline": "이수희 공식 근거 요약",
+      "grounded_summary": "공식 프로필, 의안, 회의록, 재정 활동 근거를 바탕으로 요약했다.",
+      "summary_mode": "agentic",
+      "summary_basis": {
+        "source_kinds": [
+          "nec_current_holder",
+          "gangdong_district_head_official_profile",
+          "gangdong_council_official_activity",
+          "local_finance_365"
+        ]
+      }
+    },
+    "official_profile": {
+      "office_label": "강동구청장",
+      "official_profile_sections": [
+        {
+          "section_title": "인사말",
+          "headline": "힘찬 변화, 자랑스러운 강동"
+        }
+      ]
+    },
+    "committees": [],
+    "bills": [
+      {
+        "bill_title": "서울특별시 강동구립도서관 설치 및 운영 조례 일부개정조례안",
+        "proposed_at": "2026-04-07"
+      }
+    ],
+    "meeting_activity": [
+      {
+        "session_label": "제322회 임시회",
+        "meeting_date": "2026-03-25(수)"
+      }
+    ],
+    "finance_activity": [
+      {
+        "title": "강동구 예산 집행 내역",
+        "amount": 1250000
+      }
+    ],
+    "elected_basis": {
+      "election_id": "0020220601"
+    },
+    "source_refs": [
+      {
+        "source_kind": "nec_current_holder",
+        "role": "elected_basis"
+      },
+      {
+        "source_kind": "gangdong_district_head_official_profile",
+        "role": "official_profile"
+      },
+      {
+        "source_kind": "gangdong_council_official_activity",
+        "role": "official_activity"
+      },
+      {
+        "source_kind": "local_sample",
+        "role": "local_preview"
+      }
+    ],
+    "freshness": {
+      "basis_timestamp": "2026-04-08T10:10:00+09:00"
+    }
+  },
+  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001": {
+    "person_name": "김가동",
+    "office_type": "basic_council",
+    "summary": {
+      "headline": "김가동 공식 근거 요약",
+      "grounded_summary": "공식 프로필과 의안, 회의 활동 근거를 바탕으로 요약했다.",
+      "summary_mode": "fallback",
+      "summary_basis": {
+        "source_kinds": [
+          "local_council_portal_members",
+          "nec_council_elected_basis",
+          "gangdong_council_official_activity"
+        ]
+      }
+    },
+    "official_profile": {
+      "office_label": "강동구의원"
+    },
+    "committees": [
+      {
+        "committee_name": "행정복지위원회"
+      }
+    ],
+    "bills": [
+      {
+        "bill_name": "서울특별시 강동구 예시 조례안",
+        "bill_date": "2026-04-01"
+      },
+      {
+        "bill_name": "서울특별시 강동구 청년 지원 조례안",
+        "bill_date": "2026-03-20",
+        "source_kind": "gangdong_council_official_activity"
+      }
+    ],
+    "meeting_activity": [
+      {
+        "meeting_name": "제320회 임시회 본회의",
+        "meeting_date": "2026-04-03"
+      }
+    ],
+    "finance_activity": [],
+    "elected_basis": {
+      "huboid": "600000001",
+      "sgTypecode": "6"
+    },
+    "source_refs": [
+      {
+        "source_kind": "local_council_portal_members",
+        "role": "profile"
+      },
+      {
+        "source_kind": "nec_council_elected_basis",
+        "role": "elected_basis"
+      },
+      {
+        "source_kind": "gangdong_council_official_activity",
+        "role": "official_activity"
+      },
+      {
+        "source_kind": "local_sample",
+        "role": "local_preview"
+      }
+    ],
+    "freshness": {
+      "basis_timestamp": "2026-04-08T10:05:00+09:00"
+    }
+  },
+  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002": {
+    "person_name": "이나리",
+    "office_type": "basic_council",
+    "summary": {
+      "headline": "이나리 공식 근거 요약",
+      "grounded_summary": "당선 근거와 의회 공식 활동 근거를 기준으로 확인 가능한 정보를 요약했다.",
+      "summary_mode": "fallback",
+      "summary_basis": {
+        "source_kinds": [
+          "local_council_portal_members",
+          "nec_council_elected_basis"
+        ]
+      }
+    },
+    "official_profile": {
+      "office_label": "강동구의원"
+    },
+    "committees": [],
+    "bills": [],
+    "meeting_activity": [],
+    "finance_activity": [],
+    "elected_basis": {
+      "huboid": "600000002",
+      "sgTypecode": "6"
+    },
+    "source_refs": [
+      {
+        "source_kind": "local_council_portal_members",
+        "role": "profile"
+      },
+      {
+        "source_kind": "nec_council_elected_basis",
+        "role": "elected_basis"
+      },
+      {
+        "source_kind": "local_sample",
+        "role": "local_preview"
+      }
+    ],
+    "freshness": {
+      "basis_timestamp": "2026-04-08T10:05:00+09:00"
+    }
+  }
+}

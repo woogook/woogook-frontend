@@ -1,7 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 
 import { CITIES, DISTRICTS, DONGS } from "@/app/data";
+import sampleLocalCouncilGangdongResolve from "@/data/samples/sample_local_council_gangdong_resolve.json";
+import sampleLocalCouncilGangdongPersonDossiers from "@/data/samples/sample_local_council_gangdong_person_dossiers.json";
 import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
@@ -13,6 +15,11 @@ import {
   localElectionChatConversationResponseSchema,
   localElectionChatMessageCreateRequestSchema,
   localElectionChatMessageResponseSchema,
+  localCouncilPersonDossierResponseSchema,
+  localCouncilResolveResponseSchema,
+  type LocalCouncilDataSource,
+  type LocalCouncilPersonDossierResponse,
+  type LocalCouncilResolveResponse,
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
   type AssemblyMemberListResponse,
@@ -58,6 +65,21 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function parseResponseWithSchema<T>(payload: unknown, schema: ZodType<T>): T {
+  try {
+    return schema.parse(payload);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("[requestJson] schema parse error", error);
+      throw new ApiError(
+        502,
+        "응답 형식이 예상과 다릅니다. 잠시 후 다시 시도해주세요.",
+      );
+    }
+    throw error;
+  }
+}
+
 async function requestJson<T>(
   input: string,
   schema: ZodType<T>,
@@ -80,7 +102,7 @@ async function requestJson<T>(
     );
   }
 
-  return schema.parse(payload);
+  return parseResponseWithSchema(payload, schema);
 }
 
 async function fetchJson<T>(input: string, schema: ZodType<T>): Promise<T> {
@@ -215,6 +237,116 @@ export function assemblyMembersQueryOptions(region: string, district: string) {
     staleTime: 5 * 60 * 1000,
     retry: 0,
   })
+}
+
+export type LocalCouncilResult<T> = {
+  data: T;
+  dataSource: LocalCouncilDataSource;
+};
+
+type LocalCouncilAddressSelection = {
+  city: string;
+  district: string;
+  dong?: string;
+};
+
+const sampleLocalCouncilPersonDossierIndex = z
+  .record(z.string(), localCouncilPersonDossierResponseSchema)
+  .parse(sampleLocalCouncilGangdongPersonDossiers);
+
+export function buildLocalCouncilAddress({
+  city,
+  district,
+  dong,
+}: LocalCouncilAddressSelection) {
+  return [city, district, dong].map((part) => part?.trim()).filter(Boolean).join(" ");
+}
+
+function isGangdongSelection({ city, district }: LocalCouncilAddressSelection) {
+  return city.trim() === "서울특별시" && district.trim() === "강동구";
+}
+
+function isBackendUnavailableError(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.status === 503;
+  }
+  return error instanceof TypeError;
+}
+
+export async function fetchLocalCouncilResolve(
+  selection: LocalCouncilAddressSelection,
+): Promise<LocalCouncilResult<LocalCouncilResolveResponse>> {
+  const address = buildLocalCouncilAddress(selection);
+  const query = new URLSearchParams({ address });
+
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/resolve?${query.toString()}`,
+      localCouncilResolveResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    if (isBackendUnavailableError(error) && isGangdongSelection(selection)) {
+      return {
+        data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+        dataSource: "local_sample",
+      };
+    }
+
+    if (isBackendUnavailableError(error)) {
+      throw new ApiError(
+        503,
+        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function fetchLocalCouncilPerson(
+  personKey: string,
+): Promise<LocalCouncilResult<LocalCouncilPersonDossierResponse>> {
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/persons/${encodeURIComponent(personKey)}`,
+      localCouncilPersonDossierResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    const sample = sampleLocalCouncilPersonDossierIndex[personKey];
+    if (isBackendUnavailableError(error) && sample) {
+      return {
+        data: sample,
+        dataSource: "local_sample",
+      };
+    }
+    throw error;
+  }
+}
+
+export function localCouncilResolveQueryOptions(selection: LocalCouncilAddressSelection) {
+  return queryOptions({
+    queryKey: [
+      "local-council",
+      "resolve",
+      selection.city,
+      selection.district,
+      selection.dong ?? "",
+    ],
+    queryFn: () => fetchLocalCouncilResolve(selection),
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export function localCouncilPersonQueryOptions(personKey: string) {
+  return queryOptions({
+    queryKey: ["local-council", "person", personKey],
+    queryFn: () => fetchLocalCouncilPerson(personKey),
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
 }
 
 
