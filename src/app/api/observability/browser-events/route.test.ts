@@ -99,4 +99,43 @@ describe("POST /api/observability/browser-events", () => {
       correlation_id: "correlation-1",
     });
   });
+
+  it("caps concurrent browser event logging to avoid issuing all writes at once", async () => {
+    const deferreds = Array.from({ length: 10 }, () => createDeferred());
+    for (const deferred of deferreds) {
+      logServerEventMock.mockImplementationOnce(() => deferred.promise);
+    }
+
+    const request = {
+      json: vi.fn().mockResolvedValue({
+        sessionId: "session-2",
+        events: Array.from({ length: 10 }, (_, index) => ({
+          timestamp: `2026-04-12T12:00:${String(index).padStart(2, "0")}.000Z`,
+          level: "error",
+          signalType: "browser_error",
+          errorMessage: `failure-${index}`,
+        })),
+      }),
+    } as unknown as Request;
+
+    const responsePromise = POST(request);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(logServerEventMock).toHaveBeenCalledTimes(8);
+
+    for (const deferred of deferreds.slice(0, 8)) {
+      deferred.resolve();
+    }
+    await vi.waitFor(() => {
+      expect(logServerEventMock).toHaveBeenCalledTimes(10);
+    });
+
+    for (const deferred of deferreds.slice(8)) {
+      deferred.resolve();
+    }
+
+    const response = await responsePromise;
+    expect(response.status).toBe(200);
+  });
 });

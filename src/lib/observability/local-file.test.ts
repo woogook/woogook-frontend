@@ -2,9 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { appendObservabilityEvent } from "@/lib/observability/local-file";
+import {
+  appendObservabilityEvent,
+  readRecentObservabilityEvents,
+} from "@/lib/observability/local-file";
 import type { ObservabilityEvent } from "@/lib/observability/types";
 
 const tempDirs: string[] = [];
@@ -23,6 +26,7 @@ function buildEvent(message: string): ObservabilityEvent {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(
     tempDirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })),
   );
@@ -131,5 +135,77 @@ describe("appendObservabilityEvent", () => {
     await expect(
       fs.access(path.join(rootDir, "2026-04-10", "server.ndjson.gz")),
     ).resolves.toBeUndefined();
+  });
+
+  it("reuses the active file metadata for repeated appends in the same day", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "observability-"));
+    tempDirs.push(rootDir);
+    const dayDir = path.join(rootDir, "2026-04-12");
+    const activeFile = path.join(dayDir, "server.ndjson");
+    const readdirSpy = vi.spyOn(fs, "readdir");
+    const statSpy = vi.spyOn(fs, "stat");
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("first append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:00:00.000Z"),
+    });
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("second append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:00:30.000Z"),
+    });
+
+    expect(
+      readdirSpy.mock.calls.filter(([target]) => target === dayDir),
+    ).toHaveLength(1);
+    expect(
+      statSpy.mock.calls.filter(([target]) => target === activeFile),
+    ).toHaveLength(0);
+  });
+});
+
+describe("readRecentObservabilityEvents", () => {
+  it("returns the newest events without loading the whole file through fs.readFile", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "observability-"));
+    tempDirs.push(rootDir);
+    const dayDir = path.join(rootDir, "2026-04-12");
+    const targetFile = path.join(dayDir, "server.ndjson");
+    await fs.mkdir(dayDir, { recursive: true });
+    await fs.writeFile(
+      targetFile,
+      Array.from({ length: 120 }, (_, index) =>
+        JSON.stringify(buildEvent(`event-${index}`)),
+      ).join("\n"),
+      "utf8",
+    );
+
+    const originalReadFile = fs.readFile.bind(fs);
+    vi.spyOn(fs, "readFile").mockImplementation(
+      (async (file, options) => {
+        if (file === targetFile) {
+          throw new Error("full file read is not allowed");
+        }
+        return originalReadFile(file, options as BufferEncoding | undefined);
+      }) as typeof fs.readFile,
+    );
+
+    const events = await readRecentObservabilityEvents({
+      rootDir,
+      maxEvents: 3,
+    });
+
+    expect(events.map((event) => event.errorMessage)).toEqual([
+      "event-119",
+      "event-118",
+      "event-117",
+    ]);
   });
 });

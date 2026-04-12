@@ -1,7 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { NextResponse } from "next/server";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { ObservabilityEvent } from "@/lib/observability/types";
-import { buildLokiPayload, shouldSendEventToCloud } from "@/lib/observability/server";
+import {
+  buildLokiPayload,
+  observeRoute,
+  shouldSendEventToCloud,
+} from "@/lib/observability/server";
+
+const originalEnv = {
+  writeLocalFiles: process.env.WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES,
+  lokiPushUrl: process.env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL,
+};
+
+afterEach(() => {
+  if (originalEnv.writeLocalFiles == null) {
+    delete process.env.WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES;
+  } else {
+    process.env.WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES = originalEnv.writeLocalFiles;
+  }
+
+  if (originalEnv.lokiPushUrl == null) {
+    delete process.env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL;
+  } else {
+    process.env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL = originalEnv.lokiPushUrl;
+  }
+});
 
 describe("buildLokiPayload", () => {
   it("maps an event into a Loki stream with stable labels", () => {
@@ -50,5 +75,27 @@ describe("buildLokiPayload", () => {
     );
 
     expect(shouldSend).toBe(false);
+  });
+
+  it("preserves the original handler response while attaching the correlation header", async () => {
+    process.env.WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES = "0";
+    delete process.env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL;
+
+    const response = NextResponse.json(
+      { ok: true },
+      { headers: { "x-test-header": "kept" } },
+    );
+
+    const observed = await observeRoute(
+      new Request("https://example.com/api/test", {
+        method: "GET",
+      }),
+      "observability/test",
+      async () => response,
+    );
+
+    expect(observed).toBe(response);
+    expect(observed.headers.get("x-test-header")).toBe("kept");
+    expect(observed.headers.get("x-correlation-id")).toBeTruthy();
   });
 });

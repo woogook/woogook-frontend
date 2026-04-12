@@ -182,13 +182,8 @@ export async function observeRoute(
       tags: ["route-observed"],
     });
 
-    const headers = new Headers(response.headers);
-    headers.set("x-correlation-id", correlationId);
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    response.headers.set("x-correlation-id", correlationId);
+    return response;
   } catch (error) {
     const durationMs = Date.now() - startedAt;
     recordRequestMetric({
