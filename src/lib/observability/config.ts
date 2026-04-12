@@ -4,6 +4,8 @@ import type { ObservabilityEnvironment } from "@/lib/observability/types";
 
 const DEFAULT_ROTATE_BYTES = 50 * 1024 * 1024;
 const DEFAULT_RETENTION_DAYS = 14;
+const DEFAULT_OUTBOUND_TIMEOUT_MS = 5_000;
+const DEFAULT_ANALYZER_LOOKBACK_MINUTES = 10;
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) return fallback;
@@ -19,6 +21,18 @@ function parseBoolean(value: string | undefined, fallback = false) {
 function trimToUndefined(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+export function deriveLokiQueryUrl(pushUrl: string | undefined) {
+  if (!pushUrl) {
+    return undefined;
+  }
+
+  if (pushUrl.endsWith("/loki/api/v1/push")) {
+    return `${pushUrl.slice(0, -4)}query_range`;
+  }
+
+  return undefined;
 }
 
 function parseEnvironment(value: string | undefined): ObservabilityEnvironment {
@@ -37,10 +51,13 @@ export type ObservabilityConfig = {
   retentionDays: number;
   mirrorToCloudInLocal: boolean;
   lokiPushUrl?: string;
+  lokiQueryUrl?: string;
   lokiUsername?: string;
   lokiPassword?: string;
   discordWebhookUrl?: string;
   llmWebhookUrl?: string;
+  outboundTimeoutMs: number;
+  analyzerLookbackMinutes: number;
 };
 
 export function parseObservabilityConfig(
@@ -51,6 +68,7 @@ export function parseObservabilityConfig(
       trimToUndefined(env.VERCEL_ENV) ??
       trimToUndefined(env.NODE_ENV),
   );
+  const lokiPushUrl = trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL);
 
   return {
     environment,
@@ -76,12 +94,23 @@ export function parseObservabilityConfig(
     mirrorToCloudInLocal: parseBoolean(
       trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD),
     ),
-    lokiPushUrl: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL),
+    lokiPushUrl,
+    lokiQueryUrl:
+      trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL) ??
+      deriveLokiQueryUrl(lokiPushUrl),
     lokiUsername: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOKI_USERNAME),
     lokiPassword: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LOKI_PASSWORD),
     discordWebhookUrl: trimToUndefined(
       env.WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL,
     ),
     llmWebhookUrl: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL),
+    outboundTimeoutMs: parsePositiveInt(
+      trimToUndefined(env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS),
+      DEFAULT_OUTBOUND_TIMEOUT_MS,
+    ),
+    analyzerLookbackMinutes: parsePositiveInt(
+      trimToUndefined(env.WOOGOOK_OBSERVABILITY_ANALYZER_LOOKBACK_MINUTES),
+      DEFAULT_ANALYZER_LOOKBACK_MINUTES,
+    ),
   };
 }

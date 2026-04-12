@@ -9,6 +9,7 @@ import {
   type ObservabilityConfig,
 } from "@/lib/observability/config";
 import { getOrCreateCorrelationId } from "@/lib/observability/correlation";
+import { applyBasicAuth, fetchWithTimeout } from "@/lib/observability/http";
 import { recordRequestMetric } from "@/lib/observability/metrics";
 import type {
   ObservabilityComponent,
@@ -69,26 +70,20 @@ export async function sendEventToLoki(
     "Content-Type": "application/json",
   });
 
-  if (config.lokiUsername && config.lokiPassword) {
-    headers.set(
-      "Authorization",
-      `Basic ${Buffer.from(
-        `${config.lokiUsername}:${config.lokiPassword}`,
-      ).toString("base64")}`,
-    );
-  }
+  applyBasicAuth(headers, config.lokiUsername, config.lokiPassword);
 
-  await fetch(config.lokiPushUrl!, {
+  await fetchWithTimeout(config.lokiPushUrl!, {
     method: "POST",
     headers,
     body: JSON.stringify(buildLokiPayload(event)),
     cache: "no-store",
-  });
+  }, config.outboundTimeoutMs);
 }
 
 type LogServerEventParams = {
   channel?: ObservabilityChannel;
   config?: ObservabilityConfig;
+  timestamp?: string;
   level: ObservabilityLevel;
   signalType: ObservabilitySignalType;
   component: ObservabilityComponent;
@@ -110,10 +105,11 @@ type LogServerEventParams = {
 export async function logServerEvent({
   channel = "server",
   config = parseObservabilityConfig(),
+  timestamp,
   ...params
 }: LogServerEventParams) {
   const event: ObservabilityEvent = {
-    timestamp: new Date().toISOString(),
+    timestamp: timestamp ?? new Date().toISOString(),
     service: "woogook-frontend",
     environment: config.environment,
     release: config.release,

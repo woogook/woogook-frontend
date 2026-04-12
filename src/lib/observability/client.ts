@@ -95,8 +95,9 @@ export async function sendBrowserEvents(events: BrowserEventInput[]) {
     typeof navigator.sendBeacon === "function"
   ) {
     const blob = new Blob([body], { type: "application/json" });
-    navigator.sendBeacon("/api/observability/browser-events", blob);
-    return;
+    if (navigator.sendBeacon("/api/observability/browser-events", blob)) {
+      return;
+    }
   }
 
   await fetch("/api/observability/browser-events", {
@@ -104,6 +105,7 @@ export async function sendBrowserEvents(events: BrowserEventInput[]) {
     headers: { "Content-Type": "application/json" },
     body,
     keepalive: true,
+    cache: "no-store",
   });
 }
 

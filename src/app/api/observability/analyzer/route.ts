@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 import {
   buildIncidentSummary,
+  fetchRecentIncidentEvents,
   formatIncidentSummary,
 } from "@/lib/observability/analyzer";
-import { parseObservabilityConfig } from "@/lib/observability/config";
 import { grafanaAlertPayloadSchema } from "@/lib/observability/contracts";
-import { readRecentObservabilityEvents } from "@/lib/observability/local-file";
+import { fetchWithTimeout } from "@/lib/observability/http";
 import { logServerEvent, observeRoute } from "@/lib/observability/server";
 
 export const dynamic = "force-dynamic";
@@ -15,19 +15,24 @@ export const runtime = "nodejs";
 async function maybeInvokeLlmWebhook(
   url: string | undefined,
   payload: Record<string, unknown>,
+  timeoutMs: number,
 ) {
   if (!url) {
     return null;
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
     },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+    timeoutMs,
+  );
 
   if (!response.ok) {
     throw new Error(`LLM webhook failed with status ${response.status}`);
@@ -36,19 +41,27 @@ async function maybeInvokeLlmWebhook(
   return response.json().catch(() => null);
 }
 
-async function maybeSendDiscord(url: string | undefined, content: string) {
+async function maybeSendDiscord(
+  url: string | undefined,
+  content: string,
+  timeoutMs: number,
+) {
   if (!url) {
     return;
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+      cache: "no-store",
     },
-    body: JSON.stringify({ content }),
-    cache: "no-store",
-  });
+    timeoutMs,
+  );
 
   if (!response.ok) {
     throw new Error(`Discord webhook failed with status ${response.status}`);
@@ -57,27 +70,26 @@ async function maybeSendDiscord(url: string | undefined, content: string) {
 
 export async function POST(request: Request) {
   return observeRoute(request, "observability/analyzer", async (context) => {
-    const config = parseObservabilityConfig();
+    const config = context.config;
     const payload = grafanaAlertPayloadSchema.parse(await request.json());
-    const recentEvents = (await readRecentObservabilityEvents({
-      rootDir: config.localRootDir,
+    const recentEvents = await fetchRecentIncidentEvents({
+      alert: payload,
+      config,
       maxEvents: 30,
-    })).filter((event) => {
-      const routeLabel = payload.labels.route;
-      const componentLabel = payload.labels.component;
-      const routeMatches = routeLabel ? event.route === routeLabel : true;
-      const componentMatches = componentLabel ? event.component === componentLabel : true;
-      return routeMatches && componentMatches;
     });
 
     let summary = buildIncidentSummary(payload, recentEvents);
 
     try {
-      const llmResponse = await maybeInvokeLlmWebhook(config.llmWebhookUrl, {
-        alert: payload,
-        summary,
-        recentEvents,
-      });
+      const llmResponse = await maybeInvokeLlmWebhook(
+        config.llmWebhookUrl,
+        {
+          alert: payload,
+          summary,
+          recentEvents,
+        },
+        config.outboundTimeoutMs,
+      );
       if (llmResponse && typeof llmResponse === "object") {
         const candidate = llmResponse as Partial<typeof summary>;
         summary = {
@@ -108,7 +120,11 @@ export async function POST(request: Request) {
     const formatted = formatIncidentSummary(summary);
 
     try {
-      await maybeSendDiscord(config.discordWebhookUrl, formatted);
+      await maybeSendDiscord(
+        config.discordWebhookUrl,
+        formatted,
+        config.outboundTimeoutMs,
+      );
     } catch (error) {
       await logServerEvent({
         config,

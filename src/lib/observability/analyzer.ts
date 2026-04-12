@@ -1,4 +1,25 @@
+import {
+  type ObservabilityConfig,
+  parseObservabilityConfig,
+} from "@/lib/observability/config";
+import { applyBasicAuth, fetchWithTimeout } from "@/lib/observability/http";
+import { readRecentObservabilityEvents } from "@/lib/observability/local-file";
 import type { ObservabilityEvent } from "@/lib/observability/types";
+
+export type LokiQueryResponse = {
+  data?: {
+    result?: Array<{
+      values?: Array<[string, string]>;
+    }>;
+  };
+};
+
+type FetchRecentIncidentEventsParams = {
+  alert: GrafanaAlertPayload;
+  config?: ObservabilityConfig;
+  maxEvents: number;
+  now?: Date;
+};
 
 export type GrafanaAlertPayload = {
   title: string;
@@ -14,6 +35,132 @@ export type IncidentSummary = {
   nextActions: string[];
   confidence: "low" | "medium" | "high";
 };
+
+function matchesAlertContext(
+  event: ObservabilityEvent,
+  alert: GrafanaAlertPayload,
+) {
+  const routeLabel = alert.labels.route;
+  const componentLabel = alert.labels.component;
+  const routeMatches = routeLabel ? event.route === routeLabel : true;
+  const componentMatches =
+    routeLabel || !componentLabel ? true : event.component === componentLabel;
+  return routeMatches && componentMatches;
+}
+
+export function buildLokiIncidentQuery(alert: GrafanaAlertPayload) {
+  const streamFilters = ['service="woogook-frontend"'];
+  const environment = alert.labels.environment;
+
+  if (environment) {
+    streamFilters.push(`environment=${JSON.stringify(environment)}`);
+  }
+
+  const pipelineFilters = ["| json"];
+  const route = alert.labels.route;
+  const component = alert.labels.component;
+  const errorName = alert.labels.error_name;
+
+  if (route) {
+    pipelineFilters.push(`| route=${JSON.stringify(route)}`);
+  } else if (component) {
+    pipelineFilters.push(`| component=${JSON.stringify(component)}`);
+  }
+
+  if (errorName) {
+    pipelineFilters.push(`| errorName=${JSON.stringify(errorName)}`);
+  }
+
+  return `{${streamFilters.join(",")}} ${pipelineFilters.join(" ")}`;
+}
+
+export function extractEventsFromLokiResponse(payload: LokiQueryResponse) {
+  const collected: ObservabilityEvent[] = [];
+
+  for (const stream of payload.data?.result ?? []) {
+    for (const [, line] of stream.values ?? []) {
+      try {
+        collected.push(JSON.parse(line) as ObservabilityEvent);
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return collected.sort((left, right) =>
+    right.timestamp.localeCompare(left.timestamp),
+  );
+}
+
+async function queryRecentIncidentEventsFromLoki({
+  alert,
+  config,
+  maxEvents,
+  now = new Date(),
+}: Required<FetchRecentIncidentEventsParams>) {
+  if (!config.lokiQueryUrl) {
+    return [];
+  }
+
+  const url = new URL(config.lokiQueryUrl);
+  const start = new Date(
+    now.getTime() - config.analyzerLookbackMinutes * 60 * 1000,
+  );
+  url.searchParams.set("query", buildLokiIncidentQuery(alert));
+  url.searchParams.set("limit", String(maxEvents));
+  url.searchParams.set("direction", "backward");
+  url.searchParams.set("start", `${start.getTime() * 1_000_000}`);
+  url.searchParams.set("end", `${now.getTime() * 1_000_000}`);
+
+  const headers = new Headers();
+  applyBasicAuth(headers, config.lokiUsername, config.lokiPassword);
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    },
+    config.outboundTimeoutMs,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Loki query failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as LokiQueryResponse;
+  return extractEventsFromLokiResponse(payload)
+    .filter((event) => matchesAlertContext(event, alert))
+    .slice(0, maxEvents);
+}
+
+export async function fetchRecentIncidentEvents({
+  alert,
+  config = parseObservabilityConfig(),
+  maxEvents,
+  now = new Date(),
+}: FetchRecentIncidentEventsParams) {
+  const localEvents = (
+    await readRecentObservabilityEvents({
+      rootDir: config.localRootDir,
+      maxEvents: Math.max(maxEvents * 3, maxEvents),
+    })
+  )
+    .filter((event) => matchesAlertContext(event, alert))
+    .slice(0, maxEvents);
+
+  if (localEvents.length > 0 || config.writeLocalFiles || !config.lokiQueryUrl) {
+    return localEvents;
+  }
+
+  return queryRecentIncidentEventsFromLoki({
+    alert,
+    config,
+    maxEvents,
+    now,
+  });
+}
 
 export function formatIncidentSummary(summary: IncidentSummary) {
   return [

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseObservabilityConfig } from "@/lib/observability/config";
+import {
+  deriveLokiQueryUrl,
+  parseObservabilityConfig,
+} from "@/lib/observability/config";
 
 describe("parseObservabilityConfig", () => {
   it("provides local logging defaults when env is empty", () => {
@@ -18,5 +21,24 @@ describe("parseObservabilityConfig", () => {
     });
 
     expect(config.writeLocalFiles).toBe(false);
+  });
+
+  it("derives the Loki query endpoint and analyzer defaults", () => {
+    const config = parseObservabilityConfig({
+      WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL:
+        "https://logs-prod.grafana.net/loki/api/v1/push",
+    });
+
+    expect(config.lokiQueryUrl).toBe(
+      "https://logs-prod.grafana.net/loki/api/v1/query_range",
+    );
+    expect(config.outboundTimeoutMs).toBe(5_000);
+    expect(config.analyzerLookbackMinutes).toBe(10);
+  });
+});
+
+describe("deriveLokiQueryUrl", () => {
+  it("returns undefined for unsupported push URL shapes", () => {
+    expect(deriveLokiQueryUrl("https://example.com/custom-ingest")).toBeUndefined();
   });
 });

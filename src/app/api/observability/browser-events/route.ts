@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { parseObservabilityConfig } from "@/lib/observability/config";
 import { browserEventBatchSchema } from "@/lib/observability/contracts";
 import { recordBrowserEventMetric } from "@/lib/observability/metrics";
 import { logServerEvent, observeRoute } from "@/lib/observability/server";
@@ -19,7 +18,8 @@ export async function POST(request: Request) {
       });
       await logServerEvent({
         channel: "browser",
-        config: parseObservabilityConfig(),
+        config: context.config,
+        timestamp: event.timestamp,
         level: event.level,
         signalType: event.signalType,
         component: "browser",
