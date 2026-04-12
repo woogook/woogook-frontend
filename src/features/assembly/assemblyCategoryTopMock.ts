@@ -22,7 +22,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0005",
         promise_text: "종합부동산세/상속 증여세/재산세율 조정",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "role1 라우팅 샘플에서 정책 카테고리 '경제·산업·재정', 이행경로 '재정형'으로 분류됨.",
           "국회 예산안·세법 개정안 검색 시 동일 정책 키워드가 포함된 심의 기록이 다수 확인됨.",
@@ -32,7 +32,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0007",
         promise_text: "미래산업 스타트업 벨트 육성",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "샘플 JSON에서 [LLM 라우팅]으로 재정·인허가·운영 지원 경로가 복합 지정됨.",
           "중소벤처 관련 사업 공고·R&D 매칭 뉴스에서 해당 구역 스타트업 지원이 반복 언급됨.",
@@ -74,7 +74,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0008",
         promise_text: "청년, 여성, 신중년 취업창업 종합 서비스지원",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "샘플에서 '노동·일자리·기업활력', 이행경로 '운영·지원형'으로 라우팅됨.",
           "고용센터·구청 일자리 사업 공고에서 동일 서비스명 프로그램이 다회 개설됨.",
@@ -102,7 +102,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "MOCK-LAB-03",
         promise_text: "신중년 재취업 상담 허브 및 직무 설계 지원",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "구청 보도자료에 상담 실적·연계 기업 수가 수치로 명시됨.",
           "국회 본회의·상임위 회의록에서 유사 명칭 예산 설명이 확인됨.",
@@ -122,7 +122,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0013",
         promise_text: "보육과 교육, 촘촘한 아이돌봄 연계 프로그램",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "샘플 JSON 정책 카테고리 '복지·보건·돌봄·인구', 경로 '운영·지원형'.",
           "보육·돌봄 연계 사업 실적이 구 정책백서에 수치로 기재됨.",
@@ -132,7 +132,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0014",
         promise_text: "맞벌이가정 맞춤 보육서비스 마련",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "라우팅 근거에 키워드 일치 2건으로 명시.",
           "보육시설 운영 시간 확대 보도가 다수 매체에서 동일 정책명으로 인용됨.",
@@ -170,7 +170,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0023",
         promise_text: "도산공원 문화도서관, 주차장 신축",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "샘플에서 '교육·인재·과학기술·디지털·문화', 건설·정비형.",
           "준공·개관 보도와 주차장 운영 개시 안내가 동시에 확인됨.",
@@ -197,7 +197,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "MOCK-EDU-01",
         promise_text: "청소년 디지털 리터러시 거점 교실 운영",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "교육·문화 카테고리 키워드 클러스터 확장 목업.",
           "학기별 수강 정원·강사 배치 공고가 규칙적으로 반복됨.",
@@ -235,7 +235,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0001",
         promise_text: "재건축 재개발 신속추진",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "규칙 기반 라우팅: 건설·정비형, 키워드 일치 다건(샘플).",
           "구역별 사업 시행인가·착공 보도가 시계열로 축적됨.",
@@ -253,7 +253,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0012",
         promise_text: "주차난 해소 위한 공영주차장 복합화 사업 확대",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "건설·정비형 + 운영·지원형(샘플).",
           "복합화 사업 준공·개방 면적이 보도자료에 수치로 제시됨.",
@@ -264,7 +264,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0017",
         promise_text: "강남형 친환경 스마트 도시인프라 구축",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "환경·에너지·기후, 건설·정비형(샘플).",
           "스마트 가로등·에너지 모니터링 도입 보도가 다기관에서 교차 확인됨.",
@@ -309,7 +309,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "MOCK-AGR-01",
         promise_text: "지역 수산물 직거래장 상설화 및 냉장 물류 지원",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "샘플 JSON에 해당 카테고리 항목이 없어 동일 스키마로 가상 생성.",
           "해양수산부·구청 보도 키워드 매칭 목업: 직거래장 개장 보도 3건 이상.",
@@ -334,7 +334,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "MOCK-AGR-04",
         promise_text: "친환경 농자재 보급 확대(감염병 대비 차단막 지원)",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "농림 보도자료에 보급 수량·면적이 표 형태로 공개됨(가상 근거).",
         ],
@@ -352,7 +352,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "QQ429063-0018",
         promise_text: "수해예방, 재난대비 안전시스템 마련",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "거버넌스·권리·안전·외교안보, 운영·지원형(샘플).",
           "재난 문자·CCTV·배수 펌프 가동 보도가 장마철마다 확인됨.",
@@ -377,7 +377,7 @@ export const ASSEMBLY_CATEGORY_TOP5_MOCK: Record<AssemblyPledgeCategoryLabel, Ca
       {
         promise_id: "MOCK-GOV-03",
         promise_text: "지역 인권·차별금지 상담 창구 예산 편성",
-        progress: "완료",
+        progress: "완료단계",
         rationale_lines: [
           "예산안 PDF 표 추출 결과 해당 세목이 신설됨(목업).",
         ],

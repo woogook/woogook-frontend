@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
-import { PledgeProgressBadge } from "@/features/assembly/components/PledgeProgressBadge";
+import { PledgeHybridProgressBadge } from "@/features/assembly/components/PledgeHybridProgressBadge";
 import { assemblyMemberPledgesQueryOptions } from "@/lib/api-client";
 
 function safeDecodeURIComponent(value: string): string {
@@ -87,7 +87,7 @@ export function AssemblyPledgeCategoryTopPage() {
   return (
     <AssemblyAppShell backHref={backHref} backLabel="이행률 요약">
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
-        {pledges && categoryLabel ? (
+        {pledges && categoryLabel && pledgeResponse ? (
           <>
             <header className="mb-4">
               <h1
@@ -137,44 +137,50 @@ export function AssemblyPledgeCategoryTopPage() {
                     ref={(el) => {
                       pledgeRowRefs.current[item.promise_id] = el;
                     }}
-                    className="rounded-[18px] border px-3 py-2.5 transition-[box-shadow] duration-300"
+                    className="rounded-[18px] border px-3 py-3 transition-[box-shadow] duration-300"
                     style={{
                       background: "var(--surface)",
                       borderColor: isFlashing ? "var(--amber)" : "var(--border)",
                       boxShadow: isFlashing ? "0 0 0 2px var(--amber-light)" : undefined,
                     }}
                   >
-                    <div className="flex min-h-[40px] min-w-0 items-start gap-2.5">
-                      <span
-                        className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
-                        style={{
-                          // background: "var(--amber-bg)",
-                          color: "var(--amber)",
-                          border: "1px solid var(--border)",
-                        }}
-                        aria-hidden
-                      >
-                        {index + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                          <PledgeProgressBadge progress={item.progress_label} />
-                          <p
-                            className="min-w-0 flex-1 break-keep text-left text-[14px] font-bold leading-snug sm:text-[15px]"
-                            style={{
-                              color: "var(--navy)",
-                              fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-                            }}
-                            title={item.promise_text}
-                          >
-                            {item.promise_text}
-                          </p>
-                        </div>
+                    {/* 순번 + 상태는 한 줄(메타), 제목은 그 아래 전체 너비 — 긴 제목·스크롤 시 시선 흐름이 자연스럽게 이어짐 */}
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <span
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
+                          style={{
+                            color: "var(--amber)",
+                            border: "1px solid var(--border)",
+                          }}
+                          aria-hidden
+                        >
+                          {index + 1}
+                        </span>
+                        <PledgeHybridProgressBadge
+                          progress={item.progress_label}
+                          score={item.score}
+                        />
                       </div>
+                      <p
+                        className="min-w-0 break-keep text-left text-[14px] font-bold leading-snug sm:text-[15px]"
+                        style={{
+                          color: "var(--navy)",
+                          fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                        }}
+                        title={item.promise_text}
+                      >
+                        {item.promise_text}
+                      </p>
                     </div>
 
                     {item.user_summary_line ? (
-                      <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+                      <div
+                        className="mt-3 border-t pt-2.5"
+                        style={{ borderColor: "var(--border)" }}
+                        role="region"
+                        aria-label="판단 근거"
+                      >
                         <span
                           className="text-[12px] font-semibold"
                           style={{ color: "var(--text-secondary)" }}
@@ -182,7 +188,7 @@ export function AssemblyPledgeCategoryTopPage() {
                           판단 근거
                         </span>
                         <p
-                          className="mt-1 text-[12px] leading-relaxed"
+                          className="mt-1.5 text-[12px] leading-relaxed"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           {item.user_summary_line}

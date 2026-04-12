@@ -10,6 +10,7 @@ import { useSearchParams } from "next/navigation";
 import { getAssembly22CampaignBookletPublicPdfUrl } from "@/features/assembly/assemblyCampaignBookletUrl";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
+import { PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND } from "@/features/assembly/components/PledgeProgressBadge";
 import { ASSEMBLY_PLEDGE_CATEGORY_LABELS } from "@/features/assembly/pledgeCategories";
 import {
   assemblyMemberMetaCardQueryOptions,
@@ -42,7 +43,6 @@ type ProgressSegment = {
 const EMPTY_PROGRESS_BREAKDOWN: AssemblyPledgeProgressBreakdown = {
   completed_count: 0,
   in_progress_count: 0,
-  not_started_count: 0,
   unknown_count: 0,
 };
 
@@ -51,24 +51,19 @@ function buildProgressSegments(
 ): ProgressSegment[] {
   return [
     {
-      label: "완료",
+      label: "완료단계",
       count: breakdown.completed_count,
-      color: "#16a34a",
+      color: PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND["완료단계"],
     },
     {
       label: "진행중",
       count: breakdown.in_progress_count,
-      color: "#2563eb",
-    },
-    {
-      label: "미착수",
-      count: breakdown.not_started_count,
-      color: "#94a3b8",
+      color: PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND["진행중"],
     },
     {
       label: "판단불가",
       count: breakdown.unknown_count,
-      color: "#d1d5db",
+      color: PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND["판단불가"],
     },
   ];
 }
@@ -87,8 +82,11 @@ function PledgeProgressStackedBar({
   return (
     <div className="mt-4 text-left">
       <div
-        className="flex h-3 w-full overflow-hidden rounded-full"
-        style={{ background: "var(--surface-alt)" }}
+        className="flex h-3 w-full overflow-hidden rounded-full border"
+        style={{
+          background: "var(--surface)",
+          borderColor: "var(--border)",
+        }}
         aria-label={segments.map((segment) => `${segment.label} ${segment.count}건`).join(", ")}
         role="img"
       >
@@ -110,7 +108,7 @@ function PledgeProgressStackedBar({
             })
           : null}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
         {segments.map((segment) => (
           <div key={segment.label} className="flex items-center gap-1.5">
             <span

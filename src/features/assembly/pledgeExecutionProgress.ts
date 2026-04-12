@@ -5,7 +5,7 @@
 export const PLEDGE_EXECUTION_PROGRESS = [
   "미착수",
   "진행중",
-  "완료",
+  "완료단계",
   "판단불가",
 ] as const;
 

@@ -314,7 +314,7 @@ export const assemblyMemberMetaCardSchema = z.object({
 export const assemblyPledgeProgressLabelSchema = z.enum([
   "미착수",
   "진행중",
-  "완료",
+  "완료단계",
   "판단불가",
 ]);
 
@@ -338,7 +338,6 @@ export const assemblyPledgeCategoryFulfillmentSchema = z.object({
 export const assemblyPledgeProgressBreakdownSchema = z.object({
   completed_count: z.number().int().min(0),
   in_progress_count: z.number().int().min(0),
-  not_started_count: z.number().int().min(0),
   unknown_count: z.number().int().min(0),
 });
 
