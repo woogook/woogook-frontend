@@ -275,10 +275,10 @@ export async function fetchAssemblyMemberPledges(params: {
 }): Promise<AssemblyPledgeListResponse> {
   const monaCd = params.monaCd.trim();
   const category = params.category.trim();
-  const query = new URLSearchParams({
-    category,
-    limit: String(params.limit ?? 5),
-  });
+  const query = new URLSearchParams({ category });
+  if (params.limit !== undefined) {
+    query.set("limit", String(params.limit));
+  }
   return fetchJson(
     `/api/assembly/v1/members/${encodeURIComponent(monaCd)}/pledges?${query.toString()}`,
     assemblyPledgeListResponseSchema,
@@ -292,10 +292,15 @@ export function assemblyMemberPledgesQueryOptions(params: {
 }) {
   const monaCd = params.monaCd.trim();
   const category = params.category.trim();
-  const limit = params.limit ?? 5;
+  const limit = params.limit ?? null;
   return queryOptions({
     queryKey: ["assembly", "member", "pledges", monaCd, category, limit],
-    queryFn: () => fetchAssemblyMemberPledges({ monaCd, category, limit }),
+    queryFn: () =>
+      fetchAssemblyMemberPledges({
+        monaCd,
+        category,
+        ...(limit !== null ? { limit } : {}),
+      }),
     enabled: monaCd.length > 0 && category.length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 0,

@@ -41,13 +41,22 @@ export function AssemblyPledgeCategoryTopPage() {
     assemblyMemberPledgesQueryOptions({
       monaCd: monaCd ?? "",
       category: categoryLabel ?? "",
-      limit: 5,
     }),
   );
+  const listKey = `${monaCd ?? ""}:${categoryLabel ?? ""}`;
+  const [expandedListKey, setExpandedListKey] = useState<string | null>(null);
   const pledges = pledgeResponse?.items ?? null;
+  const shouldRevealFocusedPledge = Boolean(
+    focusPromiseId && pledges?.some((item) => item.promise_id === focusPromiseId),
+  );
+  const isExpanded = expandedListKey === listKey || shouldRevealFocusedPledge;
+  const visiblePledges = pledges
+    ? isExpanded
+      ? pledges
+      : pledges.slice(0, 5)
+    : null;
+  const hiddenPledgeCount = pledges ? Math.max(pledges.length - 5, 0) : 0;
 
-  /** 와이어 pagination_footer — API 연동 전 안내용 */
-  const [loadMoreAcknowledged, setLoadMoreAcknowledged] = useState(false);
   /** 딥링크로 들어온 행 잠시 강조 */
   const [flashRowId, setFlashRowId] = useState<string | null>(null);
   const pledgeRowRefs = useRef<Record<string, HTMLLIElement | null>>({});
@@ -93,14 +102,33 @@ export function AssemblyPledgeCategoryTopPage() {
               <p className="mt-2 text-[15px] sm:text-base" style={{ color: "var(--text-secondary)" }}>
                 이행 평가 상위 공약
               </p>
-              <p className="mt-3 text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                평가 {pledgeResponse.meta.evaluated_in_category}건 / 전체{" "}
-                {pledgeResponse.meta.total_in_category}건
-              </p>
+              <div
+                className="mt-3 flex items-end justify-between gap-3 border-b pb-3"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+                  평가 {pledgeResponse.meta.evaluated_in_category}건 / 전체{" "}
+                  {pledgeResponse.meta.total_in_category}건
+                </p>
+                <p className="shrink-0 text-right">
+                  <span
+                    className="block text-[11px] font-semibold"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    카테고리 이행률
+                  </span>
+                  <span
+                    className="block tabular-nums text-[20px] font-bold leading-tight"
+                    style={{ color: "var(--navy)" }}
+                  >
+                    {pledgeResponse.meta.category_rate_display}
+                  </span>
+                </p>
+              </div>
             </header>
 
             <ol className="space-y-2">
-              {pledges.map((item, index) => {
+              {visiblePledges?.map((item, index) => {
                 const isFlashing = flashRowId === item.promise_id;
                 return (
                   <li
@@ -116,9 +144,9 @@ export function AssemblyPledgeCategoryTopPage() {
                       boxShadow: isFlashing ? "0 0 0 2px var(--amber-light)" : undefined,
                     }}
                   >
-                    <div className="flex min-h-[40px] min-w-0 flex-nowrap items-start gap-2">
+                    <div className="flex min-h-[40px] min-w-0 items-start gap-2.5">
                       <span
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
+                        className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
                         style={{
                           // background: "var(--amber-bg)",
                           color: "var(--amber)",
@@ -128,19 +156,21 @@ export function AssemblyPledgeCategoryTopPage() {
                       >
                         {index + 1}
                       </span>
-                      <div className="shrink-0">
-                        <PledgeProgressBadge progress={item.progress_label} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <PledgeProgressBadge progress={item.progress_label} />
+                          <p
+                            className="min-w-0 flex-1 break-keep text-left text-[14px] font-bold leading-snug sm:text-[15px]"
+                            style={{
+                              color: "var(--navy)",
+                              fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
+                            }}
+                            title={item.promise_text}
+                          >
+                            {item.promise_text}
+                          </p>
+                        </div>
                       </div>
-                      <p
-                        className="min-w-0 flex-1 break-keep text-left text-[14px] font-bold leading-snug sm:text-[15px]"
-                        style={{
-                          color: "var(--navy)",
-                          fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
-                        }}
-                        title={item.promise_text}
-                      >
-                        {item.promise_text}
-                      </p>
                     </div>
 
                     {item.user_summary_line ? (
@@ -164,21 +194,18 @@ export function AssemblyPledgeCategoryTopPage() {
               })}
             </ol>
 
-            <footer className="mt-5 flex flex-col items-center gap-2 px-0 pb-2 pt-5">
-              <button
-                type="button"
-                onClick={() => setLoadMoreAcknowledged(true)}
-                className="cursor-pointer text-[13px] font-semibold active:opacity-70"
-                style={{ color: "#2563eb" }}
-              >
-                더보기
-              </button>
-              {loadMoreAcknowledged ? (
-                <p className="max-w-[320px] text-center text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                  현재 화면은 상위 5건만 표시합니다.
-                </p>
-              ) : null}
-            </footer>
+            {hiddenPledgeCount > 0 && !isExpanded ? (
+              <footer className="mt-5 flex flex-col items-center gap-2 px-0 pb-2 pt-5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedListKey(listKey)}
+                  className="cursor-pointer rounded-lg border px-4 py-2 text-[13px] font-semibold active:opacity-70"
+                  style={{ borderColor: "var(--border)", color: "#2563eb" }}
+                >
+                  더보기 {hiddenPledgeCount}건
+                </button>
+              </footer>
+            ) : null}
           </>
         ) : isPending && monaCd && categoryLabel ? (
           <div className="py-12 text-center">

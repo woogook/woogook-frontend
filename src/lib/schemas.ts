@@ -378,11 +378,13 @@ export const assemblyPledgeListItemSchema = z.object({
 export const assemblyPledgeListResponseSchema = z.object({
   member_mona_cd: z.string(),
   category_label: z.string(),
-  limit: z.number().int().min(1),
+  limit: z.number().int().min(1).nullable().optional(),
   items: z.array(assemblyPledgeListItemSchema),
   meta: z.object({
     total_in_category: z.number().int().min(0),
     evaluated_in_category: z.number().int().min(0),
+    category_rate_percent: z.number().int().nullable().optional(),
+    category_rate_display: z.string(),
     data_source: z.string(),
   }),
 });
