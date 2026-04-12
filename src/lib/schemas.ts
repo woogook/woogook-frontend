@@ -299,9 +299,117 @@ export const assemblyMemberListResponseSchema = z.object({
   items: z.array(assemblyMemberListItemSchema),
 });
 
+/** GET /api/assembly/v1/members/{mona_cd}/card — 백엔드 AssemblyMemberMetaCard */
+export const assemblyMemberMetaCardSchema = z.object({
+  member_mona_cd: z.string(),
+  name: z.string(),
+  party_name: z.string().nullable().optional(),
+  profile_image_url: z.string().nullable().optional(),
+  district_label: z.string().nullable().optional(),
+  current_committee_name: z.string().nullable().optional(),
+  election_count_text: z.string().nullable().optional(),
+  campaign_booklet_pdf_url: z.string().nullable().optional(),
+});
+
+export const assemblyPledgeProgressLabelSchema = z.enum([
+  "미착수",
+  "진행중",
+  "완료단계",
+  "판단불가",
+]);
+
+export const assemblyPledgeSummaryMemberSchema = z.object({
+  member_mona_cd: z.string(),
+  name: z.string(),
+  party_name: z.string().nullable().optional(),
+  district_label: z.string().nullable().optional(),
+  profile_image_url: z.string().nullable().optional(),
+});
+
+export const assemblyPledgeCategoryFulfillmentSchema = z.object({
+  category_label: z.string(),
+  rate_percent: z.number().int().nullable().optional(),
+  rate_display: z.string(),
+  total_promises: z.number().int().min(0),
+  evaluated_promises: z.number().int().min(0),
+  unknown_promises: z.number().int().min(0),
+});
+
+export const assemblyPledgeProgressBreakdownSchema = z.object({
+  completed_count: z.number().int().min(0),
+  in_progress_count: z.number().int().min(0),
+  unknown_count: z.number().int().min(0),
+});
+
+export const assemblyPledgeSummaryResponseSchema = z.object({
+  member: assemblyPledgeSummaryMemberSchema,
+  fulfillment: z.object({
+    overall_rate_percent: z.number().int().nullable().optional(),
+    overall_rate_display: z.string(),
+    total_promises: z.number().int().min(0),
+    evaluated_promises: z.number().int().min(0),
+    unknown_promises: z.number().int().min(0),
+    progress_breakdown: assemblyPledgeProgressBreakdownSchema,
+    categories: z.array(assemblyPledgeCategoryFulfillmentSchema),
+  }),
+  meta: z.object({
+    data_source: z.string(),
+    coverage_status: z.enum(["none", "partial", "complete"]),
+    latest_run_id: z.string().nullable().optional(),
+    evaluated_at: z.string().nullable().optional(),
+  }),
+});
+
+export const assemblyPledgeEvidenceItemSchema = z.object({
+  source_name: z.string(),
+  source_title: z.string().nullable().optional(),
+  source_url: z.string().nullable().optional(),
+  summary: z.string(),
+});
+
+export const assemblyPledgeListItemSchema = z.object({
+  rank: z.number().int().min(1),
+  promise_id: z.string(),
+  promise_text: z.string(),
+  evaluation_status: z.string().nullable().optional(),
+  progress_label: assemblyPledgeProgressLabelSchema,
+  score: z.number().nullable().optional(),
+  score_display: z.string().nullable().optional(),
+  progress_rate_percent: z.number().int().nullable().optional(),
+  confidence: z.number().nullable().optional(),
+  user_summary_line: z.string().nullable().optional(),
+  evidence_items: z.array(assemblyPledgeEvidenceItemSchema),
+  updated_at: z.string().nullable().optional(),
+});
+
+export const assemblyPledgeListResponseSchema = z.object({
+  member_mona_cd: z.string(),
+  category_label: z.string(),
+  limit: z.number().int().min(1).nullable().optional(),
+  items: z.array(assemblyPledgeListItemSchema),
+  meta: z.object({
+    total_in_category: z.number().int().min(0),
+    evaluated_in_category: z.number().int().min(0),
+    category_rate_percent: z.number().int().nullable().optional(),
+    category_rate_display: z.string(),
+    data_source: z.string(),
+  }),
+});
+
 export type AssemblyMemberListMeta = z.infer<typeof assemblyMemberListMetaSchema>;
 export type AssemblyMemberListItem = z.infer<typeof assemblyMemberListItemSchema>;
 export type AssemblyMemberListResponse = z.infer<typeof assemblyMemberListResponseSchema>;
+export type AssemblyMemberMetaCard = z.infer<typeof assemblyMemberMetaCardSchema>;
+export type AssemblyPledgeSummaryResponse = z.infer<typeof assemblyPledgeSummaryResponseSchema>;
+export type AssemblyPledgeCategoryFulfillment = z.infer<
+  typeof assemblyPledgeCategoryFulfillmentSchema
+>;
+export type AssemblyPledgeProgressBreakdown = z.infer<
+  typeof assemblyPledgeProgressBreakdownSchema
+>;
+export type AssemblyPledgeProgressLabel = z.infer<typeof assemblyPledgeProgressLabelSchema>;
+export type AssemblyPledgeListResponse = z.infer<typeof assemblyPledgeListResponseSchema>;
+export type AssemblyPledgeListItem = z.infer<typeof assemblyPledgeListItemSchema>;
 
 export type BallotsSearchParams = z.infer<typeof ballotsSearchParamsSchema>;
 export type IssueKey = z.infer<typeof issueKeySchema>;

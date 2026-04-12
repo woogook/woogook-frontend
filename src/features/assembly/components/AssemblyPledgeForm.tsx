@@ -227,7 +227,7 @@ export default function AssemblyPledgeForm() {
           className="stagger-1 mb-2 animate-fade-in-up text-[1.75rem] font-bold leading-[1.25] tracking-tight"
           style={{ color: "var(--navy)" }}
         >
-          우리동네 국회의원 공약 이행률 확인
+          우리동네 국회의원 공약 이행률
         </h1>
         <p
           className="stagger-2 mb-8 animate-fade-in-up text-[14px] leading-relaxed"
