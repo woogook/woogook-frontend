@@ -21,9 +21,11 @@
 ## 기본 읽기 순서
 
 1. `AGENTS.md`
-2. `docs/assembly/canonical/llm-entry.md`
-3. 이 문서
-4. 현재 단계에 맞는 `docs/common/codex/workflows/*.md`
+2. `.agents/README.md`
+3. `.agents/entry/assembly.md`
+4. `docs/assembly/canonical/llm-entry.md`
+5. 이 문서
+6. 현재 단계에 맞는 `.agents/workflows/*.md`
 
 ## 기본 검증
 

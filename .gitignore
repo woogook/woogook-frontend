@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+__pycache__/
+*.py[cod]
 
 # next.js
 /.next/
@@ -24,6 +26,13 @@
 .DS_Store
 *.pem
 /.worktrees/
+
+# local agent runtime artifacts
+/tmp/turn-flow-observability/*
+!/tmp/turn-flow-observability/turns/
+!/tmp/turn-flow-observability/turns/**
+/tmp/turn-flow-observability/active-sessions/
+/tmp/turn-flow-observability/hook-state/
 
 # debug
 npm-debug.log*

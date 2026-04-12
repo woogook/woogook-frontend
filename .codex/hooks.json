@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 -c 'import runpy; from pathlib import Path; cwd = Path.cwd().resolve(); root = next((path for path in (cwd, *cwd.parents) if (path / \".git\").exists()), None); assert root is not None, \"git root not found\"; runpy.run_path(str(root / \"scripts\" / \"codex_turn_flow_hooks.py\"), run_name=\"__main__\")'",
+            "statusMessage": "Starting turn-flow observability"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 -c 'import runpy; from pathlib import Path; cwd = Path.cwd().resolve(); root = next((path for path in (cwd, *cwd.parents) if (path / \".git\").exists()), None); assert root is not None, \"git root not found\"; runpy.run_path(str(root / \"scripts\" / \"codex_turn_flow_hooks.py\"), run_name=\"__main__\")'",
+            "statusMessage": "Finalizing turn-flow observability",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

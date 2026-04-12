@@ -39,10 +39,13 @@ npm run dev
 ## 작업 문서 진입
 
 - 공통 라우터: `AGENTS.md`
-- 공통 workflow: `docs/common/codex/workflows/*`
+- 공통 agent control-plane: `.agents/README.md`
+- 공통 workflow: `.agents/workflows/*`
+- machine-facing contract: `.agents/contracts/common.yaml`
 - 배포 의사결정: `docs/common/canonical/frontend-deployment-decision.md`
 - 배포 runbook: `docs/common/runbooks/vercel-deployment-runbook.md`
 - 국회 온보딩: `docs/assembly/onboarding/assembly-team-onboarding.md`
+- 현직 지방의원 진입: `docs/local-council/canonical/llm-entry.md`
 
 ## 샘플 데이터
 

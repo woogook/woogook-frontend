@@ -1,0 +1,51 @@
+version: 2
+profile: common
+
+routing:
+  top_level_entry: AGENTS.md
+  shared_canonical:
+    - glossary.md
+  control_plane_entry: .agents/README.md
+
+domains:
+  default: common
+  supported:
+    - id: common
+      label: common
+      entry: .agents/entry/common.md
+    - id: assembly
+      label: assembly
+      entry: .agents/entry/assembly.md
+    - id: local-election
+      label: local-election
+      entry: .agents/entry/local-election.md
+    - id: local-council
+      label: local-council
+      entry: .agents/entry/local-council.md
+
+workflows:
+  issue: .agents/workflows/issue.md
+  worktree: .agents/workflows/worktree.md
+  implementation: .agents/workflows/implementation.md
+  review: .agents/workflows/review.md
+  commit: .agents/workflows/commit.md
+  pull-request: .agents/workflows/pull-request.md
+  requested-pr-review-follow-up: .agents/workflows/requested-pr-review-follow-up.md
+  pre-merge: .agents/workflows/pre-merge.md
+  post-merge: .agents/workflows/post-merge.md
+
+policies:
+  issue_required_for_project_work: true
+  direct_work_on_main: forbidden
+  default_base_ref: origin/main
+  pr_creation: explicit_user_request_only
+  pr_merge_strategy: merge_commit_only
+  pr_assignee: best_effort_creator_when_human
+  pr_labels: best_effort_type_inferred
+  pr_projects: explicit_repo_policy_only
+  pre_merge_sync_issue_and_pr: true
+  post_merge_cleanup_required: true
+
+review:
+  perspective: third-party-reviewer
+  record_unresolved_items: true
