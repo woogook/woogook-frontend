@@ -118,11 +118,26 @@ Vercel 프로젝트에서 아래 환경변수를 분리해서 관리한다.
 최소 필수 후보
 
 - `WOOGOOK_BACKEND_BASE_URL`
+- `WOOGOOK_OBSERVABILITY_ENV`
+- `WOOGOOK_OBSERVABILITY_RELEASE`
 
 필요 시 추가 후보
 
 - 프런트 전용 feature flag
 - 배포 환경 표시용 값
+- `WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL`
+- `WOOGOOK_OBSERVABILITY_LOKI_USERNAME`
+- `WOOGOOK_OBSERVABILITY_LOKI_PASSWORD`
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
+
+로컬에서는 아래 값을 선택적으로 사용한다.
+
+- `WOOGOOK_OBSERVABILITY_LOCAL_ROOT_DIR`
+- `WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES`
+- `WOOGOOK_OBSERVABILITY_ROTATE_BYTES`
+- `WOOGOOK_OBSERVABILITY_RETENTION_DAYS`
+- `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD`
 
 ## Phase 3. GitHub Secrets 준비
 
@@ -167,6 +182,7 @@ GitHub 저장소 Secrets에 아래 값을 추가한다.
 기본 작업
 
 - `npm ci`
+- `npm run test`
 - `npm run lint`
 - `npm run build`
 
@@ -208,6 +224,7 @@ vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
 
 - [ ] `npm run lint` 통과
 - [ ] `npm run build` 통과
+- [ ] `npm run test` 통과
 - [ ] preview / production 환경변수 등록 완료
 - [ ] API 서버 헬스체크 확인
 - [ ] 프런트의 핵심 사용자 흐름 점검
@@ -218,6 +235,8 @@ vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
 - [ ] `/local-election` 주소 입력 후 데이터 조회
 - [ ] `/assembly`에서 의원 조회
 - [ ] API 장애 시 사용자 메시지가 적절한지 확인
+- [ ] `/api/observability/metrics`가 scrape 가능한지 확인
+- [ ] Grafana alert webhook이 `/api/observability/analyzer`로 도달하는지 확인
 
 ## Phase 6. Preview 배포 실행
 
@@ -232,6 +251,7 @@ vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
 - [ ] preview URL이 생성됐는가
 - [ ] 핵심 페이지가 열리는가
 - [ ] API 호출이 실패하지 않는가
+- [ ] browser ingest endpoint와 metrics endpoint가 응답하는가
 - [ ] 브라우저 콘솔과 Vercel 로그에 치명 오류가 없는가
 
 ## Phase 7. Production 배포 실행
@@ -248,6 +268,7 @@ vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
 - [ ] production URL 접속 가능
 - [ ] 핵심 사용자 흐름 정상 동작
 - [ ] 주요 에러 로그 없음
+- [ ] Loki push와 Discord/analyzer webhook이 기대대로 연결되는가
 - [ ] API 응답 시간과 사용자 체감이 허용 범위인지 확인
 
 ## Phase 8. 운영 중 체크 사항

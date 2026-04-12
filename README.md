@@ -12,6 +12,32 @@ npm run dev
 
 브라우저에서 `http://localhost:3000`을 열면 됩니다.
 
+## Observability
+
+frontend observability는 `Phase A` 기준으로 저장소 내부에서 바로 동작한다.
+
+- 로컬 로그 경로: `.logs/frontend/YYYY-MM-DD/browser.ndjson`, `.logs/frontend/YYYY-MM-DD/server.ndjson`, `.logs/frontend/YYYY-MM-DD/analyzer.ndjson`
+- 브라우저 ingest endpoint: `/api/observability/browser-events`
+- Prometheus metrics endpoint: `/api/observability/metrics`
+- Grafana alert analyzer webhook: `/api/observability/analyzer`
+
+### 주요 환경변수
+
+- `WOOGOOK_OBSERVABILITY_ENV`
+- `WOOGOOK_OBSERVABILITY_RELEASE`
+- `WOOGOOK_OBSERVABILITY_LOCAL_ROOT_DIR`
+- `WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES`
+- `WOOGOOK_OBSERVABILITY_ROTATE_BYTES`
+- `WOOGOOK_OBSERVABILITY_RETENTION_DAYS`
+- `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD`
+- `WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL`
+- `WOOGOOK_OBSERVABILITY_LOKI_USERNAME`
+- `WOOGOOK_OBSERVABILITY_LOKI_PASSWORD`
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
+
+로컬 개발에서는 기본적으로 full-fidelity 파일 로그만 남기고, `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true`일 때만 cloud 전송을 시도한다.
+
 ## 주요 진입 경로
 
 - `/`: 서비스 허브
@@ -25,6 +51,8 @@ npm run dev
 - `Tailwind CSS 4`
 - `Zod`
 - `@tanstack/react-query`
+- `Vitest`
+- `prom-client`
 - `shadcn/ui` 최소 구성 (`Button`, `Tabs`, `Alert`)
 - `pg`
 
