@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import type { ObservabilityEvent } from "@/lib/observability/types";
 
 const gzipAsync = promisify(gzip);
+const MAINTENANCE_INTERVAL_MS = 5 * 60 * 1000;
 
 export type ObservabilityChannel = "browser" | "server" | "analyzer";
 
@@ -17,6 +18,13 @@ type AppendObservabilityEventParams = {
   retentionDays: number;
   now?: Date;
 };
+
+type MaintenanceState = {
+  lastCompletedAt?: number;
+  inFlight?: Promise<void>;
+};
+
+const maintenanceStateByRoot = new Map<string, MaintenanceState>();
 
 function getDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -113,6 +121,41 @@ async function runMaintenance(rootDir: string, retentionDays: number, now: Date)
   );
 }
 
+async function maybeRunMaintenance(
+  rootDir: string,
+  retentionDays: number,
+  now: Date,
+) {
+  const nowMs = now.getTime();
+  const existingState = maintenanceStateByRoot.get(rootDir);
+  if (existingState?.inFlight) {
+    await existingState.inFlight;
+    return;
+  }
+  if (
+    existingState?.lastCompletedAt != null &&
+    nowMs - existingState.lastCompletedAt < MAINTENANCE_INTERVAL_MS
+  ) {
+    return;
+  }
+
+  const inFlight = runMaintenance(rootDir, retentionDays, now);
+  maintenanceStateByRoot.set(rootDir, {
+    lastCompletedAt: existingState?.lastCompletedAt,
+    inFlight,
+  });
+
+  try {
+    await inFlight;
+    maintenanceStateByRoot.set(rootDir, {
+      lastCompletedAt: nowMs,
+    });
+  } catch (error) {
+    maintenanceStateByRoot.delete(rootDir);
+    throw error;
+  }
+}
+
 export async function appendObservabilityEvent({
   rootDir,
   channel,
@@ -133,7 +176,7 @@ export async function appendObservabilityEvent({
   });
 
   await fs.appendFile(targetPath, line, "utf8");
-  await runMaintenance(rootDir, retentionDays, now);
+  await maybeRunMaintenance(rootDir, retentionDays, now);
 }
 
 export async function readRecentObservabilityEvents(params: {

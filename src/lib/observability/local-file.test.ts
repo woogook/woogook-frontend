@@ -54,4 +54,82 @@ describe("appendObservabilityEvent", () => {
     const files = await fs.readdir(path.join(rootDir, "2026-04-12"));
     expect(files.sort()).toEqual(["server.001.ndjson", "server.ndjson"]);
   });
+
+  it("does not rerun maintenance on every append inside the same maintenance window", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "observability-"));
+    tempDirs.push(rootDir);
+
+    await fs.mkdir(path.join(rootDir, "2026-04-11"), { recursive: true });
+    await fs.writeFile(
+      path.join(rootDir, "2026-04-11", "server.ndjson"),
+      `${JSON.stringify(buildEvent("stale-before-first-append"))}\n`,
+      "utf8",
+    );
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("first append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:00:00.000Z"),
+    });
+
+    await fs.mkdir(path.join(rootDir, "2026-04-10"), { recursive: true });
+    await fs.writeFile(
+      path.join(rootDir, "2026-04-10", "server.ndjson"),
+      `${JSON.stringify(buildEvent("stale-after-first-append"))}\n`,
+      "utf8",
+    );
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("second append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:01:00.000Z"),
+    });
+
+    await expect(
+      fs.access(path.join(rootDir, "2026-04-10", "server.ndjson")),
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(rootDir, "2026-04-10", "server.ndjson.gz")),
+    ).rejects.toThrow();
+  });
+
+  it("runs maintenance again after the maintenance window elapses", async () => {
+    const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "observability-"));
+    tempDirs.push(rootDir);
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("first append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:00:00.000Z"),
+    });
+
+    await fs.mkdir(path.join(rootDir, "2026-04-10"), { recursive: true });
+    await fs.writeFile(
+      path.join(rootDir, "2026-04-10", "server.ndjson"),
+      `${JSON.stringify(buildEvent("stale-after-window"))}\n`,
+      "utf8",
+    );
+
+    await appendObservabilityEvent({
+      rootDir,
+      channel: "server",
+      event: buildEvent("second append"),
+      rotateBytes: 1_024,
+      retentionDays: 14,
+      now: new Date("2026-04-12T12:10:00.000Z"),
+    });
+
+    await expect(
+      fs.access(path.join(rootDir, "2026-04-10", "server.ndjson.gz")),
+    ).resolves.toBeUndefined();
+  });
 });
