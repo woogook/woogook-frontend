@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 
 import { getAssembly22CampaignBookletPublicPdfUrl } from "@/features/assembly/assemblyCampaignBookletUrl";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
+import { AssemblyBreadcrumb } from "@/features/assembly/components/AssemblyBreadcrumb";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND } from "@/features/assembly/components/PledgeProgressBadge";
 import { ASSEMBLY_PLEDGE_CATEGORY_LABELS } from "@/features/assembly/pledgeCategories";
@@ -32,6 +33,15 @@ function formatPartyDistrictLine(
 ): string | null {
   const parts = [party?.trim() || "", district?.trim() || ""].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function formatRegionBreadcrumbLabel(
+  city: string | null,
+  sigungu: string | null,
+): string | null {
+  const shortCity = city?.replace("특별시", "").replace("광역시", "").trim();
+  const parts = [shortCity || "", sigungu?.trim() || ""].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 type ProgressSegment = {
@@ -196,6 +206,8 @@ export function AssemblyPledgeRatePage() {
       : null;
 
   const contextParams = assemblyPledgeContextParams(city, sigungu, monaCdRaw);
+  const regionParams = assemblyPledgeContextParams(city, sigungu, null);
+  const regionLabel = formatRegionBreadcrumbLabel(city, sigungu);
 
   const envBookletUrl = getAssembly22CampaignBookletPublicPdfUrl();
   /** 로딩/에러 시 env 공보 URL은 쓰지 않음(의원 불일치 방지). mona_cd 없을 때만 env 사용. */
@@ -235,8 +247,32 @@ export function AssemblyPledgeRatePage() {
     border: "1px solid rgba(37, 99, 235, 0.22)",
   };
 
+  const breadcrumbItems = [
+    ...(regionLabel
+      ? [
+          {
+            label: regionLabel,
+            href:
+              regionParams.toString().length > 0
+                ? `/assembly?${regionParams.toString()}`
+                : "/assembly",
+          },
+        ]
+      : []),
+    { label: displayName },
+  ];
+
   return (
-    <AssemblyAppShell backHref="/assembly" backLabel="지역·의원 선택">
+    <AssemblyAppShell
+      backHref="/assembly"
+      backLabel="지역·의원 선택"
+      backTrailing={
+        <AssemblyBreadcrumb
+          items={breadcrumbItems}
+          className="mb-0 max-w-full overflow-x-auto px-0 -mx-0"
+        />
+      }
+    >
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
         <section
           className="mb-8 flex items-center gap-3 border-b pb-8"
@@ -377,7 +413,7 @@ export function AssemblyPledgeRatePage() {
               fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
             }}
           >
-            전체 공약 이행률 {overallRateLabel}
+            전체 공약 평균 이행도 {overallRateLabel}
           </p>
           {isSummaryError ? (
             <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
@@ -388,9 +424,17 @@ export function AssemblyPledgeRatePage() {
             </p>
           ) : pledgeSummary ? (
             <>
-              <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                평가 {pledgeSummary.fulfillment.evaluated_promises}건 / 전체{" "}
-                {pledgeSummary.fulfillment.total_promises}건
+              <p className="mt-2 text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+                전체 {pledgeSummary.fulfillment.total_promises}건 · 평가{" "}
+                {pledgeSummary.fulfillment.evaluated_promises}건 기준 평균입니다.
+                {pledgeSummary.fulfillment.unknown_promises > 0 ? (
+                  <>
+                    {" "}
+                    <br />
+                    미평가(판단불가 등) {pledgeSummary.fulfillment.unknown_promises}건은 평균에 포함하지
+                    않습니다.
+                  </>
+                ) : null}
               </p>
               <PledgeProgressStackedBar
                 breakdown={progressBreakdown}
@@ -412,15 +456,16 @@ export function AssemblyPledgeRatePage() {
           }}
         >
           <h2
-            className="mb-4 border-b pb-3 text-center text-[17px] font-bold sm:text-[18px]"
+            className="mb-2 border-b pb-2 text-center text-[17px] font-bold sm:text-[18px]"
             style={{
               borderColor: "var(--border)",
               color: "var(--navy)",
               fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
             }}
           >
-            카테고리 별 이행률
+            카테고리별 이행도
           </h2>
+
           <ul>
             {categoryRates.map((row, index) => {
               const categoryHrefParams = new URLSearchParams(contextParams.toString());
@@ -437,7 +482,7 @@ export function AssemblyPledgeRatePage() {
                     href={categoryHref}
                     className="-mx-1 flex min-h-[56px] items-center justify-between gap-3 rounded-xl px-1 py-2.5 active:opacity-65"
                     style={{ color: "inherit" }}
-                    aria-label={`${row.category_label} 이행 우수 공약 보기`}
+                    aria-label={`${row.category_label} 평가된 공약 기준 평균 이행도 및 상위 공약 보기`}
                   >
                     <span
                       className="min-w-0 flex-1 pr-2 text-[15px] font-medium leading-snug sm:text-[16px]"

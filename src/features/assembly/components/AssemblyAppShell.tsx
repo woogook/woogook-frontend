@@ -1,20 +1,27 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 type AssemblyAppShellProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   /** 설정 시 메인 네비 아래에 뒤로가기 줄을 붙입니다. */
   backHref?: string;
   backLabel?: string;
+  /** 뒤로가기 제목과 같은 줄 오른쪽(브레드크럼 등). 좁은 화면에서는 가로 스크롤. */
+  backTrailing?: ReactNode;
 };
 
 /**
  * 국회(assembly) 도메인 공통 상단 네비 + 본문 영역.
  */
-export function AssemblyAppShell({ children, backHref, backLabel = "이전" }: AssemblyAppShellProps) {
+export function AssemblyAppShell({
+  children,
+  backHref,
+  backLabel = "이전",
+  backTrailing,
+}: AssemblyAppShellProps) {
   const rootStyle: CSSProperties = {
     background: "var(--background)",
     ["--nav-height" as string]: "60px",
@@ -97,7 +104,7 @@ export function AssemblyAppShell({ children, backHref, backLabel = "이전" }: A
 
       {backHref ? (
         <div
-          className="sticky z-40 flex items-center border-b px-5 py-3"
+          className="sticky z-40 flex min-h-[52px] items-center justify-between gap-2 border-b px-5 py-2"
           style={{
             top: "var(--nav-height)",
             background: "rgba(249,248,245,0.92)",
@@ -108,12 +115,17 @@ export function AssemblyAppShell({ children, backHref, backLabel = "이전" }: A
         >
           <Link
             href={backHref}
-            className="flex min-h-[36px] items-center gap-1 active:opacity-60"
+            className="flex min-h-[36px] shrink-0 items-center gap-1 active:opacity-60"
             style={{ color: "var(--navy)" }}
           >
             <ChevronLeft className="h-4 w-4 shrink-0" style={{ color: "var(--amber)" }} aria-hidden />
             <span className="text-[14px] font-bold">{backLabel}</span>
           </Link>
+          {backTrailing ? (
+            <div className="min-h-[36px] min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex min-h-[36px] items-center justify-end">{backTrailing}</div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -6,9 +6,13 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
+import { AssemblyBreadcrumb } from "@/features/assembly/components/AssemblyBreadcrumb";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { PledgeHybridProgressBadge } from "@/features/assembly/components/PledgeHybridProgressBadge";
-import { assemblyMemberPledgesQueryOptions } from "@/lib/api-client";
+import {
+  assemblyMemberMetaCardQueryOptions,
+  assemblyMemberPledgesQueryOptions,
+} from "@/lib/api-client";
 
 function safeDecodeURIComponent(value: string): string {
   try {
@@ -16,6 +20,15 @@ function safeDecodeURIComponent(value: string): string {
   } catch {
     return value;
   }
+}
+
+function formatRegionBreadcrumbLabel(
+  city: string | null,
+  sigungu: string | null,
+): string | null {
+  const shortCity = city?.replace("특별시", "").replace("광역시", "").trim();
+  const parts = [shortCity || "", sigungu?.trim() || ""].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 /**
@@ -42,6 +55,9 @@ export function AssemblyPledgeCategoryTopPage() {
       monaCd: monaCd ?? "",
       category: categoryLabel ?? "",
     }),
+  );
+  const { data: memberCard } = useQuery(
+    assemblyMemberMetaCardQueryOptions(monaCd ?? ""),
   );
   const listKey = `${monaCd ?? ""}:${categoryLabel ?? ""}`;
   const [expandedListKey, setExpandedListKey] = useState<string | null>(null);
@@ -79,13 +95,48 @@ export function AssemblyPledgeCategoryTopPage() {
   }, [pledges, focusPromiseId]);
 
   const backParams = assemblyPledgeContextParams(city, sigungu, monaCd);
+  const regionParams = assemblyPledgeContextParams(city, sigungu, null);
+  const regionLabel = formatRegionBreadcrumbLabel(city, sigungu);
+  const memberLabel = memberCard?.name ?? monaCd ?? null;
   const backHref =
     backParams.toString().length > 0
       ? `/assembly/pledge?${backParams.toString()}`
       : "/assembly/pledge";
 
+  const breadcrumbItems = [
+    ...(regionLabel
+      ? [
+          {
+            label: regionLabel,
+            href:
+              regionParams.toString().length > 0
+                ? `/assembly?${regionParams.toString()}`
+                : "/assembly",
+          },
+        ]
+      : []),
+    ...(memberLabel
+      ? [
+          {
+            label: memberLabel,
+            href: `/assembly/pledge?${backParams.toString()}`,
+          },
+        ]
+      : []),
+    ...(categoryLabel ? [{ label: "카테고리 이행도" }] : []),
+  ];
+
   return (
-    <AssemblyAppShell backHref={backHref} backLabel="이행률 요약">
+    <AssemblyAppShell
+      backHref={backHref}
+      backLabel="이행률 요약"
+      backTrailing={
+        <AssemblyBreadcrumb
+          items={breadcrumbItems}
+          className="mb-0 max-w-full overflow-x-auto px-0 -mx-0"
+        />
+      }
+    >
       <main className="mx-auto w-full max-w-[480px] px-5 py-6">
         {pledges && categoryLabel && pledgeResponse ? (
           <>
@@ -106,19 +157,31 @@ export function AssemblyPledgeCategoryTopPage() {
                 className="mt-3 flex items-end justify-between gap-3 border-b pb-3"
                 style={{ borderColor: "var(--border)" }}
               >
-                <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                  평가 {pledgeResponse.meta.evaluated_in_category}건 / 전체{" "}
-                  {pledgeResponse.meta.total_in_category}건
-                </p>
+                <div className="min-w-0 text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
+                  <p>
+                    전체 {pledgeResponse.meta.total_in_category}건 · 평가{" "}
+                    {pledgeResponse.meta.evaluated_in_category}건
+                  </p>
+                  {pledgeResponse.meta.total_in_category -
+                    pledgeResponse.meta.evaluated_in_category >
+                  0 ? (
+                    <p className="mt-1">
+                      미평가{" "}
+                      {pledgeResponse.meta.total_in_category -
+                        pledgeResponse.meta.evaluated_in_category}
+                      건은 평균 산정에서 제외됩니다.
+                    </p>
+                  ) : null}
+                </div>
                 <p className="shrink-0 text-right">
                   <span
-                    className="block text-[11px] font-semibold"
+                    className="block text-[11px] font-semibold leading-snug"
                     style={{ color: "var(--text-tertiary)" }}
                   >
-                    카테고리 이행률
+                    평균 이행도
                   </span>
                   <span
-                    className="block tabular-nums text-[20px] font-bold leading-tight"
+                    className="mt-0.5 block tabular-nums text-[20px] font-bold leading-tight"
                     style={{ color: "var(--navy)" }}
                   >
                     {pledgeResponse.meta.category_rate_display}
@@ -148,14 +211,11 @@ export function AssemblyPledgeCategoryTopPage() {
                     <div className="flex min-w-0 flex-col gap-2">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <span
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
-                          style={{
-                            color: "var(--amber)",
-                            border: "1px solid var(--border)",
-                          }}
+                          className="shrink-0 text-[14px] font-bold leading-none tabular-nums"
+                          style={{ color: "var(--amber)" }}
                           aria-hidden
                         >
-                          {index + 1}
+                          {index + 1}.
                         </span>
                         <PledgeHybridProgressBadge
                           progress={item.progress_label}
