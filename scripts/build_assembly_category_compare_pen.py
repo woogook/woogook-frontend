@@ -19,7 +19,7 @@ def remap_ids(obj: object, prefix: str) -> None:
 
 
 def apply_badge_colors_iehaeng_daegi(obj: object) -> None:
-    """??? ??: ??(?? ??)=??, ??(??? ??)=??. ?? ??? ?? ?? ????."""
+    """배지 색: 텍스트가 '이행'이면 중립 그레이, '대기'면 레드 톤. 단일 텍스트 자식 프레임만 적용."""
     if isinstance(obj, dict):
         children = obj.get("children")
         if isinstance(children, list) and len(children) == 1:
@@ -204,7 +204,7 @@ def main() -> None:
     )
     rt99 = next(c for c in data["children"] if c.get("id") == "cRt99")
 
-    # \uc544\ud2b8\ubcf4\ub4dc: \uc67c\ucabd \uc138\ub85c \uc2a4\ud0c1 (\ud3f0 \ub108\ube44 390, \uac04\uaca9 24)
+    # 아트보드: 왼쪽 세로 스택 (펜 너비 390, 간격 24)
     frame_h = int(rt99.get("height", 1100))
     gap = 24
     y_b = frame_h + gap
