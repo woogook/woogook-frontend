@@ -12,6 +12,7 @@ import {
   emdQueryOptions,
   sigunguQueryOptions,
 } from "@/lib/api-client";
+import { sortRegionOptions } from "@/features/regions/sortOptions";
 
 export interface RegionAddressInputSample {
   label: string;
@@ -134,9 +135,9 @@ export default function RegionAddressInput({
     enabled: Boolean(city) && Boolean(district),
   });
 
-  const cities = citiesQuery.data?.items || [];
-  const districts = districtsQuery.data?.items || [];
-  const dongs = dongsQuery.data?.items || [];
+  const cities = sortRegionOptions(citiesQuery.data?.items || []);
+  const districts = sortRegionOptions(districtsQuery.data?.items || []);
+  const dongs = sortRegionOptions(dongsQuery.data?.items || []);
   const regionNotice =
     dongsQuery.data?.fallbackMessage ||
     districtsQuery.data?.fallbackMessage ||
