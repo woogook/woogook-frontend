@@ -7,15 +7,15 @@ import { ChevronRight, FileText, User } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import {
-  ASSEMBLY_CATEGORY_RATE_PERCENT_MOCK,
-  assemblyOverallRatePercentMock,
-} from "@/features/assembly/assemblyPledgeRateDemo";
 import { getAssembly22CampaignBookletPublicPdfUrl } from "@/features/assembly/assemblyCampaignBookletUrl";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { ASSEMBLY_PLEDGE_CATEGORY_LABELS } from "@/features/assembly/pledgeCategories";
-import { assemblyMemberMetaCardQueryOptions } from "@/lib/api-client";
+import {
+  assemblyMemberMetaCardQueryOptions,
+  assemblyPledgeSummaryQueryOptions,
+} from "@/lib/api-client";
+import type { AssemblyPledgeCategoryFulfillment } from "@/lib/schemas";
 
 /** mona_cd 없을 때 스케치용 플레이스홀더 (이행률 데모은 그대로). */
 const DEMO_NAME = "배현진";
@@ -62,12 +62,26 @@ export function AssemblyPledgeRatePage() {
   const { data: memberCard, isPending, isError, error } = useQuery(
     assemblyMemberMetaCardQueryOptions(monaCdTrimmed),
   );
+  const {
+    data: pledgeSummary,
+    isPending: isSummaryPending,
+    isError: isSummaryError,
+    error: summaryError,
+  } = useQuery(assemblyPledgeSummaryQueryOptions(monaCdTrimmed));
 
-  const overallRateLabel = `${assemblyOverallRatePercentMock()}%`;
-  const categoryRates = ASSEMBLY_PLEDGE_CATEGORY_LABELS.map((label) => ({
-    label,
-    rate: `${ASSEMBLY_CATEGORY_RATE_PERCENT_MOCK[label]}%`,
-  }));
+  const overallRateLabel =
+    pledgeSummary?.fulfillment.overall_rate_display ??
+    (useApiProfile && isSummaryPending ? "불러오는 중" : "판단불가");
+  const categoryRates: AssemblyPledgeCategoryFulfillment[] =
+    pledgeSummary?.fulfillment.categories ??
+    ASSEMBLY_PLEDGE_CATEGORY_LABELS.map((label) => ({
+      category_label: label,
+      rate_percent: null,
+      rate_display: useApiProfile && isSummaryPending ? "..." : "판단불가",
+      total_promises: 0,
+      evaluated_promises: 0,
+      unknown_promises: 0,
+    }));
 
   const selectionNote =
     city && sigungu
@@ -260,9 +274,23 @@ export function AssemblyPledgeRatePage() {
           >
             전체 공약 이행률 {overallRateLabel}
           </p>
-          <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-            데모 수치입니다. 실제 집계는 API 연동 후 표시됩니다.
-          </p>
+          {isSummaryError ? (
+            <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              평가 결과를 불러오지 못했습니다.
+              {summaryError && "message" in summaryError && typeof summaryError.message === "string"
+                ? ` (${summaryError.message})`
+                : null}
+            </p>
+          ) : pledgeSummary ? (
+            <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              평가 {pledgeSummary.fulfillment.evaluated_promises}건 / 전체{" "}
+              {pledgeSummary.fulfillment.total_promises}건
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              공약 평가 결과를 불러오고 있습니다.
+            </p>
+          )}
         </section>
 
         <section
@@ -285,11 +313,11 @@ export function AssemblyPledgeRatePage() {
           <ul>
             {categoryRates.map((row, index) => {
               const categoryHrefParams = new URLSearchParams(contextParams.toString());
-              categoryHrefParams.set("category", row.label);
+              categoryHrefParams.set("category", row.category_label);
               const categoryHref = `/assembly/pledge/category?${categoryHrefParams.toString()}`;
               return (
                 <li
-                  key={row.label}
+                  key={row.category_label}
                   style={
                     index > 0 ? { borderTop: "1px solid var(--border)" } : undefined
                   }
@@ -298,20 +326,28 @@ export function AssemblyPledgeRatePage() {
                     href={categoryHref}
                     className="-mx-1 flex min-h-[56px] items-center justify-between gap-3 rounded-xl px-1 py-2.5 active:opacity-65"
                     style={{ color: "inherit" }}
-                    aria-label={`${row.label} 이행 우수 공약 보기`}
+                    aria-label={`${row.category_label} 이행 우수 공약 보기`}
                   >
                     <span
                       className="min-w-0 flex-1 pr-2 text-[15px] font-medium leading-snug sm:text-[16px]"
                       style={{ color: "var(--foreground)" }}
                     >
-                      {row.label}
+                      {row.category_label}
+                      {row.total_promises > 0 ? (
+                        <span
+                          className="ml-1 text-[11px] font-normal"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
+                          {row.evaluated_promises}/{row.total_promises}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <span
                         className="tabular-nums text-[16px] font-bold sm:text-[17px]"
                         style={{ color: "var(--navy)" }}
                       >
-                        {row.rate}
+                        {row.rate_display}
                       </span>
                       <ChevronRight
                         className="h-5 w-5 shrink-0"

@@ -19,6 +19,11 @@ const BADGE_STYLE: Record<
     color: "var(--text-tertiary)",
     border: "1px solid var(--border)",
   },
+  판단불가: {
+    background: "var(--surface-alt)",
+    color: "var(--text-secondary)",
+    border: "1px solid var(--border)",
+  },
 };
 
 export function PledgeProgressBadge({ progress }: { progress: PledgeExecutionProgress }) {

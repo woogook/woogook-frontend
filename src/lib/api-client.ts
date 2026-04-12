@@ -16,8 +16,12 @@ import {
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
   assemblyMemberMetaCardSchema,
+  assemblyPledgeListResponseSchema,
+  assemblyPledgeSummaryResponseSchema,
   type AssemblyMemberListResponse,
   type AssemblyMemberMetaCard,
+  type AssemblyPledgeListResponse,
+  type AssemblyPledgeSummaryResponse,
   type BallotsSearchParams,
   type LocalElectionChatConversationCreateRequest,
   type LocalElectionChatMessageCreateRequest,
@@ -238,6 +242,61 @@ export function assemblyMemberMetaCardQueryOptions(monaCd: string) {
     queryKey: ["assembly", "member", "card", trimmed],
     queryFn: () => fetchAssemblyMemberMetaCard(trimmed),
     enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyPledgeSummary(
+  monaCd: string,
+): Promise<AssemblyPledgeSummaryResponse> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/pledge-summary`,
+    assemblyPledgeSummaryResponseSchema,
+  );
+}
+
+export function assemblyPledgeSummaryQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledge-summary", trimmed],
+    queryFn: () => fetchAssemblyPledgeSummary(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyMemberPledges(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}): Promise<AssemblyPledgeListResponse> {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const query = new URLSearchParams({
+    category,
+    limit: String(params.limit ?? 5),
+  });
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(monaCd)}/pledges?${query.toString()}`,
+    assemblyPledgeListResponseSchema,
+  );
+}
+
+export function assemblyMemberPledgesQueryOptions(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}) {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const limit = params.limit ?? 5;
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledges", monaCd, category, limit],
+    queryFn: () => fetchAssemblyMemberPledges({ monaCd, category, limit }),
+    enabled: monaCd.length > 0 && category.length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 0,
   });

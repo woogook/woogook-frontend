@@ -1,14 +1,14 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { getAssemblyCategoryTop5Mock } from "@/features/assembly/assemblyCategoryTopMock";
 import { assemblyPledgeContextParams } from "@/features/assembly/assemblyPledgeQuery";
 import { AssemblyAppShell } from "@/features/assembly/components/AssemblyAppShell";
 import { PledgeProgressBadge } from "@/features/assembly/components/PledgeProgressBadge";
+import { assemblyMemberPledgesQueryOptions } from "@/lib/api-client";
 
 function safeDecodeURIComponent(value: string): string {
   try {
@@ -19,7 +19,7 @@ function safeDecodeURIComponent(value: string): string {
 }
 
 /**
- * 카테고리별 이행 우수 공약 목록(목업 TOP 5). API 연동 시 동일 레이아웃에 데이터만 교체.
+ * 카테고리별 이행 우수 공약 목록. 딥링크 promise_id는 해당 행을 강조한다.
  * 딥링크: `?promise_id=<공약ID>` — 해당 행으로 스크롤 후 잠시 강조(피드·뉴스 연동용).
  */
 export function AssemblyPledgeCategoryTopPage() {
@@ -32,22 +32,25 @@ export function AssemblyPledgeCategoryTopPage() {
   /** 피드·뉴스 등에서 `?promise_id=...`로 특정 공약 행으로 스크롤·강조 */
   const focusPromiseId = searchParams.get("promise_id")?.trim() || null;
 
-  const pledges = getAssemblyCategoryTop5Mock(categoryLabel);
+  const {
+    data: pledgeResponse,
+    isPending,
+    isError,
+    error,
+  } = useQuery(
+    assemblyMemberPledgesQueryOptions({
+      monaCd: monaCd ?? "",
+      category: categoryLabel ?? "",
+      limit: 5,
+    }),
+  );
+  const pledges = pledgeResponse?.items ?? null;
 
-  /** 공약별 판단 근거 펼침 — 기본 접어 두어 한 화면에 5건이 보이도록 함 */
-  const [rationaleOpenById, setRationaleOpenById] = useState<Record<string, boolean>>({});
   /** 와이어 pagination_footer — API 연동 전 안내용 */
   const [loadMoreAcknowledged, setLoadMoreAcknowledged] = useState(false);
   /** 딥링크로 들어온 행 잠시 강조 */
   const [flashRowId, setFlashRowId] = useState<string | null>(null);
   const pledgeRowRefs = useRef<Record<string, HTMLLIElement | null>>({});
-
-  const toggleRationale = useCallback((promiseId: string) => {
-    setRationaleOpenById((prev) => ({
-      ...prev,
-      [promiseId]: !prev[promiseId],
-    }));
-  }, []);
 
   useEffect(() => {
     if (!pledges || !focusPromiseId) {
@@ -58,9 +61,12 @@ export function AssemblyPledgeCategoryTopPage() {
       return;
     }
     row.scrollIntoView({ behavior: "smooth", block: "center" });
-    setFlashRowId(focusPromiseId);
-    const timer = window.setTimeout(() => setFlashRowId(null), 2600);
-    return () => window.clearTimeout(timer);
+    const showTimer = window.setTimeout(() => setFlashRowId(focusPromiseId), 0);
+    const hideTimer = window.setTimeout(() => setFlashRowId(null), 2600);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
   }, [pledges, focusPromiseId]);
 
   const backParams = assemblyPledgeContextParams(city, sigungu, monaCd);
@@ -85,16 +91,16 @@ export function AssemblyPledgeCategoryTopPage() {
                 {categoryLabel}
               </h1>
               <p className="mt-2 text-[15px] sm:text-base" style={{ color: "var(--text-secondary)" }}>
-                이행 평가 상위 공약 (목업)
+                이행 평가 상위 공약
               </p>
               <p className="mt-3 text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                진행도·판단 근거는 데모용입니다. 실제 파이프라인 연동 후 갱신됩니다.
+                평가 {pledgeResponse.meta.evaluated_in_category}건 / 전체{" "}
+                {pledgeResponse.meta.total_in_category}건
               </p>
             </header>
 
             <ol className="space-y-2">
               {pledges.map((item, index) => {
-                const rationaleOpen = Boolean(rationaleOpenById[item.promise_id]);
                 const isFlashing = flashRowId === item.promise_id;
                 return (
                   <li
@@ -110,8 +116,7 @@ export function AssemblyPledgeCategoryTopPage() {
                       boxShadow: isFlashing ? "0 0 0 2px var(--amber-light)" : undefined,
                     }}
                   >
-                    {/* 순위 · 진행도 · 공약 제목 — 한 줄(제목은 말줄임) */}
-                    <div className="flex min-h-[40px] min-w-0 flex-nowrap items-center gap-2">
+                    <div className="flex min-h-[40px] min-w-0 flex-nowrap items-start gap-2">
                       <span
                         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold"
                         style={{
@@ -124,10 +129,10 @@ export function AssemblyPledgeCategoryTopPage() {
                         {index + 1}
                       </span>
                       <div className="shrink-0">
-                        <PledgeProgressBadge progress={item.progress} />
+                        <PledgeProgressBadge progress={item.progress_label} />
                       </div>
                       <p
-                        className="min-w-0 flex-1 truncate text-left text-[14px] font-bold leading-tight sm:text-[15px]"
+                        className="min-w-0 flex-1 break-keep text-left text-[14px] font-bold leading-snug sm:text-[15px]"
                         style={{
                           color: "var(--navy)",
                           fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif",
@@ -138,48 +143,22 @@ export function AssemblyPledgeCategoryTopPage() {
                       </p>
                     </div>
 
-                    <div className="mt-1.5 border-t pt-1.5" style={{ borderColor: "var(--border)" }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRationale(item.promise_id)}
-                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg py-1 text-left active:opacity-70"
-                        aria-expanded={rationaleOpen}
-                        aria-controls={`rationale-${item.promise_id}`}
-                        id={`rationale-toggle-${item.promise_id}`}
-                      >
+                    {item.user_summary_line ? (
+                      <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
                         <span
-                          className="text-[12px] font-semibold tracking-wide"
+                          className="text-[12px] font-semibold"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           판단 근거
                         </span>
-                        <ChevronDown
-                          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${rationaleOpen ? "rotate-180" : ""}`}
-                          style={{ color: "var(--text-tertiary)" }}
-                          aria-hidden
-                        />
-                      </button>
-                      {rationaleOpen ? (
-                        <div
-                          id={`rationale-${item.promise_id}`}
-                          role="region"
-                          aria-labelledby={`rationale-toggle-${item.promise_id}`}
-                          className="mt-2 pt-1"
+                        <p
+                          className="mt-1 text-[12px] leading-relaxed"
+                          style={{ color: "var(--text-secondary)" }}
                         >
-                          <p className="mb-2 text-[10px] tabular-nums" style={{ color: "var(--text-tertiary)" }}>
-                            ID {item.promise_id}
-                          </p>
-                          <ul
-                            className="list-disc space-y-1.5 pl-4 text-[12px] leading-relaxed"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            {item.rationale_lines.map((line, i) => (
-                              <li key={i}>{line}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                    </div>
+                          {item.user_summary_line}
+                        </p>
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -196,11 +175,35 @@ export function AssemblyPledgeCategoryTopPage() {
               </button>
               {loadMoreAcknowledged ? (
                 <p className="max-w-[320px] text-center text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                  목업은 현재 목록만 표시합니다. 추가 공약·무한 스크롤은 API 연동 후 연결됩니다.
+                  현재 화면은 상위 5건만 표시합니다.
                 </p>
               ) : null}
             </footer>
           </>
+        ) : isPending && monaCd && categoryLabel ? (
+          <div className="py-12 text-center">
+            <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
+              공약 평가를 불러오고 있습니다
+            </p>
+          </div>
+        ) : isError ? (
+          <div className="py-12 text-center">
+            <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
+              공약 평가를 불러오지 못했습니다
+            </p>
+            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {error && "message" in error && typeof error.message === "string"
+                ? error.message
+                : "잠시 후 다시 시도해 주세요."}
+            </p>
+            <Link
+              href={backHref}
+              className="mt-6 inline-block rounded-full border px-4 py-2 text-sm font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+            >
+              돌아가기
+            </Link>
+          </div>
         ) : (
           <div className="py-12 text-center">
             <p className="text-[15px] font-bold" style={{ color: "var(--navy)" }}>
