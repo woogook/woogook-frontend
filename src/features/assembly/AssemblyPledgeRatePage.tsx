@@ -15,7 +15,10 @@ import {
   assemblyMemberMetaCardQueryOptions,
   assemblyPledgeSummaryQueryOptions,
 } from "@/lib/api-client";
-import type { AssemblyPledgeCategoryFulfillment } from "@/lib/schemas";
+import type {
+  AssemblyPledgeCategoryFulfillment,
+  AssemblyPledgeProgressBreakdown,
+} from "@/lib/schemas";
 
 /** mona_cd 없을 때 스케치용 플레이스홀더 (이행률 데모은 그대로). */
 const DEMO_NAME = "배현진";
@@ -28,6 +31,107 @@ function formatPartyDistrictLine(
 ): string | null {
   const parts = [party?.trim() || "", district?.trim() || ""].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+type ProgressSegment = {
+  label: string;
+  count: number;
+  color: string;
+};
+
+const EMPTY_PROGRESS_BREAKDOWN: AssemblyPledgeProgressBreakdown = {
+  completed_count: 0,
+  in_progress_count: 0,
+  not_started_count: 0,
+  unknown_count: 0,
+};
+
+function buildProgressSegments(
+  breakdown: AssemblyPledgeProgressBreakdown,
+): ProgressSegment[] {
+  return [
+    {
+      label: "완료",
+      count: breakdown.completed_count,
+      color: "#16a34a",
+    },
+    {
+      label: "진행중",
+      count: breakdown.in_progress_count,
+      color: "#2563eb",
+    },
+    {
+      label: "미착수",
+      count: breakdown.not_started_count,
+      color: "#94a3b8",
+    },
+    {
+      label: "판단불가",
+      count: breakdown.unknown_count,
+      color: "#d1d5db",
+    },
+  ];
+}
+
+function PledgeProgressStackedBar({
+  breakdown,
+  total,
+}: {
+  breakdown: AssemblyPledgeProgressBreakdown;
+  total: number;
+}) {
+  const segments = buildProgressSegments(breakdown);
+  const resolvedTotal =
+    total > 0 ? total : segments.reduce((sum, segment) => sum + segment.count, 0);
+
+  return (
+    <div className="mt-4 text-left">
+      <div
+        className="flex h-3 w-full overflow-hidden rounded-full"
+        style={{ background: "var(--surface-alt)" }}
+        aria-label={segments.map((segment) => `${segment.label} ${segment.count}건`).join(", ")}
+        role="img"
+      >
+        {resolvedTotal > 0
+          ? segments.map((segment) => {
+              const widthPercent = (segment.count / resolvedTotal) * 100;
+              return (
+                <span
+                  key={segment.label}
+                  className="h-full"
+                  style={{
+                    width: `${widthPercent}%`,
+                    minWidth: segment.count > 0 ? 3 : 0,
+                    background: segment.color,
+                  }}
+                  title={`${segment.label}: ${segment.count}건`}
+                />
+              );
+            })
+          : null}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+        {segments.map((segment) => (
+          <div key={segment.label} className="flex items-center gap-1.5">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: segment.color }}
+              aria-hidden
+            />
+            <span className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {segment.label}
+            </span>
+            <span
+              className="ml-auto tabular-nums text-[11px] font-semibold"
+              style={{ color: "var(--navy)" }}
+            >
+              {segment.count}건
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** key로 리마운트하면 로드 실패 상태가 초기화되어 effect 없이 안전하게 쓸 수 있음. */
@@ -82,6 +186,9 @@ export function AssemblyPledgeRatePage() {
       evaluated_promises: 0,
       unknown_promises: 0,
     }));
+  const progressBreakdown =
+    pledgeSummary?.fulfillment.progress_breakdown ?? EMPTY_PROGRESS_BREAKDOWN;
+  const progressTotal = pledgeSummary?.fulfillment.total_promises ?? 0;
 
   const selectionNote =
     city && sigungu
@@ -282,10 +389,16 @@ export function AssemblyPledgeRatePage() {
                 : null}
             </p>
           ) : pledgeSummary ? (
-            <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-              평가 {pledgeSummary.fulfillment.evaluated_promises}건 / 전체{" "}
-              {pledgeSummary.fulfillment.total_promises}건
-            </p>
+            <>
+              <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                평가 {pledgeSummary.fulfillment.evaluated_promises}건 / 전체{" "}
+                {pledgeSummary.fulfillment.total_promises}건
+              </p>
+              <PledgeProgressStackedBar
+                breakdown={progressBreakdown}
+                total={progressTotal}
+              />
+            </>
           ) : (
             <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
               공약 평가 결과를 불러오고 있습니다.

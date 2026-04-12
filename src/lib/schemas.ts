@@ -335,6 +335,13 @@ export const assemblyPledgeCategoryFulfillmentSchema = z.object({
   unknown_promises: z.number().int().min(0),
 });
 
+export const assemblyPledgeProgressBreakdownSchema = z.object({
+  completed_count: z.number().int().min(0),
+  in_progress_count: z.number().int().min(0),
+  not_started_count: z.number().int().min(0),
+  unknown_count: z.number().int().min(0),
+});
+
 export const assemblyPledgeSummaryResponseSchema = z.object({
   member: assemblyPledgeSummaryMemberSchema,
   fulfillment: z.object({
@@ -343,6 +350,7 @@ export const assemblyPledgeSummaryResponseSchema = z.object({
     total_promises: z.number().int().min(0),
     evaluated_promises: z.number().int().min(0),
     unknown_promises: z.number().int().min(0),
+    progress_breakdown: assemblyPledgeProgressBreakdownSchema,
     categories: z.array(assemblyPledgeCategoryFulfillmentSchema),
   }),
   meta: z.object({
@@ -396,6 +404,9 @@ export type AssemblyMemberMetaCard = z.infer<typeof assemblyMemberMetaCardSchema
 export type AssemblyPledgeSummaryResponse = z.infer<typeof assemblyPledgeSummaryResponseSchema>;
 export type AssemblyPledgeCategoryFulfillment = z.infer<
   typeof assemblyPledgeCategoryFulfillmentSchema
+>;
+export type AssemblyPledgeProgressBreakdown = z.infer<
+  typeof assemblyPledgeProgressBreakdownSchema
 >;
 export type AssemblyPledgeProgressLabel = z.infer<typeof assemblyPledgeProgressLabelSchema>;
 export type AssemblyPledgeListResponse = z.infer<typeof assemblyPledgeListResponseSchema>;
