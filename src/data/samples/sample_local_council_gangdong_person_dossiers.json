@@ -17,6 +17,26 @@
     },
     "official_profile": {
       "office_label": "강동구청장",
+      "profile_image_url": "https://www.gangdong.go.kr/web/common/images/mayor/profile-leesuhee.jpg",
+      "education_items": [
+        "이화여자대학교 사회과학대학 행정학과",
+        "연세대학교 행정대학원 도시행정학 석사"
+      ],
+      "career_items": [
+        "민선8기 강동구청장",
+        "제10대 서울특별시의회 의원",
+        "국민권익위원회 자문위원"
+      ],
+      "links": [
+        {
+          "label": "공식 프로필",
+          "url": "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010"
+        },
+        {
+          "label": "구청장실",
+          "url": "https://www.gangdong.go.kr/web/mayor"
+        }
+      ],
       "official_profile_sections": [
         {
           "section_title": "인사말",
@@ -28,19 +48,32 @@
     "bills": [
       {
         "bill_title": "서울특별시 강동구립도서관 설치 및 운영 조례 일부개정조례안",
-        "proposed_at": "2026-04-07"
+        "proposed_at": "2026-04-07",
+        "source_ref": {
+          "role": "official_activity"
+        }
       }
     ],
     "meeting_activity": [
       {
         "session_label": "제322회 임시회",
-        "meeting_date": "2026-03-25(수)"
+        "meeting_date": "2026-03-25(수)",
+        "meeting_name": "제322회 임시회 구정질문",
+        "source_ref": {
+          "role": "official_activity"
+        }
       }
     ],
     "finance_activity": [
       {
         "title": "강동구 예산 집행 내역",
-        "amount": 1250000
+        "amount": 1250000,
+        "currency": "KRW",
+        "activity_date": "2026-04-01",
+        "activity_type": "expense",
+        "source_ref": {
+          "source_kind": "local_finance_365"
+        }
       }
     ],
     "elected_basis": {
@@ -53,11 +86,19 @@
       },
       {
         "source_kind": "gangdong_district_head_official_profile",
-        "role": "official_profile"
+        "role": "official_profile",
+        "source_url": "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010"
       },
       {
         "source_kind": "gangdong_council_official_activity",
-        "role": "official_activity"
+        "role": "official_activity",
+        "source_url": "https://www.gangdong.go.kr/web/mayor/contents/gdo020_010"
+      },
+      {
+        "source_kind": "local_finance_365",
+        "role": "finance_activity",
+        "source_url": "https://www.localfinance.go.kr/finance/gangdong/budget-execution",
+        "download_url": "https://www.localfinance.go.kr/finance/gangdong/budget-execution/download.csv"
       },
       {
         "source_kind": "local_sample",

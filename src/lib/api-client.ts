@@ -122,7 +122,7 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       items: payload[key],
     } satisfies RegionQueryResult;
   } catch (error) {
-    console.error(error);
+    console.warn("[regions] 기본 목록으로 대체합니다.", error);
     return {
       items: [...fallback],
       fallbackMessage: error instanceof Error ? error.message : fallbackMessage,

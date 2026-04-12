@@ -22,6 +22,29 @@ interface LocalCouncilRosterViewProps {
   onBack: () => void;
 }
 
+function SectionHeading({
+  title,
+  count,
+}: {
+  title: string;
+  count: number;
+}) {
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
+        {title}
+      </h2>
+      <span
+        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px]"
+        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+      >
+        <strong style={{ color: "var(--navy)" }}>{count}</strong>
+        명
+      </span>
+    </div>
+  );
+}
+
 function PersonCard({
   person,
   onSelect,
@@ -103,7 +126,7 @@ export default function LocalCouncilRosterView({
         지역 다시 선택
       </button>
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
         <div>
           <p className="text-[13px] font-semibold" style={{ color: "var(--amber)" }}>
             {getLocalCouncilDataSourceLabel(dataSource)}
@@ -117,30 +140,6 @@ export default function LocalCouncilRosterView({
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
             {getLocalCouncilSourceCoverageSummary(resolveData.roster.source_coverage)}
           </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-center">
-          <div
-            className="rounded-lg border px-4 py-3"
-            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-          >
-            <p className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-              {districtHead ? 1 : 0}
-            </p>
-            <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-              구청장
-            </p>
-          </div>
-          <div
-            className="rounded-lg border px-4 py-3"
-            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-          >
-            <p className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-              {members.length}
-            </p>
-            <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-              구의원
-            </p>
-          </div>
         </div>
       </div>
 
@@ -159,9 +158,7 @@ export default function LocalCouncilRosterView({
 
       <div className="mt-8 grid gap-6">
         <section>
-          <h2 className="mb-3 text-xl font-bold" style={{ color: "var(--navy)" }}>
-            구청장
-          </h2>
+          <SectionHeading title="구청장" count={districtHead ? 1 : 0} />
           {districtHead ? (
             <PersonCard
               key={districtHead.person_key}
@@ -179,9 +176,7 @@ export default function LocalCouncilRosterView({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-bold" style={{ color: "var(--navy)" }}>
-            구의원
-          </h2>
+          <SectionHeading title="구의원" count={members.length} />
           <div className="grid gap-3 md:grid-cols-2">
             {members.map((member) => (
               <PersonCard key={member.person_key} person={member} onSelect={onSelectPerson} />

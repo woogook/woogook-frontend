@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   LocalCouncilDataSource,
   LocalCouncilPersonDossierResponse,
@@ -8,10 +9,15 @@ import {
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeLabel,
-  getLocalCouncilSourceLabel,
   getLocalCouncilSummaryModeLabel,
   getPayloadText,
 } from "@/features/local-council/data";
+import {
+  buildPersonHeroMeta,
+  buildExpandableSectionContentId,
+  buildSectionCardViewModel,
+  type SectionCardViewModel,
+} from "@/features/local-council/detail";
 import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
 
 interface LocalCouncilPersonDetailViewProps {
@@ -32,17 +38,15 @@ function EmptyState() {
   );
 }
 
-function RecordList({
+function ExpandableRecordList({
   title,
-  records,
-  titleKeys,
-  metaKeys,
+  items,
 }: {
   title: string;
-  records: Record<string, unknown>[];
-  titleKeys: string[];
-  metaKeys: string[];
+  items: SectionCardViewModel[];
 }) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
   return (
     <section
       className="rounded-lg border p-4"
@@ -51,24 +55,133 @@ function RecordList({
       <h2 className="mb-3 text-xl font-bold" style={{ color: "var(--navy)" }}>
         {title}
       </h2>
-      {records.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid gap-3">
-          {records.map((record, index) => (
-            <div
-              key={`${title}:${index}`}
-              className="rounded-lg border p-3"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <p className="font-bold" style={{ color: "var(--navy)" }}>
-                {getPayloadText(record, titleKeys) || "제목 확인 필요"}
-              </p>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                {getPayloadText(record, metaKeys) || "세부 정보 확인 필요"}
-              </p>
-            </div>
-          ))}
+          {items.map((item, index) => {
+            const recordKey = `${title}:${index}`;
+            const contentId = buildExpandableSectionContentId(title, index);
+            const expanded = expandedKey === recordKey;
+            const hasSourceBadge = Boolean(item.sourceLabel || item.sourceUrl);
+            const hasDownloadAction = Boolean(item.actions.downloadUrl);
+            const hasSourceLabel = Boolean(item.sourceLabel);
+            const hasExpandedContent =
+              item.detailRows.length > 0 || hasDownloadAction || hasSourceBadge || hasSourceLabel;
+            const headerContent = (
+              <div className="min-w-0 flex-1">
+                <p className="font-bold" style={{ color: "var(--navy)" }}>
+                  {item.headline}
+                </p>
+                {item.meta ? (
+                  <p
+                    className="mt-1 text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {item.meta}
+                  </p>
+                ) : null}
+              </div>
+            );
+
+            return (
+              <div
+                key={recordKey}
+                className="rounded-lg border"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {hasExpandedContent ? (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedKey(expanded ? null : recordKey)}
+                    aria-expanded={expanded}
+                    aria-controls={contentId}
+                    className="flex w-full items-start justify-between gap-3 p-3 text-left"
+                  >
+                    {headerContent}
+                    <span
+                      className="shrink-0 text-sm font-semibold"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {expanded ? "닫기" : "열기"}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="p-3">{headerContent}</div>
+                )}
+                {expanded && hasExpandedContent ? (
+                  <div
+                    id={contentId}
+                    className="border-t px-3 pb-3 pt-3"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    {item.detailRows.length > 0 ? (
+                      <div className="grid gap-2">
+                        {item.detailRows.map((row) => (
+                          <div
+                            key={`${recordKey}:${row.label}`}
+                            className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 text-sm"
+                          >
+                            <span style={{ color: "var(--text-secondary)" }}>{row.label}</span>
+                            <span style={{ color: "var(--foreground)" }}>{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {item.sourceLabel ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.sourceUrl ? (
+                          <a
+                            href={item.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                          >
+                            출처 · {item.sourceLabel}
+                          </a>
+                        ) : (
+                          <span
+                            className="rounded-full border px-3 py-1.5 text-[13px]"
+                            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                          >
+                            출처 · {item.sourceLabel}
+                          </span>
+                        )}
+                      </div>
+                    ) : item.sourceUrl ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                        >
+                          출처
+                        </a>
+                      </div>
+                    ) : null}
+                    {hasDownloadAction ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.actions.downloadUrl ? (
+                          <a
+                            href={item.actions.downloadUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                          >
+                            원문 다운로드
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
@@ -128,12 +241,50 @@ function hasOfficialProfileDisplayText(record: Record<string, unknown>) {
   return Boolean(getPayloadText(record, ["headline", "section_title"]));
 }
 
+function PersonHeroAvatar({
+  imageUrl,
+  name,
+}: {
+  imageUrl?: string;
+  name: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasProfileImage = Boolean(imageUrl) && !imageFailed;
+
+  return (
+    <div
+      className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg text-2xl font-bold"
+      style={{
+        background: "var(--amber-bg)",
+        color: "var(--amber)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <span aria-hidden="true">{name.slice(0, 1) || "?"}</span>
+      {hasProfileImage && imageUrl ? (
+        <>
+          {/* Backend-provided image URLs are arbitrary; keep plain img local instead of Next Image. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={`${name} 프로필`}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export default function LocalCouncilPersonDetailView({
   person,
   dataSource,
   partyName,
   onBack,
 }: LocalCouncilPersonDetailViewProps) {
+  const hero = buildPersonHeroMeta(person);
+  const heroPartyName = hero.partyName ?? partyName ?? null;
   const officialProfileSections = person.official_profile["official_profile_sections"];
   const profileSections = Array.isArray(officialProfileSections)
     ? officialProfileSections.filter(
@@ -155,6 +306,82 @@ export default function LocalCouncilPersonDetailView({
     Object.keys(person.elected_basis).length > 0
       ? [buildElectedBasisDisplayRecord(person.elected_basis, person.office_type)]
       : [];
+  const profileItems = profileRecords.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["headline", "section_title", "office_label"],
+      metaKeys: ["section_title"],
+      detailFields: [],
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["official_profile", "profile"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
+  const electedBasisItems = electedBasisRecords.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["headline", "basis_label", "summary", "title", "office_label"],
+      metaKeys: ["summary", "meta", "basis_label"],
+      detailFields: [],
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["elected_basis"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
+  const committeeItems = person.committees.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["committee_name", "name"],
+      metaKeys: ["role", "term"],
+      detailFields: [
+        { label: "역할", keys: ["role"] },
+        { label: "임기", keys: ["term"] },
+      ],
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["profile", "official_profile"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
+  const officialActivityTitle = person.office_type === "basic_head" ? "공식 활동" : "의안";
+  const officialActivityItems = person.bills.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["bill_title", "bill_name", "title"],
+      metaKeys: ["proposed_at", "bill_date", "source_kind"],
+      detailFields: [{ label: "제안일", keys: ["proposed_at", "bill_date"] }],
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["official_activity"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
+  const meetingItems = person.meeting_activity.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["session_label", "meeting_name", "title"],
+      metaKeys: ["meeting_date", "date"],
+      detailFields: [
+        { label: "회의명", keys: ["meeting_name", "title"] },
+        { label: "회의일", keys: ["meeting_date", "date"] },
+      ],
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["official_activity"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
+  const financeItems = person.finance_activity.map((item) =>
+    buildSectionCardViewModel({
+      item,
+      titleKeys: ["title", "name"],
+      metaKeys: ["amount", "date", "activity_date"],
+      detailFields: [
+        { label: "금액", keys: ["amount"] },
+        { label: "기준일", keys: ["date", "activity_date"] },
+      ],
+      preferredSourceKinds: ["local_finance_365"],
+      preferredSourceRoles: ["finance_activity"],
+      sectionSourceRefs: person.source_refs,
+    }),
+  );
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-8">
@@ -168,7 +395,56 @@ export default function LocalCouncilPersonDetailView({
       </button>
 
       <div
-        className="rounded-lg border p-5"
+        className="rounded-lg border p-4"
+        style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+      >
+        <div className="flex gap-4">
+          <PersonHeroAvatar imageUrl={hero.imageUrl} name={hero.name} />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold" style={{ color: "var(--navy)" }}>
+              {hero.name}
+            </p>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {hero.officeLabel}
+              {heroPartyName ? ` · ${heroPartyName}` : ""}
+            </p>
+            {hero.summaryLine ? (
+              <p className="mt-2 text-sm" style={{ color: "var(--foreground)" }}>
+                {hero.summaryLine}
+              </p>
+            ) : null}
+            {hero.educationItems.length > 0 ? (
+              <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                학력 · {hero.educationItems.join(" · ")}
+              </p>
+            ) : null}
+            {hero.careerItems.length > 0 ? (
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                주요 약력 · {hero.careerItems.join(" · ")}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {hero.links?.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {hero.links.map((link) => (
+              <a
+                key={`${link.label}:${link.url}`}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        className="mt-5 rounded-lg border p-5"
         style={{ borderColor: "var(--border)", background: "var(--surface)" }}
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -213,69 +489,12 @@ export default function LocalCouncilPersonDetailView({
       )}
 
       <div className="mt-6 grid gap-4">
-        <RecordList
-          title="공식 프로필"
-          records={profileRecords}
-          titleKeys={["headline", "section_title", "office_label"]}
-          metaKeys={["section_title", "office_label"]}
-        />
-        <RecordList
-          title="당선 근거"
-          records={electedBasisRecords}
-          titleKeys={["headline", "basis_label", "summary", "title", "office_label"]}
-          metaKeys={["summary", "meta", "basis_label"]}
-        />
-        <RecordList
-          title="위원회"
-          records={person.committees}
-          titleKeys={["committee_name", "name"]}
-          metaKeys={["role", "term"]}
-        />
-        <RecordList
-          title={person.office_type === "basic_head" ? "공식 활동" : "의안"}
-          records={person.bills}
-          titleKeys={["bill_title", "bill_name", "title"]}
-          metaKeys={["proposed_at", "bill_date", "source_kind"]}
-        />
-        <RecordList
-          title="회의"
-          records={person.meeting_activity}
-          titleKeys={["session_label", "meeting_name", "title"]}
-          metaKeys={["meeting_date", "date"]}
-        />
-        <RecordList
-          title="재정 활동"
-          records={person.finance_activity}
-          titleKeys={["title", "name"]}
-          metaKeys={["amount", "date"]}
-        />
-        <section
-          className="rounded-lg border p-4"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <h2 className="mb-3 text-xl font-bold" style={{ color: "var(--navy)" }}>
-            출처
-          </h2>
-          {person.source_refs.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {person.source_refs.map((source, index) => {
-                const sourceKind =
-                  typeof source.source_kind === "string" ? source.source_kind : "unknown";
-                return (
-                  <span
-                    key={`${sourceKind}:${index}`}
-                    className="rounded-full border px-3 py-1.5 text-[13px]"
-                    style={{ borderColor: "var(--border)", color: "var(--navy)" }}
-                  >
-                    {getLocalCouncilSourceLabel(sourceKind)}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        <ExpandableRecordList title="공식 프로필" items={profileItems} />
+        <ExpandableRecordList title="당선 근거" items={electedBasisItems} />
+        <ExpandableRecordList title="위원회" items={committeeItems} />
+        <ExpandableRecordList title={officialActivityTitle} items={officialActivityItems} />
+        <ExpandableRecordList title="회의" items={meetingItems} />
+        <ExpandableRecordList title="재정 활동" items={financeItems} />
       </div>
     </section>
   );
