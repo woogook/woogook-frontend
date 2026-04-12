@@ -602,6 +602,24 @@ test("LocalCouncilPersonDetailView uses the source badge as the external link an
   assert.doesNotMatch(html, />출처<\/h2>/);
 });
 
+test("LocalCouncilPersonDetailView applies noopener to every external link", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "재정 활동:0",
+  });
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  const relMatches = html.match(/rel="noopener noreferrer"/g) ?? [];
+
+  assert.equal(relMatches.length >= 4, true);
+  assert.doesNotMatch(html, /rel="noreferrer"/);
+});
+
 test("LocalCouncilPersonDetailView keeps the source badge non-clickable when backend sends an invalid placeholder URL", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "재정 활동:0",

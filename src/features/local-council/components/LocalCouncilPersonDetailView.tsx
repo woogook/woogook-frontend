@@ -134,7 +134,7 @@ function ExpandableRecordList({
                           <a
                             href={item.sourceUrl}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
@@ -154,7 +154,7 @@ function ExpandableRecordList({
                         <a
                           href={item.sourceUrl}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                           style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                         >
@@ -168,7 +168,7 @@ function ExpandableRecordList({
                           <a
                             href={item.actions.downloadUrl}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
@@ -432,7 +432,7 @@ export default function LocalCouncilPersonDetailView({
                 key={`${link.label}:${link.url}`}
                 href={link.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                 style={{ borderColor: "var(--border)", color: "var(--navy)" }}
               >
