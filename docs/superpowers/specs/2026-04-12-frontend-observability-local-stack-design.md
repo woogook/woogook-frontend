@@ -41,7 +41,7 @@
 
 ### 시나리오 2. 실제 Discord alert 검증
 
-1. 개발자가 `.env.local` 또는 실행 env에 `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`을 설정한다.
+1. 개발자가 `ops/observability/.env`에 `GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`을 설정한다.
 2. 저장소의 테스트 helper가 브라우저 오류 또는 API 5xx를 발생시킨다.
 3. `Prometheus`와 `Grafana Alerting`이 임계치를 만족하는 rule을 평가한다.
 4. `Grafana`는 provisioning된 `Discord contact point`로 alert를 보낸다.
@@ -117,7 +117,7 @@
 - `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true`
 - `WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL=http://localhost:3100/loki/api/v1/push`
 - `WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL=http://localhost:3100/loki/api/v1/query_range`
-- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL=<discord webhook>`
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL=<optional discord webhook for analyzer>`
 - 필요 시 `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
 
 ### compose 스택
@@ -128,6 +128,7 @@
 - `FRONTEND_METRICS_TARGET`
 
 `FRONTEND_METRICS_TARGET` 기본값은 `host.docker.internal:3000`으로 두고, Linux에서도 동작하도록 compose에 `extra_hosts`를 추가한다.
+`GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`은 실제 Discord alert 검증의 필수값이고, 앱의 `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`은 analyzer 경로를 따로 확인할 때만 사용한다.
 
 ## Grafana provisioning 설계
 
