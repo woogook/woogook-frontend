@@ -24,6 +24,7 @@
 배포 배경과 의사결정 이유는 아래 문서에서 확인한다.
 
 - `docs/common/canonical/frontend-deployment-decision.md`
+- 로컬 observability 검증 절차: `docs/common/runbooks/frontend-observability-local-runbook.md`
 
 ## 현재 기준 운영 원칙
 
