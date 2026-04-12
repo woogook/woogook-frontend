@@ -52,3 +52,6 @@ next-env.d.ts
 
 # data
 2026_data/
+
+# superpowers
+.superpowers/*
