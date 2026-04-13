@@ -13,6 +13,12 @@ const serviceCards = [
     title: "내 선거 안내서",
     description: "주소 기반 투표지 확인과 후보 비교 흐름은 지방선거 도메인으로 유지합니다.",
   },
+  {
+    href: "/local-council",
+    label: "현직 지방의원",
+    title: "우리동네 지방의원",
+    description: "주소 기반으로 구청장과 구의원의 공식 근거 요약을 확인합니다.",
+  },
 ];
 
 export default function Home() {
@@ -32,16 +38,16 @@ export default function Home() {
           className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl"
           style={{ color: "var(--navy)", fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif" }}
         >
-          국회와 지방선거 서비스를
+          국회와 지역 정치 서비스를
           <br />
-          서로 다른 경계로 안내합니다.
+          도메인별로 안내합니다.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: "var(--text-secondary)" }}>
-          루트 페이지는 서비스 선택만 담당합니다. 실제 화면과 문서는 각 도메인 경로에서 독립적으로
-          발전합니다.
+          루트 페이지는 국회, 지방선거, 현직 지방의원을 서로 다른 경로로 나눠 안내합니다. 각 도메인
+          경로에서 화면과 문서는 독립적으로 발전합니다.
         </p>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
           {serviceCards.map((card) => (
             <Link
               key={card.href}

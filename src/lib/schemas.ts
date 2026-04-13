@@ -299,6 +299,99 @@ export const assemblyMemberListResponseSchema = z.object({
   items: z.array(assemblyMemberListItemSchema),
 });
 
+const localCouncilPayloadObjectSchema = z.record(z.string(), z.unknown());
+
+const localCouncilFreshnessSchema = z
+  .object({
+    basis_kind: z.string().nullable().optional(),
+    basis_timestamp: z.string().nullable().optional(),
+    generated_at: z.string().nullable().optional(),
+    source_mode: z.string().nullable().optional(),
+    is_snapshot_based: z.boolean().nullable().optional(),
+    note: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+const localCouncilSpotCheckSchema = z
+  .object({
+    kind: z.string().nullable().optional(),
+    person_key: z.string().nullable().optional(),
+    source_kind: z.string().nullable().optional(),
+    council_slug: z.string().nullable().optional(),
+    member_source_docid: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+const localCouncilDiagnosticsSchema = z
+  .object({
+    publish_status: z.string().nullable().optional(),
+    final_publish_status: z.string().nullable().optional(),
+    agentic_review_status: z.string().nullable().optional(),
+    agentic_enrichment_status: z.string().nullable().optional(),
+    data_gap_flags: z.array(z.string()).optional(),
+    needs_human_review: z.unknown().optional(),
+    spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+export const localCouncilDataSourceSchema = z.enum(["backend", "local_sample"]);
+
+export const localCouncilDistrictRefSchema = z.object({
+  gu_code: z.string(),
+  district_slug: z.string(),
+  district_name: z.string().nullable().optional(),
+});
+
+export const localCouncilRosterPersonSchema = z
+  .object({
+    person_key: z.string(),
+    office_type: z.string(),
+    person_name: z.string(),
+    party_name: z.string().nullable().optional(),
+    profile_image_url: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+export const localCouncilDistrictRosterResponseSchema = z.object({
+  district_head: localCouncilRosterPersonSchema.or(localCouncilPayloadObjectSchema),
+  council_members: z.array(localCouncilRosterPersonSchema),
+  source_coverage: localCouncilPayloadObjectSchema,
+  freshness: localCouncilFreshnessSchema,
+});
+
+export const localCouncilResolveResponseSchema = z.object({
+  resolution_status: z.literal("resolved"),
+  district: localCouncilDistrictRefSchema,
+  roster: localCouncilDistrictRosterResponseSchema,
+});
+
+export const localCouncilPersonSummarySchema = z
+  .object({
+    headline: z.string(),
+    grounded_summary: z.string(),
+    summary_mode: z.enum(["agentic", "fallback", "none"]),
+    summary_basis: localCouncilPayloadObjectSchema,
+    evidence_digest: z.array(z.string()).optional(),
+    fallback_reason: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+export const localCouncilPersonDossierResponseSchema = z.object({
+  person_name: z.string(),
+  office_type: z.string(),
+  summary: localCouncilPersonSummarySchema,
+  official_profile: localCouncilPayloadObjectSchema,
+  committees: z.array(localCouncilPayloadObjectSchema),
+  bills: z.array(localCouncilPayloadObjectSchema),
+  meeting_activity: z.array(localCouncilPayloadObjectSchema),
+  finance_activity: z.array(localCouncilPayloadObjectSchema),
+  elected_basis: localCouncilPayloadObjectSchema,
+  source_refs: z.array(localCouncilPayloadObjectSchema),
+  diagnostics: localCouncilDiagnosticsSchema.optional(),
+  spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+  freshness: localCouncilFreshnessSchema,
+});
+
 /** GET /api/assembly/v1/members/{mona_cd}/card — 백엔드 AssemblyMemberMetaCard */
 export const assemblyMemberMetaCardSchema = z.object({
   member_mona_cd: z.string(),
@@ -399,6 +492,22 @@ export const assemblyPledgeListResponseSchema = z.object({
 export type AssemblyMemberListMeta = z.infer<typeof assemblyMemberListMetaSchema>;
 export type AssemblyMemberListItem = z.infer<typeof assemblyMemberListItemSchema>;
 export type AssemblyMemberListResponse = z.infer<typeof assemblyMemberListResponseSchema>;
+export type LocalCouncilDataSource = z.infer<typeof localCouncilDataSourceSchema>;
+export type LocalCouncilDistrictRef = z.infer<typeof localCouncilDistrictRefSchema>;
+export type LocalCouncilRosterPerson = z.infer<typeof localCouncilRosterPersonSchema>;
+export type LocalCouncilDistrictRosterResponse = z.infer<
+  typeof localCouncilDistrictRosterResponseSchema
+>;
+export type LocalCouncilResolveResponse = z.infer<
+  typeof localCouncilResolveResponseSchema
+>;
+export type LocalCouncilFreshness = z.infer<typeof localCouncilFreshnessSchema>;
+export type LocalCouncilSpotCheck = z.infer<typeof localCouncilSpotCheckSchema>;
+export type LocalCouncilDiagnostics = z.infer<typeof localCouncilDiagnosticsSchema>;
+export type LocalCouncilPersonSummary = z.infer<typeof localCouncilPersonSummarySchema>;
+export type LocalCouncilPersonDossierResponse = z.infer<
+  typeof localCouncilPersonDossierResponseSchema
+>;
 export type AssemblyMemberMetaCard = z.infer<typeof assemblyMemberMetaCardSchema>;
 export type AssemblyPledgeSummaryResponse = z.infer<typeof assemblyPledgeSummaryResponseSchema>;
 export type AssemblyPledgeCategoryFulfillment = z.infer<

@@ -5,11 +5,11 @@ export const runtime = "nodejs";
 
 // GET /api/assembly/v1/members/:mona_cd/card -> FastAPI
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ mona_cd: string }> },
 ) {
   const { mona_cd: monaCdRaw } = await context.params;
   const monaCd = encodeURIComponent(monaCdRaw);
   const pathWithQuery = `/api/assembly/v1/members/${monaCd}/card`;
-  return proxyToBackend(pathWithQuery);
+  return proxyToBackend(request, pathWithQuery);
 }

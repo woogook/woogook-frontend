@@ -11,5 +11,8 @@ export async function GET(
   const { mona_cd: monaCdRaw } = await context.params;
   const monaCd = encodeURIComponent(monaCdRaw);
   const url = new URL(request.url);
-  return proxyToBackend(`/api/assembly/v1/members/${monaCd}/pledges${url.search}`);
+  return proxyToBackend(
+    request,
+    `/api/assembly/v1/members/${monaCd}/pledges${url.search}`,
+  );
 }

@@ -18,7 +18,8 @@
     "agents:sync:pull-request": "python3 scripts/agents_sync.py pull-request",
     "agents:sync:post-merge-report": "python3 scripts/agents_sync.py post-merge-report",
     "agents:test": "python3 -m unittest discover -s tests -p 'test_*.py'",
-    "agents:validate": "python3 scripts/validate_agents_harness.py"
+    "agents:validate": "python3 scripts/validate_agents_harness.py",
+    "test:local-council-samples": "sh -c 'trap \"rm -rf tmp/local-council-validation\" EXIT; rm -rf tmp/local-council-validation && tsc scripts/validate-local-council-samples.ts --module NodeNext --moduleResolution NodeNext --target ES2022 --esModuleInterop --resolveJsonModule --outDir tmp/local-council-validation --rootDir . --skipLibCheck && node tmp/local-council-validation/scripts/validate-local-council-samples.js'"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
