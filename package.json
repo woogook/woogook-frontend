@@ -7,18 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "observability:stack:config": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env.example config",
-    "observability:stack:up": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env up -d",
-    "observability:stack:down": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env down -v",
-    "observability:health-check": "node scripts/observability/health-check.mjs",
-    "observability:emit-browser-error": "node scripts/observability/emit-browser-error.mjs",
-    "observability:emit-api-5xx": "node scripts/observability/emit-api-5xx.mjs",
     "agents:sync:issue": "python3 scripts/agents_sync.py issue",
     "agents:sync:pull-request": "python3 scripts/agents_sync.py pull-request",
     "agents:sync:post-merge-report": "python3 scripts/agents_sync.py post-merge-report",
     "agents:test": "python3 -m unittest discover -s tests -p 'test_*.py'",
-    "agents:validate": "python3 scripts/validate_agents_harness.py"
+    "agents:validate": "python3 scripts/validate_agents_harness.py",
+    "test:local-council-samples": "sh -c 'trap \"rm -rf tmp/local-council-validation\" EXIT; rm -rf tmp/local-council-validation && tsc scripts/validate-local-council-samples.ts --module NodeNext --moduleResolution NodeNext --target ES2022 --esModuleInterop --resolveJsonModule --outDir tmp/local-council-validation --rootDir . --skipLibCheck && node tmp/local-council-validation/scripts/validate-local-council-samples.js'"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -29,7 +23,6 @@
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "pg": "^8.20.0",
-    "prom-client": "^15.1.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
@@ -44,7 +37,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.4"
+    "typescript": "^5"
   }
 }
