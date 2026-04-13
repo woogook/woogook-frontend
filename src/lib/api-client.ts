@@ -5,6 +5,11 @@ import { CITIES, DISTRICTS, DONGS } from "@/app/data";
 import sampleLocalCouncilGangdongResolve from "@/data/samples/sample_local_council_gangdong_resolve.json";
 import sampleLocalCouncilGangdongPersonDossiers from "@/data/samples/sample_local_council_gangdong_person_dossiers.json";
 import {
+  createBrowserCorrelationHeaders,
+  reportBrowserError,
+  reportClientApiFailure,
+} from "@/lib/observability/client";
+import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
   citiesResponseSchema,
@@ -22,7 +27,13 @@ import {
   type LocalCouncilResolveResponse,
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
+  assemblyMemberMetaCardSchema,
+  assemblyPledgeListResponseSchema,
+  assemblyPledgeSummaryResponseSchema,
   type AssemblyMemberListResponse,
+  type AssemblyMemberMetaCard,
+  type AssemblyPledgeListResponse,
+  type AssemblyPledgeSummaryResponse,
   type BallotsSearchParams,
   type LocalElectionChatConversationCreateRequest,
   type LocalElectionChatMessageCreateRequest,
@@ -85,17 +96,40 @@ async function requestJson<T>(
   schema: ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...(init?.headers || {}),
-    },
-  });
+  const { headers, correlationId } = createBrowserCorrelationHeaders(init?.headers);
+  headers.set("Accept", "application/json");
+  if (init?.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(input, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      void reportClientApiFailure({
+        route: input,
+        httpMethod: init?.method ?? "GET",
+        errorMessage: error.message,
+        correlationId,
+      });
+    }
+    throw error;
+  }
+
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
+    void reportClientApiFailure({
+      route: input,
+      httpMethod: init?.method ?? "GET",
+      httpStatus: response.status,
+      errorMessage: getErrorMessage(payload, "요청을 처리하지 못했습니다."),
+      correlationId,
+    });
     throw new ApiError(
       response.status,
       getErrorMessage(payload, "요청을 처리하지 못했습니다."),
@@ -122,6 +156,12 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       items: payload[key],
     } satisfies RegionQueryResult;
   } catch (error) {
+    if (error instanceof Error) {
+      void reportBrowserError(error, {
+        route: input,
+        fallbackMessage,
+      });
+    }
     console.warn("[regions] 기본 목록으로 대체합니다.", error);
     return {
       items: [...fallback],
@@ -233,10 +273,94 @@ export function assemblyMembersQueryOptions(region: string, district: string) {
   return queryOptions({
     queryKey: ["assembly", "members", region, trimmedDistrict],
     queryFn: () => fetchAssemblyMembers(region, trimmedDistrict),
-    enabled: trimmedDistrict.length > 0, 
+    enabled: trimmedDistrict.length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 0,
-  })
+  });
+}
+
+/**
+ * 국회 의원 메타 카드 (GET …/members/{mona_cd}/card) — assembly_member 한 행.
+ */
+export async function fetchAssemblyMemberMetaCard(
+  monaCd: string,
+): Promise<AssemblyMemberMetaCard> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/card`,
+    assemblyMemberMetaCardSchema,
+  );
+}
+
+export function assemblyMemberMetaCardQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "card", trimmed],
+    queryFn: () => fetchAssemblyMemberMetaCard(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyPledgeSummary(
+  monaCd: string,
+): Promise<AssemblyPledgeSummaryResponse> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/pledge-summary`,
+    assemblyPledgeSummaryResponseSchema,
+  );
+}
+
+export function assemblyPledgeSummaryQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledge-summary", trimmed],
+    queryFn: () => fetchAssemblyPledgeSummary(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyMemberPledges(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}): Promise<AssemblyPledgeListResponse> {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const query = new URLSearchParams({ category });
+  if (params.limit !== undefined) {
+    query.set("limit", String(params.limit));
+  }
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(monaCd)}/pledges?${query.toString()}`,
+    assemblyPledgeListResponseSchema,
+  );
+}
+
+export function assemblyMemberPledgesQueryOptions(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}) {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const limit = params.limit ?? null;
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledges", monaCd, category, limit],
+    queryFn: () =>
+      fetchAssemblyMemberPledges({
+        monaCd,
+        category,
+        ...(limit !== null ? { limit } : {}),
+      }),
+    enabled: monaCd.length > 0 && category.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
 }
 
 export type LocalCouncilResult<T> = {
@@ -348,7 +472,6 @@ export function localCouncilPersonQueryOptions(personKey: string) {
     retry: 0,
   });
 }
-
 
 export async function createLocalElectionChatConversation(
   request: LocalElectionChatConversationCreateRequest,
