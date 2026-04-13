@@ -34,14 +34,13 @@ export async function proxyLocalCouncilToBackend(
       },
     });
 
-    const body = await response.text();
     const headers = new Headers();
     headers.set(
       "content-type",
       response.headers.get("content-type") || "application/json; charset=utf-8",
     );
 
-    return new Response(body, {
+    return new Response(response.body, {
       status: response.status,
       headers,
     });

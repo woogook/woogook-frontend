@@ -229,23 +229,6 @@ function collectSourceLinksFromLegacySourceUrls(
     .filter((item): item is SectionCardSourceLink => item !== null);
 }
 
-function collectSourceLinksFromSingleSourceUrl(
-  record: Record<string, unknown>,
-): SectionCardSourceLink[] {
-  const url = sanitizeExternalUrl(record.source_url);
-  if (!url) {
-    return [];
-  }
-
-  return [
-    {
-      label:
-        sourceLabelFromSourceRecord(record, { allowGenericLabel: true }) ?? "출처",
-      url,
-    },
-  ];
-}
-
 interface SectionCardSourcePayload {
   sourceUrl: string | null;
   sourceLinks: SectionCardSourceLink[];
