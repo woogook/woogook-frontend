@@ -1,0 +1,15 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: frontend-discord
+    group_by:
+      - alertname
+      - route
+    group_wait: 10s
+    group_interval: 30s
+    repeat_interval: 1h
+    routes:
+      - receiver: frontend-discord
+        object_matchers:
+          - ["team", "=", "frontend-observability"]

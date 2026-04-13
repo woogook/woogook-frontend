@@ -7,6 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "observability:stack:config": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env.example config",
+    "observability:stack:up": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env up -d",
+    "observability:stack:down": "docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env down -v",
+    "observability:health-check": "node scripts/observability/health-check.mjs",
+    "observability:emit-browser-error": "node scripts/observability/emit-browser-error.mjs",
+    "observability:emit-api-5xx": "node scripts/observability/emit-api-5xx.mjs",
     "agents:sync:issue": "python3 scripts/agents_sync.py issue",
     "agents:sync:pull-request": "python3 scripts/agents_sync.py pull-request",
     "agents:sync:post-merge-report": "python3 scripts/agents_sync.py post-merge-report",
@@ -22,6 +29,7 @@
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "pg": "^8.20.0",
+    "prom-client": "^15.1.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
@@ -36,6 +44,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   }
 }

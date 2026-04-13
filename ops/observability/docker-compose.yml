@@ -1,0 +1,64 @@
+name: woogook-frontend-observability
+
+services:
+  loki:
+    image: grafana/loki:3.7.0
+    command:
+      - -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    depends_on:
+      - loki
+    entrypoint:
+      - /bin/sh
+      - -euc
+    command:
+      - |
+        sed "s|__FRONTEND_METRICS_TARGET__|$${FRONTEND_METRICS_TARGET}|g" \
+          /etc/prometheus/prometheus.yml >/tmp/prometheus.generated.yml
+        exec /bin/prometheus \
+          --config.file=/tmp/prometheus.generated.yml \
+          --storage.tsdb.path=/prometheus \
+          --web.enable-lifecycle
+    environment:
+      FRONTEND_METRICS_TARGET: ${FRONTEND_METRICS_TARGET}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    depends_on:
+      - loki
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_FEATURE_TOGGLES_ENABLE: alertingSimplifiedRouting
+      GRAFANA_ALERTS_DISCORD_WEBHOOK_URL: ${GRAFANA_ALERTS_DISCORD_WEBHOOK_URL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  grafana-data:
+  loki-data:
+  prometheus-data:

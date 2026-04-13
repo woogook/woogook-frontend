@@ -12,6 +12,75 @@ npm run dev
 
 브라우저에서 `http://localhost:3000`을 열면 됩니다.
 
+## Observability
+
+frontend observability는 `Phase A` 기준으로 저장소 내부에서 바로 동작한다.
+
+- 로컬 로그 경로: `.logs/frontend/YYYY-MM-DD/browser.ndjson`, `.logs/frontend/YYYY-MM-DD/server.ndjson`, `.logs/frontend/YYYY-MM-DD/analyzer.ndjson`
+- 브라우저 ingest endpoint: `/api/observability/browser-events`
+- Prometheus metrics endpoint: `/api/observability/metrics`
+- Grafana alert analyzer webhook: `/api/observability/analyzer`
+
+### 주요 환경변수
+
+- `WOOGOOK_OBSERVABILITY_ENV`
+- `WOOGOOK_OBSERVABILITY_RELEASE`
+- `WOOGOOK_OBSERVABILITY_LOCAL_ROOT_DIR`
+- `WOOGOOK_OBSERVABILITY_WRITE_LOCAL_FILES`
+- `WOOGOOK_OBSERVABILITY_ROTATE_BYTES`
+- `WOOGOOK_OBSERVABILITY_RETENTION_DAYS`
+- `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD`
+- `WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL`
+- `WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL`
+- `WOOGOOK_OBSERVABILITY_LOKI_USERNAME`
+- `WOOGOOK_OBSERVABILITY_LOKI_PASSWORD`
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS`
+- `WOOGOOK_OBSERVABILITY_ANALYZER_LOOKBACK_MINUTES`
+
+로컬 개발에서는 기본적으로 full-fidelity 파일 로그만 남기고, `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true`일 때만 cloud 전송을 시도한다.
+`WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL`을 비우면 `.../loki/api/v1/push`에서 `.../loki/api/v1/query_range`를 자동 유도한다.
+
+### 로컬 Grafana 스택
+
+로컬에서 `Grafana + Loki + Prometheus`를 함께 띄워 frontend 로그/메트릭과 alert를 검증할 수 있다.
+
+1. `ops/observability/.env.example`를 `ops/observability/.env`로 복사하고 값을 채운다.
+2. frontend 앱 env에 아래 값을 넣는다.
+
+```bash
+WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true
+WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL=http://localhost:3100/loki/api/v1/push
+WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL=http://localhost:3100/loki/api/v1/query_range
+```
+
+3. stack을 띄운다.
+
+```bash
+npm run observability:stack:up
+```
+
+4. frontend 앱을 실행한다.
+
+```bash
+npm run dev
+```
+
+5. health check와 synthetic alert trigger를 실행한다.
+
+```bash
+npm run observability:health-check
+npm run observability:emit-browser-error
+npm run observability:emit-api-5xx
+```
+
+synthetic trigger 스크립트는 alert rule의 `increase(...[2m])`가 잡히도록 scrape interval을 넘겨 2회 전송한다.
+
+6. `http://localhost:3001`에서 Grafana를 열고, Discord webhook을 설정했다면 alert 도착 여부를 확인한다.
+
+상세 절차는 `docs/common/runbooks/frontend-observability-local-runbook.md`를 따른다.
+
 ## 주요 진입 경로
 
 - `/`: 서비스 허브
@@ -25,6 +94,8 @@ npm run dev
 - `Tailwind CSS 4`
 - `Zod`
 - `@tanstack/react-query`
+- `Vitest`
+- `prom-client`
 - `shadcn/ui` 최소 구성 (`Button`, `Tabs`, `Alert`)
 - `pg`
 

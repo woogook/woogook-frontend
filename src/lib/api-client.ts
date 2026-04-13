@@ -3,6 +3,11 @@ import type { ZodType } from "zod";
 
 import { CITIES, DISTRICTS, DONGS } from "@/app/data";
 import {
+  createBrowserCorrelationHeaders,
+  reportBrowserError,
+  reportClientApiFailure,
+} from "@/lib/observability/client";
+import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
   citiesResponseSchema,
@@ -69,17 +74,40 @@ async function requestJson<T>(
   schema: ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...(init?.headers || {}),
-    },
-  });
+  const { headers, correlationId } = createBrowserCorrelationHeaders(init?.headers);
+  headers.set("Accept", "application/json");
+  if (init?.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(input, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      void reportClientApiFailure({
+        route: input,
+        httpMethod: init?.method ?? "GET",
+        errorMessage: error.message,
+        correlationId,
+      });
+    }
+    throw error;
+  }
+
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
+    void reportClientApiFailure({
+      route: input,
+      httpMethod: init?.method ?? "GET",
+      httpStatus: response.status,
+      errorMessage: getErrorMessage(payload, "요청을 처리하지 못했습니다."),
+      correlationId,
+    });
     throw new ApiError(
       response.status,
       getErrorMessage(payload, "요청을 처리하지 못했습니다."),
@@ -106,7 +134,12 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       items: payload[key],
     } satisfies RegionQueryResult;
   } catch (error) {
-    console.error(error);
+    if (error instanceof Error) {
+      void reportBrowserError(error, {
+        route: input,
+        fallbackMessage,
+      });
+    }
     return {
       items: [...fallback],
       fallbackMessage: error instanceof Error ? error.message : fallbackMessage,

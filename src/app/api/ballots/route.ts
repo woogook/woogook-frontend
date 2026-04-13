@@ -24,6 +24,7 @@ import {
   type BallotResponse,
   type CandidateRecord,
 } from "@/lib/schemas";
+import { logServerEvent, observeRoute } from "@/lib/observability/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -68,111 +69,125 @@ type CandidateRow = {
 };
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const parsed = ballotsSearchParamsSchema.safeParse({
-    city: searchParams.get("city"),
-    sigungu: searchParams.get("sigungu"),
-    emd: searchParams.get("emd"),
-  });
+  return observeRoute(request, "ballots", async (context) => {
+    const { searchParams } = new URL(request.url);
+    const parsed = ballotsSearchParamsSchema.safeParse({
+      city: searchParams.get("city"),
+      sigungu: searchParams.get("sigungu"),
+      emd: searchParams.get("emd"),
+    });
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "city and sigungu are required",
-        message: "시/도와 구/군/시는 필수입니다.",
-      },
-      { status: 400 },
-    );
-  }
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "city and sigungu are required",
+          message: "시/도와 구/군/시는 필수입니다.",
+        },
+        { status: 400 },
+      );
+    }
 
-  const { city, sigungu, emd } = parsed.data;
+    const { city, sigungu, emd } = parsed.data;
 
-  try {
-    const contests = await fetchContests(city, sigungu, emd);
+    try {
+      const contests = await fetchContests(city, sigungu, emd);
 
-    if (contests.length === 0) {
+      if (contests.length === 0) {
+        return NextResponse.json(
+          ballotResponseSchema.parse({
+            city_name_canonical: city,
+            sigungu_name: sigungu,
+            emd_name: emd ?? null,
+            resolution_status: "ambiguous",
+            ballot_count: 0,
+            ballots: [],
+            ambiguous_ballots: [],
+            meta: buildElectionMeta(),
+          }),
+        );
+      }
+
+      const contestIds = contests.map((contest) => contest.contest_id);
+      const candidateMap = await fetchCandidatesByContest(contestIds);
+
+      const groupedByElection = groupContestsByElection(contests);
+      const ballots: BallotItem[] = [];
+      const ambiguousBallots: AmbiguousBallot[] = [];
+
+      for (const [, group] of groupedByElection) {
+        if (group.length === 1) {
+          const contest = group[0];
+          ballots.push({
+            ...contest,
+            candidates: candidateMap.get(contest.contest_id) || [],
+          });
+          continue;
+        }
+
+        const { election_code, election_name } = group[0];
+        ambiguousBallots.push({
+          election_code,
+          election_name,
+          options: group.map((contest) => ({
+            contest_id: contest.contest_id,
+            display_name: contest.display_name,
+            parent_area_name: contest.parent_area_name,
+          })),
+        });
+      }
+
+      const resolutionStatus =
+        ambiguousBallots.length > 0
+          ? ballots.length > 0
+            ? "partially_ambiguous"
+            : "ambiguous"
+          : "resolved";
+
       return NextResponse.json(
         ballotResponseSchema.parse({
           city_name_canonical: city,
           sigungu_name: sigungu,
           emd_name: emd ?? null,
-          resolution_status: "ambiguous",
-          ballot_count: 0,
-          ballots: [],
-          ambiguous_ballots: [],
-          meta: buildElectionMeta(),
+          resolution_status: resolutionStatus,
+          ballot_count: ballots.length,
+          ballots,
+          ambiguous_ballots: ambiguousBallots,
+          meta: buildElectionMeta(contests[0].election_id, contests[0].election_name),
         }),
       );
-    }
-
-    const contestIds = contests.map((contest) => contest.contest_id);
-    const candidateMap = await fetchCandidatesByContest(contestIds);
-
-    const groupedByElection = groupContestsByElection(contests);
-    const ballots: BallotItem[] = [];
-    const ambiguousBallots: AmbiguousBallot[] = [];
-
-    for (const [, group] of groupedByElection) {
-      if (group.length === 1) {
-        const contest = group[0];
-        ballots.push({
-          ...contest,
-          candidates: candidateMap.get(contest.contest_id) || [],
-        });
-        continue;
-      }
-
-      const { election_code, election_name } = group[0];
-      ambiguousBallots.push({
-        election_code,
-        election_name,
-        options: group.map((contest) => ({
-          contest_id: contest.contest_id,
-          display_name: contest.display_name,
-          parent_area_name: contest.parent_area_name,
-        })),
+    } catch (error) {
+      await logServerEvent({
+        level: "error",
+        signalType: "server_error",
+        component: "next-api",
+        route: context.routeName,
+        requestId: context.requestId,
+        correlationId: context.correlationId,
+        httpMethod: request.method,
+        errorName: error instanceof Error ? error.name : "BallotsQueryError",
+        errorMessage:
+          error instanceof Error ? error.message : "Failed to load ballots",
+        stack: error instanceof Error ? error.stack : undefined,
       });
-    }
 
-    const resolutionStatus =
-      ambiguousBallots.length > 0
-        ? ballots.length > 0
-          ? "partially_ambiguous"
-          : "ambiguous"
-        : "resolved";
-
-    return NextResponse.json(
-      ballotResponseSchema.parse({
-        city_name_canonical: city,
-        sigungu_name: sigungu,
-        emd_name: emd ?? null,
-        resolution_status: resolutionStatus,
-        ballot_count: ballots.length,
-        ballots,
-        ambiguous_ballots: ambiguousBallots,
-        meta: buildElectionMeta(contests[0].election_id, contests[0].election_name),
-      }),
-    );
-  } catch (error) {
-    console.error("[ballots] error", error);
-
-    if (isDatabaseUnavailableError(error)) {
-      const fallback = buildFallbackBallotResponse(city, sigungu, emd);
-      if (fallback) {
-        return NextResponse.json(fallback);
+      if (isDatabaseUnavailableError(error)) {
+        const fallback = buildFallbackBallotResponse(city, sigungu, emd);
+        if (fallback) {
+          return NextResponse.json(fallback);
+        }
+        return buildDatabaseUnavailableResponse("ballots");
       }
-      return buildDatabaseUnavailableResponse("ballots");
-    }
 
-    return NextResponse.json(
-      {
-        error: "Failed to load ballots",
-        message:
-          "투표구 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-      },
-      { status: 500 },
-    );
-  }
+      return NextResponse.json(
+        {
+          error: "Failed to load ballots",
+          message:
+            "투표구 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        },
+        { status: 500 },
+      );
+    }
+  });
 }
 
 function buildFallbackBallotResponse(

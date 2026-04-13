@@ -1,4 +1,5 @@
 import { proxyToBackend } from "@/app/api/local-election/v1/chat/_shared";
+import { observeRoute } from "@/lib/observability/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,7 +10,9 @@ export const runtime = "nodejs";
  */
 
 export async function GET(request: Request) {
-    const url= new URL(request.url);
+  return observeRoute(request, "assembly/v1/members", async () => {
+    const url = new URL(request.url);
     const pathWithQuery = `/api/assembly/v1/members${url.search}`;
-    return proxyToBackend(pathWithQuery);
+    return proxyToBackend(request, pathWithQuery);
+  });
 }
