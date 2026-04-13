@@ -110,7 +110,7 @@ export default function LocalCouncilPage() {
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [view]);
 
   useEffect(() => {
