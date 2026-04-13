@@ -6,6 +6,12 @@
       "headline": "이수희 공식 근거 요약",
       "grounded_summary": "공식 프로필, 의안, 회의록, 재정 활동 근거를 바탕으로 요약했다.",
       "summary_mode": "agentic",
+      "evidence_digest": [
+        "공식 프로필 1건",
+        "의안 1건",
+        "회의 활동 1건",
+        "재정 활동 1건"
+      ],
       "summary_basis": {
         "source_kinds": [
           "nec_current_holder",
@@ -13,10 +19,31 @@
           "gangdong_council_official_activity",
           "local_finance_365"
         ]
-      }
+      },
+      "fallback_reason": null
     },
     "official_profile": {
       "office_label": "강동구청장",
+      "profile_image_url": "https://www.gangdong.go.kr/web/common/images/mayor/profile-leesuhee.jpg",
+      "education_items": [
+        "이화여자대학교 사회과학대학 행정학과",
+        "연세대학교 행정대학원 도시행정학 석사"
+      ],
+      "career_items": [
+        "민선8기 강동구청장",
+        "제10대 서울특별시의회 의원",
+        "국민권익위원회 자문위원"
+      ],
+      "links": [
+        {
+          "label": "공식 프로필",
+          "url": "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010"
+        },
+        {
+          "label": "구청장실",
+          "url": "https://www.gangdong.go.kr/web/mayor"
+        }
+      ],
       "official_profile_sections": [
         {
           "section_title": "인사말",
@@ -28,19 +55,32 @@
     "bills": [
       {
         "bill_title": "서울특별시 강동구립도서관 설치 및 운영 조례 일부개정조례안",
-        "proposed_at": "2026-04-07"
+        "proposed_at": "2026-04-07",
+        "source_ref": {
+          "role": "official_activity"
+        }
       }
     ],
     "meeting_activity": [
       {
         "session_label": "제322회 임시회",
-        "meeting_date": "2026-03-25(수)"
+        "meeting_date": "2026-03-25(수)",
+        "meeting_name": "제322회 임시회 구정질문",
+        "source_ref": {
+          "role": "official_activity"
+        }
       }
     ],
     "finance_activity": [
       {
         "title": "강동구 예산 집행 내역",
-        "amount": 1250000
+        "amount": 1250000,
+        "currency": "KRW",
+        "activity_date": "2026-04-01",
+        "activity_type": "expense",
+        "source_ref": {
+          "source_kind": "local_finance_365"
+        }
       }
     ],
     "elected_basis": {
@@ -53,19 +93,63 @@
       },
       {
         "source_kind": "gangdong_district_head_official_profile",
-        "role": "official_profile"
+        "role": "official_profile",
+        "source_title": "강동구 소통 구청장실",
+        "source_url": "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010",
+        "source_links": [
+          {
+            "key": "profile",
+            "label": "프로필",
+            "url": "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010"
+          },
+          {
+            "key": "activity",
+            "label": "활동",
+            "url": "https://www.gangdong.go.kr/web/mayor/mayorCalendar/list"
+          },
+          {
+            "key": "manifesto",
+            "label": "공약",
+            "url": "https://www.gangdong.go.kr/web/mayor/contents/gdo020_130"
+          }
+        ]
       },
       {
         "source_kind": "gangdong_council_official_activity",
-        "role": "official_activity"
+        "role": "official_activity",
+        "source_url": "https://www.gangdong.go.kr/web/mayor/contents/gdo020_010"
+      },
+      {
+        "source_kind": "local_finance_365",
+        "role": "finance_activity",
+        "source_url": "https://www.localfinance.go.kr/finance/gangdong/budget-execution",
+        "download_url": "https://www.localfinance.go.kr/finance/gangdong/budget-execution/download.csv"
       },
       {
         "source_kind": "local_sample",
         "role": "local_preview"
       }
     ],
+    "diagnostics": {
+      "publish_status": "publishable",
+      "final_publish_status": "publishable",
+      "agentic_review_status": "pass",
+      "agentic_enrichment_status": "success",
+      "data_gap_flags": [],
+      "needs_human_review": [],
+      "spot_check": {
+        "kind": "district_head",
+        "person_key": "seoul-gangdong:district-head",
+        "source_kind": "gangdong_district_head_official_profile"
+      }
+    },
     "freshness": {
-      "basis_timestamp": "2026-04-08T10:10:00+09:00"
+      "basis_kind": "snapshot_batch_finished_at",
+      "basis_timestamp": "2026-04-08T10:10:00+09:00",
+      "generated_at": "2026-04-08T10:11:00+09:00",
+      "source_mode": "stored_projection_only",
+      "is_snapshot_based": true,
+      "note": "강동구 구청장 상세 미리보기"
     }
   },
   "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001": {
@@ -75,13 +159,19 @@
       "headline": "김가동 공식 근거 요약",
       "grounded_summary": "공식 프로필과 의안, 회의 활동 근거를 바탕으로 요약했다.",
       "summary_mode": "fallback",
+      "evidence_digest": [
+        "공식 프로필 1건",
+        "의안 2건",
+        "회의 활동 1건"
+      ],
       "summary_basis": {
         "source_kinds": [
           "local_council_portal_members",
           "nec_council_elected_basis",
           "gangdong_council_official_activity"
         ]
-      }
+      },
+      "fallback_reason": "source_coverage_limited"
     },
     "official_profile": {
       "office_label": "강동구의원"
@@ -131,8 +221,35 @@
         "role": "local_preview"
       }
     ],
+    "diagnostics": {
+      "publish_status": "publishable",
+      "final_publish_status": "publishable_degraded",
+      "agentic_review_status": "pass",
+      "agentic_enrichment_status": "fallback",
+      "data_gap_flags": [
+        "no_finance_activity"
+      ],
+      "needs_human_review": [
+        {
+          "reason_code": "member_source_docid_check",
+          "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+          "note": "1인 spot-check 대상"
+        }
+      ],
+      "spot_check": {
+        "kind": "member_source_docid",
+        "council_slug": "서울_강동구의회_002003",
+        "member_source_docid": "GD-MEMBER-001",
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001"
+      }
+    },
     "freshness": {
-      "basis_timestamp": "2026-04-08T10:05:00+09:00"
+      "basis_kind": "published_batch_finished_at",
+      "basis_timestamp": "2026-04-08T10:05:00+09:00",
+      "generated_at": "2026-04-08T10:06:00+09:00",
+      "source_mode": "stored_projection_only",
+      "is_snapshot_based": false,
+      "note": "강동구 구의원 상세 미리보기"
     }
   },
   "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002": {
@@ -142,12 +259,17 @@
       "headline": "이나리 공식 근거 요약",
       "grounded_summary": "당선 근거와 의회 공식 활동 근거를 기준으로 확인 가능한 정보를 요약했다.",
       "summary_mode": "fallback",
+      "evidence_digest": [
+        "공식 프로필 1건",
+        "당선 근거 1건"
+      ],
       "summary_basis": {
         "source_kinds": [
           "local_council_portal_members",
           "nec_council_elected_basis"
         ]
-      }
+      },
+      "fallback_reason": "source_coverage_limited"
     },
     "official_profile": {
       "office_label": "강동구의원"
@@ -174,8 +296,29 @@
         "role": "local_preview"
       }
     ],
+    "diagnostics": {
+      "publish_status": "publishable",
+      "final_publish_status": "publishable_degraded",
+      "agentic_review_status": "pass",
+      "agentic_enrichment_status": "fallback",
+      "data_gap_flags": [
+        "no_official_activity"
+      ],
+      "needs_human_review": [],
+      "spot_check": {
+        "kind": "member_source_docid",
+        "council_slug": "서울_강동구의회_002003",
+        "member_source_docid": "GD-MEMBER-002",
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002"
+      }
+    },
     "freshness": {
-      "basis_timestamp": "2026-04-08T10:05:00+09:00"
+      "basis_kind": "published_batch_finished_at",
+      "basis_timestamp": "2026-04-08T10:05:00+09:00",
+      "generated_at": "2026-04-08T10:06:00+09:00",
+      "source_mode": "stored_projection_only",
+      "is_snapshot_based": false,
+      "note": "강동구 구의원 상세 미리보기"
     }
   }
 }

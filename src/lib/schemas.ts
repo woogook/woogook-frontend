@@ -301,6 +301,39 @@ export const assemblyMemberListResponseSchema = z.object({
 
 const localCouncilPayloadObjectSchema = z.record(z.string(), z.unknown());
 
+const localCouncilFreshnessSchema = z
+  .object({
+    basis_kind: z.string().nullable().optional(),
+    basis_timestamp: z.string().nullable().optional(),
+    generated_at: z.string().nullable().optional(),
+    source_mode: z.string().nullable().optional(),
+    is_snapshot_based: z.boolean().nullable().optional(),
+    note: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+const localCouncilSpotCheckSchema = z
+  .object({
+    kind: z.string().nullable().optional(),
+    person_key: z.string().nullable().optional(),
+    source_kind: z.string().nullable().optional(),
+    council_slug: z.string().nullable().optional(),
+    member_source_docid: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown());
+
+const localCouncilDiagnosticsSchema = z
+  .object({
+    publish_status: z.string().nullable().optional(),
+    final_publish_status: z.string().nullable().optional(),
+    agentic_review_status: z.string().nullable().optional(),
+    agentic_enrichment_status: z.string().nullable().optional(),
+    data_gap_flags: z.array(z.string()).optional(),
+    needs_human_review: z.unknown().optional(),
+    spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+  })
+  .catchall(z.unknown());
+
 export const localCouncilDataSourceSchema = z.enum(["backend", "local_sample"]);
 
 export const localCouncilDistrictRefSchema = z.object({
@@ -323,7 +356,7 @@ export const localCouncilDistrictRosterResponseSchema = z.object({
   district_head: localCouncilRosterPersonSchema.or(localCouncilPayloadObjectSchema),
   council_members: z.array(localCouncilRosterPersonSchema),
   source_coverage: localCouncilPayloadObjectSchema,
-  freshness: localCouncilPayloadObjectSchema,
+  freshness: localCouncilFreshnessSchema,
 });
 
 export const localCouncilResolveResponseSchema = z.object({
@@ -338,6 +371,8 @@ export const localCouncilPersonSummarySchema = z
     grounded_summary: z.string(),
     summary_mode: z.enum(["agentic", "fallback", "none"]),
     summary_basis: localCouncilPayloadObjectSchema,
+    evidence_digest: z.array(z.string()).optional(),
+    fallback_reason: z.string().nullable().optional(),
   })
   .catchall(z.unknown());
 
@@ -352,7 +387,9 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   finance_activity: z.array(localCouncilPayloadObjectSchema),
   elected_basis: localCouncilPayloadObjectSchema,
   source_refs: z.array(localCouncilPayloadObjectSchema),
-  freshness: localCouncilPayloadObjectSchema,
+  diagnostics: localCouncilDiagnosticsSchema.optional(),
+  spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+  freshness: localCouncilFreshnessSchema,
 });
 
 export type AssemblyMemberListMeta = z.infer<typeof assemblyMemberListMetaSchema>;
@@ -367,6 +404,9 @@ export type LocalCouncilDistrictRosterResponse = z.infer<
 export type LocalCouncilResolveResponse = z.infer<
   typeof localCouncilResolveResponseSchema
 >;
+export type LocalCouncilFreshness = z.infer<typeof localCouncilFreshnessSchema>;
+export type LocalCouncilSpotCheck = z.infer<typeof localCouncilSpotCheckSchema>;
+export type LocalCouncilDiagnostics = z.infer<typeof localCouncilDiagnosticsSchema>;
 export type LocalCouncilPersonSummary = z.infer<typeof localCouncilPersonSummarySchema>;
 export type LocalCouncilPersonDossierResponse = z.infer<
   typeof localCouncilPersonDossierResponseSchema
