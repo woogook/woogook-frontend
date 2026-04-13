@@ -57,3 +57,6 @@ ops/observability/.env
 
 # data
 2026_data/
+
+# superpowers
+.superpowers
