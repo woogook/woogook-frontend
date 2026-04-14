@@ -19,20 +19,61 @@
   - `docs/superpowers/specs/2026-04-11-local-council-member-address-roster-detail-design.md`
   - `docs/superpowers/plans/2026-04-12-gangdong-productization-slice-frontend-plan.md`
 
+## 사람용 요약
+
+- 현재 frontend는 `서울특별시 강동구` V1 범위에 맞춰져 있다.
+- 사람이 직접 확인할 때는 `frontend-only sample`과 `backend-connected live`를 둘 다 본다.
+- 수동 검증 절차는 아래 runbook을 따라가면 된다.
+
 ## 빠른 판정
 
 ### 현재 구현된 것
 
-- 범위는 `서울특별시 강동구` 한정이다.
-- `/local-council`에서 `주소 선택 -> resolve -> roster -> person detail` 읽기 흐름이 구현돼 있다.
-- 브라우저는 Next route만 호출하고, Next route가 `WOOGOOK_BACKEND_BASE_URL` 기반으로 backend를 proxy한다.
-- backend가 없거나 503 계열로 실패하면 `강동구`에 한해 로컬 sample fixture로 같은 흐름을 유지한다.
-- roster는 `구청장 1명 + 구의원 명단`과 `freshness`, `source_coverage` 요약을 보여 준다.
-- detail은 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `committees`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`, `source_contract_summary`, `overlay`를 현재 계약 범위 안에서 보여 준다.
-- detail의 설명 가능한 진단 구역은 `summary.explanation_lines`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `diagnostics.explanation_lines`, `freshness.lineage/staleness_bucket/explanation`까지 읽는다.
-- detail 하단에는 additive `보강 정보` 구역이 있고, `overlay.status`, `support_tier`, `basis.allowed_sources`, `basis.target_member_id`, `sections`, `disclaimers`를 공식 결정적 결과와 분리해 보여 준다.
-- `basic_council` sample과 live contract 기준 `person_key`는 `huboid` 우선 opaque key를 따른다.
-- section card는 `source_url`, `source_links`, legacy `source_urls`, `download_url`을 함께 처리하고 placeholder URL은 숨긴다.
+- 범위: `서울특별시 강동구` 한정이다.
+- 사용자 흐름: `/local-council`에서 `주소 선택 -> resolve -> roster -> person detail` 읽기 흐름이 구현돼 있다.
+- 연결 방식: 브라우저는 Next route만 호출하고, Next route가 `WOOGOOK_BACKEND_BASE_URL` 기반으로 backend를 proxy한다.
+- fallback: backend가 없거나 503 계열로 실패하면 `강동구`에 한해 로컬 sample fixture로 같은 흐름을 유지한다.
+- roster surface:
+  - `구청장 1명 + 구의원 명단`: roster 첫 화면에서 함께 보여 주는 기본 명단이다.
+  - `freshness` 요약: 데이터 기준 시점과 최신성 상태를 짧게 보여 준다.
+  - `source_coverage` 요약: 어떤 공식 출처가 채워졌는지 coverage 상태를 보여 준다.
+- detail 기본 계약:
+  - `summary`: 인물 카드 상단에 쓰는 핵심 요약과 요약 근거다.
+  - `evidence`: 섹션별 공식 근거가 얼마나 있는지와 신호 강도를 요약한다.
+  - `diagnostics`: 발행 상태, 결함 플래그, 사람 검토 필요 여부를 모은다.
+  - `spot_check`: 수동 검증용 식별자와 빠른 확인 포인트를 담는다.
+  - `official_profile`: 공식 프로필에서 읽은 기본 인적 정보다.
+  - `committees`: 현재 위원회 소속과 직책을 담는다.
+  - `bills`: 의안 발의·제안 등 입법 활동 기록을 담는다.
+  - `meeting_activity`: 회의록 기반 출석·발언 등 회의 활동을 담는다.
+  - `finance_activity`: 예산·결산 등 재정 관련 공식 활동을 담는다.
+  - `elected_basis`: 당선 근거와 선거 이력을 요약한다.
+  - `source_refs`: 응답 전체나 섹션이 참조한 공식 출처 목록이다.
+  - `freshness`: 언제 어떤 기준 시점의 데이터를 보여 주는지 설명한다.
+  - `source_contract_summary`: 출처 계약이 얼마나 깨끗한지 요약한 값이다.
+  - `overlay`: 결정적 결과와 분리해서 보여 주는 additive 보강 정보다.
+- 설명 가능성:
+  - `summary.explanation_lines`: 요약 판단을 사람이 읽기 쉽게 풀어쓴 문장 목록이다.
+  - `diagnostics.quality_signals`: 품질 판정에 사용한 세부 신호 모음이다.
+  - `diagnostics.source_contract_summary`: 출처 계약 이슈 수와 상태 요약이다.
+  - `diagnostics.explanation_lines`: 진단 결과를 사람이 읽는 문장으로 푼 목록이다.
+  - `freshness.lineage`: 어떤 upstream run과 raw에서 왔는지 보여 주는 계보다.
+  - `freshness.staleness_bucket`: 신선도 등급을 짧게 보여 주는 값이다.
+  - `freshness.explanation`: 최신성 판단 근거를 문장으로 풀어쓴 설명이다.
+- 보강 정보:
+  - `overlay.status`: overlay를 생성할 수 있었는지와 현재 제공 상태다.
+  - `overlay.support_tier`: 보강 정보의 지원 수준과 기대 신뢰도를 나타낸다.
+  - `overlay.basis.allowed_sources`: overlay가 참조해도 되는 허용 소스 목록이다.
+  - `overlay.basis.target_member_id`: overlay가 겨냥한 원본 member 식별자다.
+  - `overlay.sections`: 채널·주제별로 나뉜 보강 카드 목록이다.
+  - `overlay.disclaimers`: 사람이 먼저 읽어야 할 주의 문구와 한계 설명이다.
+- 식별자 계약: `basic_council` sample과 live contract 기준 `person_key`는 `huboid` 우선 opaque key를 따른다.
+- 출처 처리:
+  - `source_url`: 대표로 노출할 primary 출처 링크다.
+  - `source_links`: 함께 보여 줄 ordered related link 목록이다.
+  - legacy `source_urls`: 구형 payload만 있을 때 호환 처리하는 링크 목록이다.
+  - `download_url`: 파일 다운로드형 출처가 있으면 함께 처리한다.
+  - placeholder URL 숨김: `.invalid` 같은 대체 URL은 렌더링 전에 제거한다.
 
 ### 아직 아닌 것
 
@@ -42,12 +83,26 @@
 - backend 없이 live read를 재현하는 방법은 없고, fallback sample은 `강동구`만 준비돼 있다.
 - cross-section 공통 출처 허브나 richer navigation model은 아직 없다.
 
+### 사람이 직접 테스트할 범위
+
+- `frontend-only sample mode`
+  - backend 없이도 `/local-council` 주소 입력, roster, detail, overlay sample을 끝까지 확인한다.
+  - `로컬 미리보기 데이터` 배지와 fallback 안내 문구가 보여야 한다.
+- `backend-connected live mode`
+  - frontend Next proxy를 통해 `resolve`와 `person detail`이 실제 backend 응답을 받는지 확인한다.
+  - roster는 별도 proxy route가 아니라 `resolve` 응답에 포함된 live payload가 화면에 들어오는지 확인한다.
+  - `공식 근거 데이터` 배지와 live payload가 보여야 한다.
+- `scope guard`
+  - 강동구 외 주소는 제한 안내 또는 backend 404 경계에 머물러야 한다.
+  - 서울 전역 지원으로 읽히는 UX는 아직 허용하지 않는다.
+
 ### 2026-04-14 smoke 스냅샷
 
 - `강동구` 한정으로 `frontend-only sample`과 `backend-connected live` 경로를 다시 확인했다.
+- `frontend` 개발 서버는 현재 `Node.js 20.9 이상`이 필요하다.
 - backend가 없거나 `WOOGOOK_BACKEND_BASE_URL`이 비어 있으면 `로컬 미리보기 데이터` 배지와 강동구 sample fixture가 보여야 한다.
 - backend가 연결되면 `공식 근거 데이터` 배지와 live roster/detail payload가 보여야 한다.
-- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `quality/evidence/source contract copy`, `보강 정보(overlay) surface`, `source badge / source path 구분`, `frontend proxy 경유 API`까지 확인했다.
+- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `quality/evidence/source contract copy`, `보강 정보(overlay) surface`, `source badge / source path 구분`, `frontend proxy 경유 API(resolve/person)`까지 확인했다.
 - 강동구 외 주소는 계속 제한 안내 또는 backend 404 경계 안에 머물러야 하며, 서울 전역 지원으로 해석하면 안 된다.
 - live backend가 model env 없이 seed된 경우 detail의 diagnostics에 `final_publish_status=publishable_degraded`, `agentic_review_status=unavailable`, `agentic_enrichment_status=skipped`가 보일 수 있고, 현재 smoke에서는 이를 UI failure로 보지 않는다.
 
@@ -94,8 +149,8 @@ fallback 기준은 아래다.
 roster 화면에서 현재 보여 주는 핵심 정보는 아래다.
 
 - `서울특별시 강동구` 제목
-- `freshness` 요약 문구
-- `source_coverage` 요약 문구
+- `freshness` 요약 문구: 데이터 기준 시점과 최신성 상태를 짧게 보여 준다.
+- `source_coverage` 요약 문구: 어떤 공식 출처가 채워졌는지 coverage 상태를 보여 준다.
 - `구청장`, `구의원` 구분 섹션
 - 이름, 정당, 직위, 프로필 이미지 또는 대체 avatar
 
@@ -113,47 +168,47 @@ detail 화면은 아래 묶음으로 나뉜다.
   - 이름
   - 직위
   - 정당
-  - headline
-  - grounded summary
+  - `headline`: 인물 카드 상단에 노출하는 짧은 한 줄 요약
+  - `grounded_summary`: 공식 근거에 묶여 있는 요약 본문
   - 학력/경력/외부 링크
 - 근거 요약
-  - `summary.evidence_digest`
-  - `summary.summary_basis.source_kinds`
-  - `summary.fallback_reason`
-  - `summary.explanation_lines`
-  - `summary.source_contract_summary`
+  - `summary.evidence_digest`: 어떤 근거가 요약에 쓰였는지 압축한 문구
+  - `summary.summary_basis.source_kinds`: 요약 생성에 사용한 source kind 목록
+  - `summary.fallback_reason`: fallback 요약으로 내려간 경우 그 이유
+  - `summary.explanation_lines`: 요약 판단을 사람이 읽기 쉽게 풀어쓴 문장 목록
+  - `summary.source_contract_summary`: summary 레이어에서 읽은 출처 계약 요약
 - 설명 가능한 진단
-  - `evidence`
-  - `diagnostics.quality_signals`
-  - `diagnostics.source_contract_summary`
-  - `diagnostics.explanation_lines`
-  - `freshness.lineage`
-  - `freshness.staleness_bucket`
-  - `freshness.explanation`
+  - `evidence`: 섹션별 근거 존재 여부와 품질 신호
+  - `diagnostics.quality_signals`: 품질 판단에 사용한 세부 신호 묶음
+  - `diagnostics.source_contract_summary`: 출처 계약 이슈 수와 요약 상태
+  - `diagnostics.explanation_lines`: 진단 결과를 풀어쓴 문장 목록
+  - `freshness.lineage`: 어떤 upstream run과 raw에서 왔는지 보여 주는 계보
+  - `freshness.staleness_bucket`: 최신성 등급을 짧게 보여 주는 값
+  - `freshness.explanation`: 최신성 판단 근거를 문장으로 설명한 값
 - 보강 정보
-  - `overlay.status`
-  - `overlay.support_tier`
-  - `overlay.generated_at`
-  - `overlay.basis.allowed_sources`
-  - `overlay.basis.target_member_id`
-  - `overlay.sections`
-  - `overlay.disclaimers`
+  - `overlay.status`: 보강 정보가 준비됐는지와 현재 제공 상태
+  - `overlay.support_tier`: 보강 정보의 지원 수준과 기대 신뢰도
+  - `overlay.generated_at`: 보강 정보 생성 시각
+  - `overlay.basis.allowed_sources`: overlay가 참조 가능한 허용 소스
+  - `overlay.basis.target_member_id`: overlay가 겨냥한 원본 member 식별자
+  - `overlay.sections`: 주제별 보강 카드 목록
+  - `overlay.disclaimers`: 사람이 먼저 읽어야 할 주의 문구
 - 발행·진단
-  - `freshness`
-  - `diagnostics`
-  - `freshness.explanation_lines`
-  - `diagnostics.explanation_lines`
-  - `source_contract_summary`
-  - `data_gap_flags`
-  - `needs_human_review`
-  - `spot_check`
+  - `freshness`: 현재 응답이 언제 어떤 기준으로 생성됐는지 보여 주는 최신성 묶음
+  - `diagnostics`: 발행 상태와 품질 진단 전체 묶음
+  - `freshness.explanation_lines`: 최신성 판단을 풀어쓴 문장 목록
+  - `diagnostics.explanation_lines`: 발행·품질 진단을 풀어쓴 문장 목록
+  - `source_contract_summary`: top-level에서 읽는 출처 계약 상태 요약
+  - `data_gap_flags`: 비어 있거나 약한 데이터 영역을 표시하는 플래그
+  - `needs_human_review`: 사람이 다시 확인해야 하는지 여부
+  - `spot_check`: 수동 검증용 식별자와 확인 포인트
 - 세부 섹션
-  - `official_profile`
-  - `elected_basis`
-  - `committees`
+  - `official_profile`: 공식 프로필 기반 인적 정보와 경력
+  - `elected_basis`: 당선 근거와 선거 이력
+  - `committees`: 위원회 소속과 역할
   - `공식 활동`
-  - `meeting_activity`
-  - `finance_activity`
+  - `meeting_activity`: 회의록 기반 출석·발언 등 회의 활동
+  - `finance_activity`: 예산·결산 등 재정 관련 공식 활동
 
 비어 있는 섹션은 숨기지 않고 empty state 또는 정적 카드로 둔다.
 

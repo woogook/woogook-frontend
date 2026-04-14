@@ -10,12 +10,20 @@
 
 - 현재 제품 범위에서 주소 해석과 실제 backend read API는 `서울특별시 강동구`만 지원한다.
 - frontend는 backend가 없거나 `WOOGOOK_BACKEND_BASE_URL`이 비어 있으면 강동구 샘플로 fallback한다.
+- `npm run dev`로 화면을 직접 띄우려면 `Node.js 20.9 이상`이 필요하다.
 - backend 실연동까지 보려면 `local-election` seed, `local_council_member_profile` seed, `local_council` projection seed가 모두 필요하다.
 - 아래 예시는 `woogook-frontend`와 `woogook-backend`가 같은 부모 디렉터리 아래에 있다고 가정한다.
 
+## 권장 검증 순서
+
+- 먼저 `frontend-only sample mode`를 확인한다.
+- 다음으로 `backend-connected live mode`를 확인한다.
+- 마지막으로 `frontend proxy`와 `최종 수동 확인 체크리스트`를 훑어본다.
+- 강동구 외 주소는 성공 경로로 보지 말고 제한 안내 또는 backend 404 경계로 본다.
+
 ## 준비물
 
-- Node.js + npm
+- Node.js `20.9 이상` + npm
 - Docker + `docker compose`
 - `uv`
 - 브라우저
@@ -29,6 +37,7 @@
 
 ### frontend-only sample mode
 
+- 이 경로는 backend 없이도 끝까지 확인되는지 보는 절차다.
 - `/local-council` 주소 화면이 열리고 `서울 강동구 천호동` sample 버튼이 보인다.
 - 결과 화면 상단 배지가 `로컬 미리보기 데이터`다.
 - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
@@ -40,8 +49,10 @@
 
 ### backend-connected live mode
 
+- 이 경로는 frontend가 실제 backend 응답을 받는지 보는 절차다.
 - `/api/local-council/v1/resolve`, `/districts/11740/roster`, `/persons/{person_key}`가 backend에서 200을 반환한다.
-- frontend proxy 경로 `/api/local-council/v1/**`도 같은 핵심 필드를 200으로 relay한다.
+- frontend Next proxy는 현재 `/api/local-council/v1/resolve`와 `/api/local-council/v1/persons/{person_key}`를 relay한다.
+- roster는 별도 frontend proxy route가 아니라 `resolve` 응답에 포함된 live payload로 화면에 들어온다.
 - `/local-council` 화면 상단 배지가 `공식 근거 데이터`다.
 - fallback 안내 문구가 사라지고, live roster/detail이 보인다.
 - non-Gangdong 입력은 계속 제한 안내 또는 backend 404 경계 안에 머문다.
@@ -61,6 +72,7 @@ npm install
 ```
 
 `WOOGOOK_BACKEND_BASE_URL`을 넣은 `.env.local`이 이미 있다면 잠시 비워 둔다. 이 값이 있으면 frontend가 backend 연결을 시도한다.
+기본 `node`가 20.9 미만이면 `npm run dev`가 뜨지 않는다. 이 환경에서는 예를 들어 `PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run dev`처럼 실행한다.
 
 ```bash
 npm run dev
@@ -110,6 +122,13 @@ npx --yes tsx --test tests/local_council_api_client.test.ts tests/local_council_
 ## 2. backend까지 함께 확인
 
 이 경로는 frontend가 `local_sample`이 아니라 실제 backend 응답을 읽는지 확인하는 절차다.
+
+### 여기서 목표
+
+- frontend proxy가 `resolve`와 `persons/{person_key}` 응답을 그대로 relay하는지 확인한다.
+- roster는 `resolve` 응답 안의 live payload로 화면에 들어오는지 확인한다.
+- sample fallback이 아니라 live payload를 화면에 보여 주는지 확인한다.
+- overlay가 있어도 공식 상세 카드가 깨지지 않는지 확인한다.
 
 ## 2-1. backend 기본 기동
 
