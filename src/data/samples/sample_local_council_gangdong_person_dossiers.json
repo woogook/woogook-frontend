@@ -20,7 +20,15 @@
           "local_finance_365"
         ]
       },
-      "fallback_reason": null
+      "fallback_reason": null,
+      "explanation_lines": [
+        "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+        "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다."
+      ],
+      "source_contract_summary": {
+        "issue_count": 0,
+        "issues": []
+      }
     },
     "official_profile": {
       "office_label": "강동구청장",
@@ -141,7 +149,10 @@
         "kind": "district_head",
         "person_key": "seoul-gangdong:district-head",
         "source_kind": "gangdong_district_head_official_profile"
-      }
+      },
+      "explanation_lines": [
+        "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다."
+      ]
     },
     "freshness": {
       "basis_kind": "snapshot_batch_finished_at",
@@ -149,10 +160,13 @@
       "generated_at": "2026-04-08T10:11:00+09:00",
       "source_mode": "stored_projection_only",
       "is_snapshot_based": true,
-      "note": "강동구 구청장 상세 미리보기"
+      "note": "강동구 구청장 상세 미리보기",
+      "explanation_lines": [
+        "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다."
+      ]
     }
   },
-  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001": {
+  "seoul-gangdong:council-member:600000001": {
     "person_name": "김가동",
     "office_type": "basic_council",
     "summary": {
@@ -160,7 +174,7 @@
       "grounded_summary": "공식 프로필과 의안, 회의 활동 근거를 바탕으로 요약했다.",
       "summary_mode": "fallback",
       "evidence_digest": [
-        "공식 프로필 1건",
+        "상임위 1건",
         "의안 2건",
         "회의 활동 1건"
       ],
@@ -171,8 +185,68 @@
           "gangdong_council_official_activity"
         ]
       },
-      "fallback_reason": "source_coverage_limited"
+      "fallback_reason": "source_coverage_limited",
+      "explanation_lines": [
+        "지방의정포털, 중앙선거관리위원회, 강동구의회 기준으로 검증 가능한 정보만 요약했다.",
+        "확인한 핵심 근거: 상임위 1건, 의안 2건, 회의 활동 1건.",
+        "요약 생성 상태: fallback (source_coverage_limited)."
+      ]
     },
+    "evidence": [
+      {
+        "kind": "official_profile",
+        "label": "공식 프로필",
+        "count": 0,
+        "present": false,
+        "status": "missing",
+        "confidence": "low",
+        "severity": "warning",
+        "explanation": "공식 프로필 section이 아직 없다."
+      },
+      {
+        "kind": "committees",
+        "label": "상임위",
+        "count": 1,
+        "present": true,
+        "digest": "상임위 1건",
+        "status": "confirmed",
+        "confidence": "high",
+        "severity": "info",
+        "explanation": "지방의정포털 의원 detail raw field에서 위원회 1건을 정규화했다."
+      },
+      {
+        "kind": "bills",
+        "label": "의안",
+        "count": 2,
+        "present": true,
+        "digest": "의안 2건",
+        "status": "confirmed",
+        "confidence": "high",
+        "severity": "info",
+        "explanation": "공식 의안검색 1건과 지방의정포털 의안 1건이 함께 있다."
+      },
+      {
+        "kind": "meeting_activity",
+        "label": "회의 활동",
+        "count": 1,
+        "present": true,
+        "digest": "회의 활동 1건",
+        "status": "weak",
+        "confidence": "medium",
+        "severity": "info",
+        "explanation": "회의록 기반 활동 기록 1건을 문자열 매칭 기반으로 연결했다."
+      },
+      {
+        "kind": "finance_activity",
+        "label": "재정 활동",
+        "count": 0,
+        "present": false,
+        "status": "not_applicable",
+        "confidence": "high",
+        "severity": "info",
+        "explanation": "기초의원 dossier에는 재정 활동 근거를 적용하지 않는다."
+      }
+    ],
     "official_profile": {
       "office_label": "강동구의원"
     },
@@ -206,7 +280,11 @@
     "source_refs": [
       {
         "source_kind": "local_council_portal_members",
-        "role": "profile"
+        "role": "official_profile",
+        "source_title": "국회도서관 지방의정포털 의원정보/의안정보/회의록",
+        "source_label": "지방의정포털",
+        "council_slug": "서울_강동구의회_002003",
+        "member_source_docid": "GD-MEMBER-001"
       },
       {
         "source_kind": "nec_council_elected_basis",
@@ -226,22 +304,62 @@
       "final_publish_status": "publishable_degraded",
       "agentic_review_status": "pass",
       "agentic_enrichment_status": "fallback",
-      "data_gap_flags": [
-        "no_finance_activity"
-      ],
+      "data_gap_flags": [],
       "needs_human_review": [
-        {
-          "reason_code": "member_source_docid_check",
-          "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
-          "note": "1인 spot-check 대상"
-        }
+        "summary_fallback"
       ],
       "spot_check": {
         "kind": "member_source_docid",
         "council_slug": "서울_강동구의회_002003",
+        "huboid": "600000001",
         "member_source_docid": "GD-MEMBER-001",
-        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001"
-      }
+        "person_key": "seoul-gangdong:council-member:600000001"
+      },
+      "quality_signals": {
+        "official_profile": {
+          "count": 0,
+          "status": "missing",
+          "confidence": "low",
+          "severity": "warning"
+        },
+        "committees": {
+          "count": 1,
+          "status": "confirmed",
+          "confidence": "high",
+          "severity": "info"
+        },
+        "bills": {
+          "count": 2,
+          "status": "confirmed",
+          "confidence": "high",
+          "severity": "info"
+        },
+        "meeting_activity": {
+          "count": 1,
+          "status": "weak",
+          "confidence": "medium",
+          "severity": "info"
+        },
+        "finance_activity": {
+          "count": 0,
+          "status": "not_applicable",
+          "confidence": "high",
+          "severity": "info"
+        }
+      },
+      "source_contract_summary": {
+        "status": "ok",
+        "issue_count": 0,
+        "issues": [],
+        "explanation_lines": [
+          "출처 계약 이슈가 없다."
+        ]
+      },
+      "explanation_lines": [
+        "최종 발행 상태: publishable_degraded.",
+        "출처 계약 이슈: 0건.",
+        "사람 확인 포인트: summary_fallback."
+      ]
     },
     "freshness": {
       "basis_kind": "published_batch_finished_at",
@@ -249,10 +367,13 @@
       "generated_at": "2026-04-08T10:06:00+09:00",
       "source_mode": "stored_projection_only",
       "is_snapshot_based": false,
-      "note": "강동구 구의원 상세 미리보기"
+      "note": "latest promote 가능한 batch 기준 freshness다. agentic 결과는 degraded 상태다.",
+      "lineage": [],
+      "staleness_bucket": "fresh",
+      "explanation": "published_batch_finished_at=2026-04-08T10:05:00+09:00 기준으로 2026-04-08T10:06:00+09:00 생성본을 사용했다. latest promote 가능한 batch 기준 freshness다. agentic 결과는 degraded 상태다."
     }
   },
-  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002": {
+  "seoul-gangdong:council-member:600000002": {
     "person_name": "이나리",
     "office_type": "basic_council",
     "summary": {
@@ -285,7 +406,7 @@
     "source_refs": [
       {
         "source_kind": "local_council_portal_members",
-        "role": "profile"
+        "role": "official_profile"
       },
       {
         "source_kind": "nec_council_elected_basis",
@@ -308,8 +429,9 @@
       "spot_check": {
         "kind": "member_source_docid",
         "council_slug": "서울_강동구의회_002003",
+        "huboid": "600000002",
         "member_source_docid": "GD-MEMBER-002",
-        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002"
+        "person_key": "seoul-gangdong:council-member:600000002"
       }
     },
     "freshness": {

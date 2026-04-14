@@ -633,14 +633,14 @@ Create `src/data/samples/sample_local_council_gangdong_resolve.json` with this c
     },
     "council_members": [
       {
-        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+        "person_key": "seoul-gangdong:council-member:600000001",
         "office_type": "basic_council",
         "person_name": "김가동",
         "party_name": "예시정당",
         "profile_image_url": "/photos/member-001.jpg"
       },
       {
-        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002",
+        "person_key": "seoul-gangdong:council-member:600000002",
         "office_type": "basic_council",
         "person_name": "이나리",
         "party_name": "다른정당",
@@ -737,7 +737,7 @@ Create `src/data/samples/sample_local_council_gangdong_person_dossiers.json` wit
       "basis_timestamp": "2026-04-08T10:10:00+09:00"
     }
   },
-  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001": {
+  "seoul-gangdong:council-member:600000001": {
     "person_name": "김가동",
     "office_type": "basic_council",
     "summary": {
@@ -804,7 +804,7 @@ Create `src/data/samples/sample_local_council_gangdong_person_dossiers.json` wit
       "basis_timestamp": "2026-04-08T10:05:00+09:00"
     }
   },
-  "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-002": {
+  "seoul-gangdong:council-member:600000002": {
     "person_name": "이나리",
     "office_type": "basic_council",
     "summary": {

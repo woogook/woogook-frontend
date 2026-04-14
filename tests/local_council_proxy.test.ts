@@ -133,13 +133,13 @@ test("local council person route encodes person keys before proxying", async (t)
   const { GET } = loadPersonRoute();
   const response = await GET(new Request("http://127.0.0.1:3000"), {
     params: Promise.resolve({
-      personKey: "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+      personKey: "seoul-gangdong:council-member:600000001",
     }),
   });
 
   assert.equal(
     fetchCalls[0]?.input,
-    "http://backend.test/api/local-council/v1/persons/seoul-gangdong%3Acouncil-member%3A%EC%84%9C%EC%9A%B8_%EA%B0%95%EB%8F%99%EA%B5%AC%EC%9D%98%ED%9A%8C_002003%3AGD-MEMBER-001",
+    "http://backend.test/api/local-council/v1/persons/seoul-gangdong%3Acouncil-member%3A600000001",
   );
   assert.equal(fetchCalls[0]?.init?.cache, "no-store");
   assert.equal(response.status, 200);
@@ -194,7 +194,7 @@ test("local council proxy relays backend streams without buffering the full body
   const { GET } = loadPersonRoute();
   const response = await GET(new Request("http://127.0.0.1:3000"), {
     params: Promise.resolve({
-      personKey: "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+      personKey: "seoul-gangdong:council-member:600000001",
     }),
   });
 
