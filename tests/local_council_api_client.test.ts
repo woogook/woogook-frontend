@@ -5,6 +5,9 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import sampleLocalCouncilGangdongResolve from "../src/data/samples/sample_local_council_gangdong_resolve.json";
+import { localCouncilResolveResponseSchema } from "../src/lib/schemas";
+
 type ObservabilityClientModule = typeof import("../src/lib/observability/client");
 
 function loadLocalCouncilApiClient(options?: {
@@ -186,6 +189,10 @@ test("mergeLocalCouncilDataSources marks mixed resolve/roster inputs as local_sa
   const { mergeLocalCouncilDataSources } = loadLocalCouncilApiClient();
 
   assert.equal(
+    mergeLocalCouncilDataSources(),
+    "local_sample",
+  );
+  assert.equal(
     mergeLocalCouncilDataSources("backend", "backend"),
     "backend",
   );
@@ -193,6 +200,21 @@ test("mergeLocalCouncilDataSources marks mixed resolve/roster inputs as local_sa
     mergeLocalCouncilDataSources("local_sample", "backend"),
     "local_sample",
   );
+});
+
+test("buildLocalCouncilRosterScreenResult falls back to the resolve roster payload", () => {
+  const { buildLocalCouncilRosterScreenResult } = loadLocalCouncilApiClient();
+
+  const result = buildLocalCouncilRosterScreenResult({
+    resolved: {
+      data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+      dataSource: "backend",
+    },
+  });
+
+  assert.equal(result.dataSource, "backend");
+  assert.equal(result.data.district.gu_code, "11740");
+  assert.equal(result.data.roster.council_members.length > 0, true);
 });
 
 test("fetchLocalCouncilPerson falls back to the local sample when backend is unavailable", async () => {

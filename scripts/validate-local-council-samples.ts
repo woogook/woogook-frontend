@@ -15,7 +15,7 @@ if (dossiers.length < 2) {
 const rosterPersonKeys = [
   resolveSample.roster.district_head.person_key,
   ...resolveSample.roster.council_members.map((person) => person.person_key),
-];
+].filter((personKey): personKey is string => typeof personKey === "string" && personKey.length > 0);
 const missingDossiers = rosterPersonKeys.filter((personKey) => !(personKey in personSamples));
 if (missingDossiers.length > 0) {
   throw new Error(
@@ -32,24 +32,9 @@ if (
 }
 
 for (const [personKey, dossier] of Object.entries(personSamples)) {
-  localCouncilPersonDossierResponseSchema.parse(dossier);
-
-  const spotCheckCarrier = dossier as {
-    diagnostics?: {
-      spot_check?: {
-        kind?: string;
-        member_source_docid?: string;
-        person_key?: string;
-      };
-    };
-    spot_check?: {
-      kind?: string;
-      member_source_docid?: string;
-      person_key?: string;
-    };
-  };
+  const parsedDossier = localCouncilPersonDossierResponseSchema.parse(dossier);
   const spotCheck =
-    spotCheckCarrier.diagnostics?.spot_check ?? spotCheckCarrier.spot_check;
+    parsedDossier.diagnostics?.spot_check ?? parsedDossier.spot_check;
   if (spotCheck?.person_key && spotCheck.person_key !== personKey) {
     throw new Error(`expected spot_check.person_key to match dossier key: ${personKey}`);
   }

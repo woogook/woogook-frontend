@@ -27,6 +27,7 @@ import {
   type LocalCouncilDistrictRosterResponse,
   type LocalCouncilPersonDossierResponse,
   type LocalCouncilResolveResponse,
+  type LocalCouncilRosterScreenData,
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
   assemblyMemberMetaCardSchema,
@@ -373,9 +374,30 @@ export type LocalCouncilResult<T> = {
 export function mergeLocalCouncilDataSources(
   ...sources: Array<LocalCouncilDataSource | null | undefined>
 ): LocalCouncilDataSource {
-  return sources.every((source) => source === "backend")
+  return sources.length > 0 && sources.every((source) => source === "backend")
     ? "backend"
     : "local_sample";
+}
+
+export function buildLocalCouncilRosterScreenResult(params: {
+  resolved: LocalCouncilResult<LocalCouncilResolveResponse>;
+  roster?: LocalCouncilResult<LocalCouncilDistrictRosterResponse> | null;
+}): LocalCouncilResult<LocalCouncilRosterScreenData> {
+  const rosterResult = params.roster ?? {
+    data: params.resolved.data.roster,
+    dataSource: params.resolved.dataSource,
+  };
+
+  return {
+    data: {
+      district: params.resolved.data.district,
+      roster: rosterResult.data,
+    },
+    dataSource: mergeLocalCouncilDataSources(
+      params.resolved.dataSource,
+      rosterResult.dataSource,
+    ),
+  };
 }
 
 type LocalCouncilAddressSelection = {

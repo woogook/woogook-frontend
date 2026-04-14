@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
+  buildLocalCouncilRosterScreenResult,
   fetchLocalCouncilPerson,
   fetchLocalCouncilRoster,
   fetchLocalCouncilResolve,
@@ -246,20 +247,21 @@ export default function LocalCouncilPage() {
 
     try {
       const resolved = await fetchLocalCouncilResolve({ city, district, dong });
-      const roster = await fetchLocalCouncilRoster(resolved.data.district.gu_code);
+      let roster = null;
+
+      try {
+        roster = await fetchLocalCouncilRoster(resolved.data.district.gu_code);
+      } catch (rosterError) {
+        console.warn(
+          "[local-council] falling back to resolve roster payload",
+          rosterError,
+        );
+      }
+
       if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
         return;
       }
-      const result = {
-        data: {
-          district: resolved.data.district,
-          roster: roster.data,
-        },
-        dataSource: mergeLocalCouncilDataSources(
-          resolved.dataSource,
-          roster.dataSource,
-        ),
-      } satisfies LocalCouncilResult<LocalCouncilRosterScreenData>;
+      const result = buildLocalCouncilRosterScreenResult({ resolved, roster });
       setRosterScreenResult(result);
       rosterScreenResultRef.current = result;
       pushView("roster", createHistoryState("roster"));
