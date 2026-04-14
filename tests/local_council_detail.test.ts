@@ -540,8 +540,10 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
 test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloads", () => {
   const summary = buildLocalCouncilSourceContractSummaryViewModel([
     {
+      status: "ok",
       issue_count: 0,
       issues: [],
+      explanation_lines: ["summary source contract line"],
     },
     {
       issue_count: 2,
@@ -551,13 +553,23 @@ test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloa
           source_kind: "local_finance_365",
           role: "finance_activity_source",
         },
+        "missing_source_display_label",
       ],
+      explanation_lines: ["diagnostics source contract line"],
     },
   ]);
 
   assert.deepEqual(summary, {
+    status: "ok",
     issueCount: 2,
-    issueRows: ["invalid_source_url · 지방재정365 · finance_activity_source"],
+    issueRows: [
+      "invalid_source_url · 지방재정365 · finance_activity_source",
+      "missing_source_display_label",
+    ],
+    explanationLines: [
+      "summary source contract line",
+      "diagnostics source contract line",
+    ],
   });
 });
 
@@ -1187,6 +1199,7 @@ test("LocalCouncilPersonDetailView renders additive explanation lines and source
             "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
           ],
           source_contract_summary: {
+            status: "ok",
             issue_count: 2,
             issues: [
               {
@@ -1201,6 +1214,7 @@ test("LocalCouncilPersonDetailView renders additive explanation lines and source
                 role: "official_activity",
               },
             ],
+            explanation_lines: ["summary source contract line"],
           },
         },
         diagnostics: {
@@ -1208,6 +1222,11 @@ test("LocalCouncilPersonDetailView renders additive explanation lines and source
           explanation_lines: [
             "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
           ],
+          source_contract_summary: {
+            issue_count: 1,
+            issues: ["diagnostics_source_contract_hint"],
+            explanation_lines: ["diagnostics source contract line"],
+          },
         },
         freshness: {
           ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).freshness,
@@ -1224,8 +1243,13 @@ test("LocalCouncilPersonDetailView renders additive explanation lines and source
   assert.match(html, /설명 가능한 진단/);
   assert.match(html, /요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다\./);
   assert.match(html, /출처 계약 점검/);
-  assert.match(html, /점검 이슈 2건/);
+  assert.match(html, /점검 이슈 3건/);
+  assert.match(html, /출처 계약 상태/);
+  assert.match(html, /ok/);
   assert.match(html, /invalid_source_url · 지방재정365 · finance_activity_source/);
+  assert.match(html, /diagnostics_source_contract_hint/);
+  assert.match(html, /summary source contract line/);
+  assert.match(html, /diagnostics source contract line/);
   assert.match(html, /발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다\./);
   assert.match(html, /기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다\./);
 });

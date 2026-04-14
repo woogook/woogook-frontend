@@ -62,8 +62,10 @@ export interface LocalCouncilDiagnosticsViewModel {
 }
 
 export interface LocalCouncilSourceContractSummaryViewModel {
+  status: string | null;
   issueCount: number;
   issueRows: string[];
+  explanationLines: string[];
 }
 
 const qualitySignalLabels: Record<string, string> = {
@@ -379,37 +381,46 @@ export function buildLocalCouncilSourceContractSummaryViewModel(
   values: Array<unknown>,
 ): LocalCouncilSourceContractSummaryViewModel | null {
   let hasSummary = false;
+  let status: string | null = null;
   let issueCount: number | null = null;
   const issueRows: string[] = [];
+  const explanationLines: unknown[] = [];
 
   for (const value of values) {
     const record = getRecordValue(value);
     if (!record) {
       continue;
     }
+    const nextStatus = getStringValue(record.status);
     const rawIssueCount = record.issue_count;
     const nextIssueCount =
       typeof rawIssueCount === "number" && Number.isFinite(rawIssueCount)
         ? Math.max(0, Math.floor(rawIssueCount))
         : null;
-    const nextIssueRows = Array.isArray(record.issues)
-      ? record.issues
-          .map((item) => getRecordValue(item))
-          .filter((item): item is Record<string, unknown> => Boolean(item))
-          .map((item) => getLocalCouncilSourceContractIssueLine(item))
-          .filter((item): item is string => Boolean(item))
-      : [];
+    const nextIssueRows = buildSourceContractIssueRows(record);
+    const nextExplanationLines = record.explanation_lines;
 
-    if (nextIssueRows.length === 0 && nextIssueCount === null) {
+    if (
+      nextIssueRows.length === 0 &&
+      nextIssueCount === null &&
+      !nextStatus &&
+      !nextExplanationLines
+    ) {
       continue;
     }
 
     hasSummary = true;
+    if (nextStatus && !status) {
+      status = nextStatus;
+    }
     if (nextIssueCount !== null) {
       issueCount =
         issueCount === null ? nextIssueCount : Math.max(issueCount, nextIssueCount);
     }
     issueRows.push(...nextIssueRows);
+    if (nextExplanationLines) {
+      explanationLines.push(nextExplanationLines);
+    }
   }
 
   if (!hasSummary) {
@@ -418,8 +429,10 @@ export function buildLocalCouncilSourceContractSummaryViewModel(
 
   const uniqueIssueRows = getUniqueStringArrayValue(issueRows);
   return {
+    status,
     issueCount: Math.max(issueCount ?? 0, uniqueIssueRows.length),
     issueRows: uniqueIssueRows,
+    explanationLines: getLocalCouncilExplainabilityLines(explanationLines),
   };
 }
 

@@ -471,7 +471,9 @@ export default function LocalCouncilPersonDetailView({
   const summaryExplanationLines = getLocalCouncilExplainabilityLines([
     person.summary.explanation_lines,
   ]);
-  const diagnosticsExplanationLines = diagnostics.explanationLines;
+  const diagnosticsExplanationLines = getLocalCouncilExplainabilityLines([
+    diagnostics.explanationLines,
+  ]);
   const freshnessNarrativeLines = getLocalCouncilExplainabilityLines([
     person.freshness.explanation_lines,
     getTextValue(person.freshness.explanation)
@@ -816,9 +818,9 @@ export default function LocalCouncilPersonDetailView({
                 근거 현황
               </p>
               <div className="mt-2 grid gap-2">
-                {evidenceRows.map((row) => (
+                {evidenceRows.map((row, index) => (
                   <div
-                    key={`${row.label}:${row.value}`}
+                    key={`${row.label}:${index}`}
                     className="rounded-lg border px-3 py-3"
                     style={{ borderColor: "var(--border)" }}
                   >
@@ -854,9 +856,16 @@ export default function LocalCouncilPersonDetailView({
               <p className="mt-1 text-sm" style={{ color: "var(--foreground)" }}>
                 점검 이슈 {sourceContractSummary.issueCount}건
               </p>
-              {diagnostics.sourceContractRows.length > 0 ? (
+              {sourceContractSummary.status ? (
                 <div className="mt-2">
-                  <ValueRows rows={diagnostics.sourceContractRows} />
+                  <ValueRows
+                    rows={[
+                      {
+                        label: "출처 계약 상태",
+                        value: sourceContractSummary.status,
+                      },
+                    ]}
+                  />
                 </div>
               ) : null}
               {sourceContractSummary.issueRows.length > 0 ? (
@@ -872,9 +881,9 @@ export default function LocalCouncilPersonDetailView({
                   ))}
                 </ul>
               ) : null}
-              {diagnostics.sourceContractExplanationLines.length > 0 ? (
+              {sourceContractSummary.explanationLines.length > 0 ? (
                 <ul className="mt-2 grid gap-1">
-                  {diagnostics.sourceContractExplanationLines.map((line) => (
+                  {sourceContractSummary.explanationLines.map((line) => (
                     <li
                       key={`source-contract:${line}`}
                       className="text-sm leading-6"
