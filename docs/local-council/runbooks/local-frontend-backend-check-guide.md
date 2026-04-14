@@ -33,6 +33,8 @@
 - 결과 화면 상단 배지가 `로컬 미리보기 데이터`다.
 - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
 - roster에 `구청장`, `구의원` 카드가 모두 보이고, detail까지 이동된다.
+- sample detail에서 `요약 설명`, `근거 현황`, `품질 신호`, `출처 계약 점검`, `신선도 계보`, `spot-check`가 함께 보인다.
+- 구의원 sample detail의 `person_key`는 `huboid` 우선 opaque key 예시(`seoul-gangdong:council-member:600000001`)를 따른다.
 
 ### backend-connected live mode
 
@@ -42,6 +44,7 @@
 - fallback 안내 문구가 사라지고, live roster/detail이 보인다.
 - non-Gangdong 입력은 계속 제한 안내 또는 backend 404 경계 안에 머문다.
 - live detail의 diagnostics에 `publishable_degraded / unavailable / skipped`가 보일 수 있는데, model env가 없는 local smoke에서는 이를 UI failure로 보지 않는다.
+- live detail에서는 `evidence`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `freshness.lineage/staleness_bucket/explanation`, `spot_check.huboid/member_source_docid`가 사람이 읽는 문장으로 보여야 한다.
 
 ## 1. frontend만 먼저 확인
 
@@ -76,6 +79,13 @@ npm run dev
    - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`
    - `구청장`, `구의원` 카드가 모두 보임
 4. 인물을 클릭해 dossier 상세로 이동한다.
+5. 상세에서 아래를 확인한다.
+   - `요약 설명`
+   - `근거 현황`
+   - `품질 신호`
+   - `출처 계약 점검`
+   - `신선도 계보`
+   - `spot-check`
 
 ### 1-3. 여기서 막히면 먼저 볼 것
 

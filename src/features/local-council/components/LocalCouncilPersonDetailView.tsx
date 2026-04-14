@@ -83,6 +83,105 @@ function ChipGroup({ items }: { items: string[] }) {
   );
 }
 
+function getTextValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getRecordValue(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getEvidenceValue(record: Record<string, unknown>) {
+  const count = record.count;
+  const countLabel =
+    typeof count === "number" && Number.isFinite(count)
+      ? `${Math.max(0, Math.floor(count))}건`
+      : null;
+  const status = getTextValue(record.status);
+  const confidence = getTextValue(record.confidence);
+  const severity = getTextValue(record.severity);
+
+  return [countLabel, status, confidence, severity]
+    .filter((item): item is string => Boolean(item))
+    .join(" · ");
+}
+
+function buildEvidenceRows(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => getRecordValue(item))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((record) => {
+      const label =
+        getTextValue(record.label) ??
+        getTextValue(record.kind) ??
+        "근거";
+      const valueText = getEvidenceValue(record);
+      if (!valueText) {
+        return null;
+      }
+      return {
+        label,
+        value: valueText,
+        explanation: getTextValue(record.explanation),
+      };
+    })
+    .filter(
+      (
+        row,
+      ): row is { label: string; value: string; explanation: string | null } =>
+        Boolean(row),
+    );
+}
+
+function buildFreshnessLineageRows(freshness: Record<string, unknown>) {
+  const rows: LocalCouncilLabelValue[] = [];
+  const stalenessBucket = getTextValue(freshness.staleness_bucket);
+  if (stalenessBucket) {
+    rows.push({
+      label: "staleness_bucket",
+      value: stalenessBucket,
+    });
+  }
+
+  const lineage = freshness.lineage;
+  if (!Array.isArray(lineage)) {
+    return rows;
+  }
+
+  return rows.concat(
+    lineage
+      .map((item, index) => {
+      const record = getRecordValue(item);
+      if (!record) {
+        return null;
+      }
+      const label =
+        getTextValue(record.label) ??
+        getTextValue(record.kind) ??
+        `계보 ${index + 1}`;
+      const timestamp = getTextValue(record.timestamp);
+      const sourceMode = getTextValue(record.source_mode);
+      const value = [timestamp, sourceMode]
+        .filter((part): part is string => Boolean(part))
+        .join(" · ");
+      if (!value) {
+        return null;
+      }
+      return {
+        label,
+        value,
+      };
+      })
+      .filter((row): row is LocalCouncilLabelValue => Boolean(row)),
+  );
+}
+
 function ExpandableRecordList({
   title,
   items,
@@ -369,16 +468,31 @@ export default function LocalCouncilPersonDetailView({
       ? { ...(person.diagnostics ?? {}), spot_check: person.spot_check }
       : person.diagnostics;
   const diagnostics = buildLocalCouncilDiagnosticsViewModel(diagnosticsSource);
-  const explainabilityLines = getLocalCouncilExplainabilityLines([
+  const summaryExplanationLines = getLocalCouncilExplainabilityLines([
     person.summary.explanation_lines,
-    person.diagnostics?.explanation_lines,
+  ]);
+  const diagnosticsExplanationLines = diagnostics.explanationLines;
+  const freshnessNarrativeLines = getLocalCouncilExplainabilityLines([
     person.freshness.explanation_lines,
+    getTextValue(person.freshness.explanation)
+      ? [getTextValue(person.freshness.explanation)]
+      : [],
   ]);
   const sourceContractSummary = buildLocalCouncilSourceContractSummaryViewModel([
     person.summary.source_contract_summary,
     person.diagnostics?.source_contract_summary,
     person.source_contract_summary,
   ]);
+  const evidenceRows = buildEvidenceRows(person.evidence ?? []);
+  const freshnessLineageRows = buildFreshnessLineageRows(person.freshness);
+  const hasExplainabilitySection =
+    summaryExplanationLines.length > 0 ||
+    evidenceRows.length > 0 ||
+    diagnostics.qualitySignalRows.length > 0 ||
+    Boolean(sourceContractSummary) ||
+    diagnosticsExplanationLines.length > 0 ||
+    freshnessLineageRows.length > 0 ||
+    freshnessNarrativeLines.length > 0;
   const officialProfileSections = person.official_profile["official_profile_sections"];
   const profileSections = Array.isArray(officialProfileSections)
     ? officialProfileSections.filter(
@@ -670,7 +784,7 @@ export default function LocalCouncilPersonDetailView({
         </section>
       </div>
 
-      {explainabilityLines.length > 0 || sourceContractSummary ? (
+      {hasExplainabilitySection ? (
         <section
           className="mt-4 rounded-lg border p-4"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
@@ -678,18 +792,59 @@ export default function LocalCouncilPersonDetailView({
           <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
             설명 가능한 진단
           </h2>
-          {explainabilityLines.length > 0 ? (
-            <ul className="mt-3 grid gap-2">
-              {explainabilityLines.map((line) => (
-                <li
-                  key={line}
-                  className="text-sm leading-6"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {line}
-                </li>
-              ))}
-            </ul>
+          {summaryExplanationLines.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                요약 설명
+              </p>
+              <ul className="mt-2 grid gap-2">
+                {summaryExplanationLines.map((line) => (
+                  <li
+                    key={`summary:${line}`}
+                    className="text-sm leading-6"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {evidenceRows.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                근거 현황
+              </p>
+              <div className="mt-2 grid gap-2">
+                {evidenceRows.map((row) => (
+                  <div
+                    key={`${row.label}:${row.value}`}
+                    className="rounded-lg border px-3 py-3"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 text-sm">
+                      <span style={{ color: "var(--text-secondary)" }}>{row.label}</span>
+                      <span style={{ color: "var(--foreground)" }}>{row.value}</span>
+                    </div>
+                    {row.explanation ? (
+                      <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
+                        {row.explanation}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {diagnostics.qualitySignalRows.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                품질 신호
+              </p>
+              <div className="mt-2">
+                <ValueRows rows={diagnostics.qualitySignalRows} />
+              </div>
+            </div>
           ) : null}
           {sourceContractSummary ? (
             <div className="mt-4">
@@ -699,6 +854,11 @@ export default function LocalCouncilPersonDetailView({
               <p className="mt-1 text-sm" style={{ color: "var(--foreground)" }}>
                 점검 이슈 {sourceContractSummary.issueCount}건
               </p>
+              {diagnostics.sourceContractRows.length > 0 ? (
+                <div className="mt-2">
+                  <ValueRows rows={diagnostics.sourceContractRows} />
+                </div>
+              ) : null}
               {sourceContractSummary.issueRows.length > 0 ? (
                 <ul className="mt-2 grid gap-1">
                   {sourceContractSummary.issueRows.map((row) => (
@@ -708,6 +868,62 @@ export default function LocalCouncilPersonDetailView({
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {row}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {diagnostics.sourceContractExplanationLines.length > 0 ? (
+                <ul className="mt-2 grid gap-1">
+                  {diagnostics.sourceContractExplanationLines.map((line) => (
+                    <li
+                      key={`source-contract:${line}`}
+                      className="text-sm leading-6"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+          {diagnosticsExplanationLines.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                진단 설명
+              </p>
+              <ul className="mt-2 grid gap-2">
+                {diagnosticsExplanationLines.map((line) => (
+                  <li
+                    key={`diagnostics:${line}`}
+                    className="text-sm leading-6"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {freshnessLineageRows.length > 0 || freshnessNarrativeLines.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                신선도 계보
+              </p>
+              {freshnessLineageRows.length > 0 ? (
+                <div className="mt-2">
+                  <ValueRows rows={freshnessLineageRows} />
+                </div>
+              ) : null}
+              {freshnessNarrativeLines.length > 0 ? (
+                <ul className="mt-2 grid gap-2">
+                  {freshnessNarrativeLines.map((line) => (
+                    <li
+                      key={`freshness:${line}`}
+                      className="text-sm leading-6"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {line}
                     </li>
                   ))}
                 </ul>

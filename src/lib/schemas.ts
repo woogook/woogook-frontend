@@ -309,6 +309,9 @@ const localCouncilFreshnessSchema = z
     source_mode: z.string().nullable().optional(),
     is_snapshot_based: z.boolean().nullable().optional(),
     note: z.string().nullable().optional(),
+    lineage: z.unknown().optional(),
+    staleness_bucket: z.string().nullable().optional(),
+    explanation: z.string().nullable().optional(),
   })
   .catchall(z.unknown());
 
@@ -318,6 +321,7 @@ const localCouncilSpotCheckSchema = z
     person_key: z.string().nullable().optional(),
     source_kind: z.string().nullable().optional(),
     council_slug: z.string().nullable().optional(),
+    huboid: z.string().nullable().optional(),
     member_source_docid: z.string().nullable().optional(),
   })
   .catchall(z.unknown());
@@ -333,6 +337,7 @@ const localCouncilDiagnosticsSchema = z
     data_gap_flags: z.array(z.string()).optional(),
     needs_human_review: z.unknown().optional(),
     spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+    quality_signals: z.unknown().optional(),
     explanation_lines: z.unknown().optional(),
     source_contract_summary: localCouncilSourceContractSummarySchema.optional(),
   })
@@ -386,6 +391,7 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   person_name: z.string(),
   office_type: z.string(),
   summary: localCouncilPersonSummarySchema,
+  evidence: z.array(localCouncilPayloadObjectSchema).optional(),
   official_profile: localCouncilPayloadObjectSchema,
   committees: z.array(localCouncilPayloadObjectSchema),
   bills: z.array(localCouncilPayloadObjectSchema),

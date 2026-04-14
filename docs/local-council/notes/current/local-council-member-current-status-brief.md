@@ -8,7 +8,7 @@
 - 관련 PR: `#24`
 - 정본 여부: `아니오`
 - 연결된 정본 문서: `docs/local-council/canonical/llm-entry.md`
-- 최종 갱신일: `2026-04-13`
+- 최종 갱신일: `2026-04-14`
 
 ## 문서 역할
 
@@ -29,6 +29,8 @@
 - backend가 없거나 503 계열로 실패하면 `강동구`에 한해 로컬 sample fixture로 같은 흐름을 유지한다.
 - roster는 `구청장 1명 + 구의원 명단`과 `freshness`, `source_coverage` 요약을 보여 준다.
 - detail은 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `committees`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`, `source_contract_summary`를 현재 계약 범위 안에서 보여 준다.
+- detail의 설명 가능한 진단 구역은 `summary.explanation_lines`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `diagnostics.explanation_lines`, `freshness.lineage/staleness_bucket/explanation`까지 읽는다.
+- `basic_council` sample과 live contract 기준 `person_key`는 `huboid` 우선 opaque key를 따른다.
 - section card는 `source_url`, `source_links`, legacy `source_urls`, `download_url`을 함께 처리하고 placeholder URL은 숨긴다.
 
 ### 아직 아닌 것
@@ -44,7 +46,7 @@
 - `강동구` 한정으로 `frontend-only sample`과 `backend-connected live` 경로를 다시 확인했다.
 - backend가 없거나 `WOOGOOK_BACKEND_BASE_URL`이 비어 있으면 `로컬 미리보기 데이터` 배지와 강동구 sample fixture가 보여야 한다.
 - backend가 연결되면 `공식 근거 데이터` 배지와 live roster/detail payload가 보여야 한다.
-- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `source badge / source path 구분`, `frontend proxy 경유 API`까지 확인했다.
+- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `quality/evidence/source contract copy`, `source badge / source path 구분`, `frontend proxy 경유 API`까지 확인했다.
 - 강동구 외 주소는 계속 제한 안내 또는 backend 404 경계 안에 머물러야 하며, 서울 전역 지원으로 해석하면 안 된다.
 - live backend가 model env 없이 seed된 경우 detail의 diagnostics에 `final_publish_status=publishable_degraded`, `agentic_review_status=unavailable`, `agentic_enrichment_status=skipped`가 보일 수 있고, 현재 smoke에서는 이를 UI failure로 보지 않는다.
 
@@ -119,6 +121,14 @@ detail 화면은 아래 묶음으로 나뉜다.
   - `summary.fallback_reason`
   - `summary.explanation_lines`
   - `summary.source_contract_summary`
+- 설명 가능한 진단
+  - `evidence`
+  - `diagnostics.quality_signals`
+  - `diagnostics.source_contract_summary`
+  - `diagnostics.explanation_lines`
+  - `freshness.lineage`
+  - `freshness.staleness_bucket`
+  - `freshness.explanation`
 - 발행·진단
   - `freshness`
   - `diagnostics`

@@ -54,12 +54,25 @@ export interface LocalCouncilDiagnosticsViewModel {
   needsHumanReview: string[];
   spotCheckTitle: string | null;
   spotCheckRows: LocalCouncilLabelValue[];
+  qualitySignalRows: LocalCouncilLabelValue[];
+  sourceContractRows: LocalCouncilLabelValue[];
+  sourceContractIssues: string[];
+  sourceContractExplanationLines: string[];
+  explanationLines: string[];
 }
 
 export interface LocalCouncilSourceContractSummaryViewModel {
   issueCount: number;
   issueRows: string[];
 }
+
+const qualitySignalLabels: Record<string, string> = {
+  official_profile: "공식 프로필",
+  committees: "상임위",
+  bills: "의안",
+  meeting_activity: "회의 활동",
+  finance_activity: "재정 활동",
+};
 
 export function getLocalCouncilSourceLabel(sourceKind: string) {
   const labels: Record<string, string> = {
@@ -226,6 +239,124 @@ function getLocalCouncilSourceContractIssueLine(issue: Record<string, unknown>) 
   return parts.join(" · ");
 }
 
+function getLocalCouncilQualitySignalValue(
+  signal: Record<string, unknown>,
+) {
+  const count = signal.count;
+  const countLabel =
+    typeof count === "number" && Number.isFinite(count)
+      ? `${Math.max(0, Math.floor(count))}건`
+      : null;
+  const status = getStringValue(signal.status);
+  const confidence = getStringValue(signal.confidence);
+  const severity = getStringValue(signal.severity);
+
+  return [countLabel, status, confidence, severity]
+    .filter((item): item is string => Boolean(item))
+    .join(" · ");
+}
+
+function buildQualitySignalRows(
+  value: unknown,
+): LocalCouncilLabelValue[] {
+  const record = getRecordValue(value);
+  if (!record) {
+    return [];
+  }
+
+  const preferredOrder = [
+    "official_profile",
+    "committees",
+    "bills",
+    "meeting_activity",
+    "finance_activity",
+  ];
+  const knownRows: LocalCouncilLabelValue[] = [];
+  const seen = new Set<string>();
+
+  for (const key of preferredOrder) {
+    const signal = getRecordValue(record[key]);
+    if (!signal) {
+      continue;
+    }
+    const displayValue = getLocalCouncilQualitySignalValue(signal);
+    if (!displayValue) {
+      continue;
+    }
+    seen.add(key);
+    knownRows.push({
+      label: qualitySignalLabels[key] ?? key,
+      value: displayValue,
+    });
+  }
+
+  const otherRows = Object.entries(record)
+    .filter(([key]) => !seen.has(key))
+    .map(([key, rawValue]) => {
+      const signal = getRecordValue(rawValue);
+      if (!signal) {
+        return null;
+      }
+      const displayValue = getLocalCouncilQualitySignalValue(signal);
+      if (!displayValue) {
+        return null;
+      }
+      return {
+        label: qualitySignalLabels[key] ?? key,
+        value: displayValue,
+      };
+    })
+    .filter((row): row is LocalCouncilLabelValue => Boolean(row));
+
+  return [...knownRows, ...otherRows];
+}
+
+function buildSourceContractSummaryRows(
+  value: unknown,
+): LocalCouncilLabelValue[] {
+  const record = getRecordValue(value);
+  if (!record) {
+    return [];
+  }
+
+  const rows: LocalCouncilLabelValue[] = [];
+  const status = getStringValue(record.status);
+  const issueCount = record.issue_count;
+
+  if (status) {
+    rows.push({ label: "출처 계약 상태", value: status });
+  }
+  if (typeof issueCount === "number" && Number.isFinite(issueCount)) {
+    rows.push({
+      label: "출처 계약 이슈",
+      value: `${Math.max(0, Math.floor(issueCount))}건`,
+    });
+  }
+
+  return rows;
+}
+
+function buildSourceContractIssueRows(
+  value: unknown,
+) {
+  const record = getRecordValue(value);
+  if (!record || !Array.isArray(record.issues)) {
+    return [];
+  }
+
+  return getUniqueStringArrayValue(
+    record.issues
+      .map((item) => {
+        if (typeof item === "string") {
+          return getStringValue(item);
+        }
+        const issueRecord = getRecordValue(item);
+        return issueRecord ? getLocalCouncilSourceContractIssueLine(issueRecord) : null;
+      })
+      .filter((item): item is string => Boolean(item)),
+  );
+}
+
 export function getLocalCouncilExplainabilityLines(
   values: Array<unknown>,
 ) {
@@ -348,6 +479,7 @@ function buildSpotCheckRows(
   const kind = getStringValue(spotCheck.kind);
   const personKey = getStringValue(spotCheck.person_key);
   const councilSlug = getStringValue(spotCheck.council_slug);
+  const huboid = getStringValue(spotCheck.huboid);
   const memberSourceDocid = getStringValue(spotCheck.member_source_docid);
   const sourceKind = getStringValue(spotCheck.source_kind);
 
@@ -359,6 +491,9 @@ function buildSpotCheckRows(
   }
   if (councilSlug) {
     rows.push({ label: "의회", value: councilSlug });
+  }
+  if (huboid) {
+    rows.push({ label: "huboid", value: huboid });
   }
   if (memberSourceDocid) {
     rows.push({ label: "member_source_docid", value: memberSourceDocid });
@@ -380,6 +515,11 @@ export function buildLocalCouncilDiagnosticsViewModel(
       needsHumanReview: [],
       spotCheckTitle: null,
       spotCheckRows: [],
+      qualitySignalRows: [],
+      sourceContractRows: [],
+      sourceContractIssues: [],
+      sourceContractExplanationLines: [],
+      explanationLines: [],
     };
   }
 
@@ -409,6 +549,7 @@ export function buildLocalCouncilDiagnosticsViewModel(
   const normalizedSpotCheck = spotCheck
     ? (spotCheck as LocalCouncilSpotCheck)
     : null;
+  const sourceContractSummary = getRecordValue(record.source_contract_summary);
 
   return {
     statusRows,
@@ -416,6 +557,13 @@ export function buildLocalCouncilDiagnosticsViewModel(
     needsHumanReview,
     spotCheckTitle: getLocalCouncilSpotCheckTitle(normalizedSpotCheck),
     spotCheckRows: buildSpotCheckRows(normalizedSpotCheck),
+    qualitySignalRows: buildQualitySignalRows(record.quality_signals),
+    sourceContractRows: buildSourceContractSummaryRows(sourceContractSummary),
+    sourceContractIssues: buildSourceContractIssueRows(sourceContractSummary),
+    sourceContractExplanationLines: getStringArrayValue(
+      sourceContractSummary?.explanation_lines,
+    ),
+    explanationLines: getStringArrayValue(record.explanation_lines),
   };
 }
 
