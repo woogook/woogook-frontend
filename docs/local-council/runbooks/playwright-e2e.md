@@ -166,6 +166,7 @@ npm run e2e:integration
 - integration database 접속 target
   - harness는 `PLAYWRIGHT_LOCAL_COUNCIL_PG*` 값으로 내부 `WOOGOOK_DATABASE_URL`을 조립한다.
   - shell에 기존 `WOOGOOK_DATABASE_URL`이 export되어 있어도 integration E2E 대상은 오염되지 않는다.
+  - shell에 기존 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`가 export되어 있어도 harness target은 바뀌지 않는다.
 - integration database 보존
   - `PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE=1`
   - 실패 상태를 직접 확인해야 할 때만 사용한다.
@@ -177,6 +178,7 @@ npm run e2e:integration
   - smoke는 샘플 경로를 본다.
   - integration은 실제 backend 계약을 본다.
 - 개발용 데이터베이스를 덮어쓰지 않고, 매번 깨끗한 integration 전용 데이터베이스로 시작할 수 있다.
+- backend 기본 포트(`127.0.0.1:18000`)가 이미 점유되어 있으면 잘못된 프로세스에 붙지 않고 즉시 실패한다.
 
 ## 7. 권장 실행 순서
 

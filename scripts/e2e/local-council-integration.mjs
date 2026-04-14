@@ -6,21 +6,17 @@ import { setTimeout as delay } from "node:timers/promises";
 import { spawn } from "node:child_process";
 
 import pg from "pg";
+import {
+  assertPortAvailable,
+  getBackendConfig,
+  getDatabaseConfig,
+  getHealthRetryConfig,
+} from "./local-council-harness.mjs";
 
 const { Client } = pg;
 
 const LOG_PREFIX = "[local-council:e2e]";
 const POSTGRES_SERVICE = "postgres";
-const DEFAULT_BACKEND_HOST = "127.0.0.1";
-const DEFAULT_BACKEND_PORT = 18000;
-const DEFAULT_POSTGRES_HOST = "127.0.0.1";
-const DEFAULT_POSTGRES_PORT = 5433;
-const DEFAULT_POSTGRES_DATABASE = "woogook_local_council_e2e";
-const DEFAULT_POSTGRES_ADMIN_DATABASE = "postgres";
-const DEFAULT_POSTGRES_USER = "woogook";
-const DEFAULT_POSTGRES_PASSWORD = "woogook";
-const DEFAULT_HEALTH_ATTEMPTS = 60;
-const DEFAULT_HEALTH_DELAY_MS = 1000;
 
 const FIXTURE = {
   contestId: "e2e-local-council-gangdong-basic",
@@ -77,74 +73,6 @@ function resolveBackendRoot() {
       "필요하면 PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO로 경로를 직접 지정하세요.",
     ].join("\n"),
   );
-}
-
-function getDatabaseConfig() {
-  const host =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGHOST ||
-    process.env.PGHOST ||
-    DEFAULT_POSTGRES_HOST;
-  const port = Number(
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGPORT ||
-      process.env.PGPORT ||
-      String(DEFAULT_POSTGRES_PORT),
-  );
-  const database =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE ||
-    DEFAULT_POSTGRES_DATABASE;
-  const adminDatabase =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_ADMIN_DATABASE ||
-    DEFAULT_POSTGRES_ADMIN_DATABASE;
-  const user =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGUSER ||
-    process.env.PGUSER ||
-    DEFAULT_POSTGRES_USER;
-  const password =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGPASSWORD ||
-    process.env.PGPASSWORD ||
-    DEFAULT_POSTGRES_PASSWORD;
-  const preserveDatabase =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE === "1";
-  const databaseUrl = `postgresql+psycopg://${user}:${password}@${host}:${port}/${database}`;
-
-  return {
-    host,
-    port,
-    database,
-    adminDatabase,
-    user,
-    password,
-    preserveDatabase,
-    databaseUrl,
-  };
-}
-
-function getBackendConfig() {
-  const host =
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_HOST || DEFAULT_BACKEND_HOST;
-  const port = Number(
-    process.env.PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_PORT ||
-      String(DEFAULT_BACKEND_PORT),
-  );
-
-  return {
-    host,
-    port,
-    baseUrl: `http://${host}:${port}`,
-  };
-}
-
-function getHealthRetryConfig() {
-  return {
-    attempts: Number(
-      process.env.PLAYWRIGHT_LOCAL_COUNCIL_HEALTH_ATTEMPTS ||
-        String(DEFAULT_HEALTH_ATTEMPTS),
-    ),
-    delayMs: Number(
-      process.env.PLAYWRIGHT_LOCAL_COUNCIL_HEALTH_DELAY_MS ||
-        String(DEFAULT_HEALTH_DELAY_MS),
-    ),
-  };
 }
 
 function createEnv(overrides) {
@@ -915,6 +843,12 @@ async function main() {
     log("integration fixture seed");
     await seedIntegrationFixture(databaseConfig);
 
+    await assertPortAvailable({
+      host: backendConfig.host,
+      port: backendConfig.port,
+      label: "backend",
+    });
+
     log("backend 시작");
     backendProcess = startBackendServer(backendRoot, backendConfig, databaseConfig);
     backendProcess.on("error", (error) => {
@@ -947,6 +881,9 @@ async function main() {
         }
       },
     });
+    if (backendProcessFailure) {
+      throw backendProcessFailure;
+    }
 
     log("Playwright integration spec 실행");
     await runCommand(getNpmCommand(), ["run", "e2e:integration:spec"], {
