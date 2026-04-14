@@ -1,5 +1,6 @@
 import {
   buildSyntheticFailUrl,
+  formatCorrelationIdLine,
   getFrontendBaseUrl,
   getSyntheticEmitAttempts,
   getSyntheticEmitDelayMs,
@@ -40,7 +41,10 @@ async function main() {
   console.log(`- target: ${lastTarget}`);
   console.log(`- attempts: ${attempts}`);
   console.log(`- status: ${lastStatus}`);
-  console.log(`- correlation_id: ${lastPayload?.correlation_id ?? "missing"}`);
+  console.log(formatCorrelationIdLine(lastPayload?.correlation_id));
+  console.log(
+    "- 사용 시점: 같은 event를 Grafana, Loki, local log file에서 추적할 때만 사용",
+  );
 }
 
 main().catch((error) => {

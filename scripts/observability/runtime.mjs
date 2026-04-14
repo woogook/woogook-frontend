@@ -136,6 +136,10 @@ export function assertOk(response, label) {
   }
 }
 
+export function formatCorrelationIdLine(correlationId) {
+  return `- correlation_id (선택적 추적 ID): ${correlationId ?? "missing"}`;
+}
+
 export function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);

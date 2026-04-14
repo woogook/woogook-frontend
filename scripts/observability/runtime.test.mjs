@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBrowserErrorBatch,
   buildSyntheticFailUrl,
+  formatCorrelationIdLine,
   getFrontendBaseUrl,
   getGrafanaBaseUrl,
 } from "./runtime.mjs";
@@ -38,5 +39,14 @@ describe("observability runtime helpers", () => {
       route: "/synthetic/browser-error",
       errorMessage: "Synthetic browser error",
     });
+  });
+
+  it("formats correlation ids as optional trace information", () => {
+    expect(formatCorrelationIdLine("abc-123")).toBe(
+      "- correlation_id (선택적 추적 ID): abc-123",
+    );
+    expect(formatCorrelationIdLine()).toBe(
+      "- correlation_id (선택적 추적 ID): missing",
+    );
   });
 });
