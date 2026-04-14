@@ -99,6 +99,12 @@ npm run dev
 npm run test:local-council-samples
 ```
 
+- fallback/client/proxy/detail 회귀 검증:
+
+```bash
+npx --yes tsx --test tests/local_council_api_client.test.ts tests/local_council_proxy.test.ts tests/local_council_detail.test.ts
+```
+
 - fallback은 `서울특별시 / 강동구` 조합에서만 동작한다. 다른 구를 선택하면 `현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.`가 보일 수 있다.
 
 ## 2. backend까지 함께 확인
