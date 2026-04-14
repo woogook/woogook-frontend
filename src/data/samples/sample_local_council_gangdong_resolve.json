@@ -15,14 +15,14 @@
     },
     "council_members": [
       {
-        "person_key": "seoul-gangdong:council-member:600000001",
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
         "office_type": "basic_council",
         "person_name": "김가동",
         "party_name": "예시정당",
         "profile_image_url": null
       },
       {
-        "person_key": "seoul-gangdong:council-member:600000002",
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643",
         "office_type": "basic_council",
         "person_name": "이나리",
         "party_name": "다른정당",

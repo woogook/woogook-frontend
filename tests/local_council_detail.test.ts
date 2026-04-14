@@ -456,7 +456,8 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
       needs_human_review: [
         {
           reason_code: "member_source_docid_check",
-          person_key: "seoul-gangdong:council-member:600000001",
+          person_key:
+            "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
           note: "1인 spot-check 대상",
         },
       ],
@@ -464,8 +465,9 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
         kind: "member_source_docid",
         council_slug: "seoul-gangdong",
         huboid: "600000001",
-        member_source_docid: "GD-MEMBER-001",
-        person_key: "seoul-gangdong:council-member:600000001",
+        member_source_docid: "CLIKM20220000022640",
+        person_key:
+          "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
       },
       quality_signals: {
         official_profile: {
@@ -506,18 +508,19 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
       ],
       dataGapFlags: ["no_finance_activity"],
       needsHumanReview: [
-        "member_source_docid_check · 1인 spot-check 대상 · seoul-gangdong:council-member:600000001",
+        "member_source_docid_check · 1인 spot-check 대상 · seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
       ],
       spotCheckTitle: "구의원 spot-check",
       spotCheckRows: [
         { label: "유형", value: "member_source_docid" },
         {
           label: "대상",
-          value: "seoul-gangdong:council-member:600000001",
+          value:
+            "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
         },
         { label: "의회", value: "seoul-gangdong" },
         { label: "huboid", value: "600000001" },
-        { label: "member_source_docid", value: "GD-MEMBER-001" },
+        { label: "member_source_docid", value: "CLIKM20220000022640" },
       ],
       qualitySignalRows: [
         { label: "공식 프로필", value: "0건 · missing · low · warning" },
@@ -1025,8 +1028,7 @@ test("LocalCouncilRosterView places count pills beside the section headings", ()
   const LocalCouncilRosterView = loadLocalCouncilRosterView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilRosterView, {
-      resolveData: {
-        resolution_status: "resolved",
+      rosterData: {
         district: {
           gu_code: "11740",
           district_slug: "seoul-gangdong",
@@ -1073,8 +1075,7 @@ test("LocalCouncilRosterView explains the roster office terminology", () => {
   const LocalCouncilRosterView = loadLocalCouncilRosterView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilRosterView, {
-      resolveData: {
-        resolution_status: "resolved",
+      rosterData: {
         district: {
           gu_code: "11740",
           district_slug: "seoul-gangdong",
@@ -1114,10 +1115,10 @@ test("LocalCouncilRosterView explains the roster office terminology", () => {
 test("sample dossiers expose evidence digest, diagnostics, and richer freshness metadata", () => {
   const districtHead = dossiers["seoul-gangdong:district-head"];
   const councilMember = dossiers[
-    "seoul-gangdong:council-member:600000001"
+    "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
   ];
   const councilMemberSecondary = dossiers[
-    "seoul-gangdong:council-member:600000002"
+    "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643"
   ];
 
   assert.deepEqual(districtHead.summary.evidence_digest, [
@@ -1196,7 +1197,7 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.equal(councilMember.overlay?.status, "unavailable");
   assert.equal(
     councilMemberSecondary.overlay?.basis?.target_member_id,
-    "seoul-gangdong:council-member:600000002",
+    "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643",
   );
 });
 
@@ -1405,9 +1406,10 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
           spot_check: {
             kind: "member_source_docid",
             council_slug: "서울_강동구의회_002003",
-            member_source_docid: "GD-MEMBER-001",
+            member_source_docid: "CLIKM20220000022640",
             huboid: "600000001",
-            person_key: "seoul-gangdong:council-member:600000001",
+            person_key:
+              "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
           },
           quality_signals: {
             official_profile: {

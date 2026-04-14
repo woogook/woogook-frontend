@@ -16,6 +16,7 @@ import {
   cityQuerySchema,
   citySigunguQuerySchema,
   emdResponseSchema,
+  localCouncilDistrictRosterResponseSchema,
   localElectionChatConversationCreateRequestSchema,
   localElectionChatConversationResponseSchema,
   localElectionChatMessageCreateRequestSchema,
@@ -23,6 +24,7 @@ import {
   localCouncilPersonDossierResponseSchema,
   localCouncilResolveResponseSchema,
   type LocalCouncilDataSource,
+  type LocalCouncilDistrictRosterResponse,
   type LocalCouncilPersonDossierResponse,
   type LocalCouncilResolveResponse,
   sigunguResponseSchema,
@@ -368,6 +370,14 @@ export type LocalCouncilResult<T> = {
   dataSource: LocalCouncilDataSource;
 };
 
+export function mergeLocalCouncilDataSources(
+  ...sources: Array<LocalCouncilDataSource | null | undefined>
+): LocalCouncilDataSource {
+  return sources.every((source) => source === "backend")
+    ? "backend"
+    : "local_sample";
+}
+
 type LocalCouncilAddressSelection = {
   city: string;
   district: string;
@@ -377,6 +387,8 @@ type LocalCouncilAddressSelection = {
 const sampleLocalCouncilPersonDossierIndex = z
   .record(z.string(), localCouncilPersonDossierResponseSchema)
   .parse(sampleLocalCouncilGangdongPersonDossiers);
+const sampleLocalCouncilGangdongRoster =
+  localCouncilDistrictRosterResponseSchema.parse(sampleLocalCouncilGangdongResolve.roster);
 
 export function buildLocalCouncilAddress({
   city,
@@ -388,6 +400,10 @@ export function buildLocalCouncilAddress({
 
 function isGangdongSelection({ city, district }: LocalCouncilAddressSelection) {
   return city.trim() === "서울특별시" && district.trim() === "강동구";
+}
+
+function isGangdongGuCode(guCode: string) {
+  return guCode.trim() === "11740";
 }
 
 function isBackendUnavailableError(error: unknown) {
@@ -413,6 +429,34 @@ export async function fetchLocalCouncilResolve(
     if (isBackendUnavailableError(error) && isGangdongSelection(selection)) {
       return {
         data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+        dataSource: "local_sample",
+      };
+    }
+
+    if (isBackendUnavailableError(error)) {
+      throw new ApiError(
+        503,
+        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function fetchLocalCouncilRoster(
+  guCode: string,
+): Promise<LocalCouncilResult<LocalCouncilDistrictRosterResponse>> {
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/districts/${encodeURIComponent(guCode)}/roster`,
+      localCouncilDistrictRosterResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    if (isBackendUnavailableError(error) && isGangdongGuCode(guCode)) {
+      return {
+        data: sampleLocalCouncilGangdongRoster,
         dataSource: "local_sample",
       };
     }

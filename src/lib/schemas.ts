@@ -427,7 +427,7 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   office_type: z.string(),
   summary: localCouncilPersonSummarySchema,
   evidence: z.array(localCouncilPayloadObjectSchema).optional(),
-  overlay: localCouncilOverlaySchema.optional(),
+  overlay: localCouncilOverlaySchema,
   official_profile: localCouncilPayloadObjectSchema,
   committees: z.array(localCouncilPayloadObjectSchema),
   bills: z.array(localCouncilPayloadObjectSchema),
@@ -435,7 +435,7 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   finance_activity: z.array(localCouncilPayloadObjectSchema),
   elected_basis: localCouncilPayloadObjectSchema,
   source_refs: z.array(localCouncilPayloadObjectSchema),
-  diagnostics: localCouncilDiagnosticsSchema.optional(),
+  diagnostics: localCouncilDiagnosticsSchema,
   spot_check: localCouncilSpotCheckSchema.nullable().optional(),
   freshness: localCouncilFreshnessSchema.extend({
     explanation_lines: z.unknown().optional(),
@@ -549,6 +549,10 @@ export type LocalCouncilRosterPerson = z.infer<typeof localCouncilRosterPersonSc
 export type LocalCouncilDistrictRosterResponse = z.infer<
   typeof localCouncilDistrictRosterResponseSchema
 >;
+export type LocalCouncilRosterScreenData = {
+  district: LocalCouncilDistrictRef;
+  roster: LocalCouncilDistrictRosterResponse;
+};
 export type LocalCouncilResolveResponse = z.infer<
   typeof localCouncilResolveResponseSchema
 >;

@@ -204,7 +204,7 @@
       ]
     }
   },
-  "seoul-gangdong:council-member:600000001": {
+  "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640": {
     "person_name": "김가동",
     "office_type": "basic_council",
     "summary": {
@@ -322,7 +322,7 @@
         "source_title": "국회도서관 지방의정포털 의원정보/의안정보/회의록",
         "source_label": "지방의정포털",
         "council_slug": "서울_강동구의회_002003",
-        "member_source_docid": "GD-MEMBER-001"
+        "member_source_docid": "CLIKM20220000022640"
       },
       {
         "source_kind": "nec_council_elected_basis",
@@ -350,8 +350,8 @@
         "kind": "member_source_docid",
         "council_slug": "서울_강동구의회_002003",
         "huboid": "600000001",
-        "member_source_docid": "GD-MEMBER-001",
-        "person_key": "seoul-gangdong:council-member:600000001"
+        "member_source_docid": "CLIKM20220000022640",
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
       },
       "quality_signals": {
         "official_profile": {
@@ -420,7 +420,7 @@
           "sns",
           "council_site"
         ],
-        "target_member_id": "seoul-gangdong:council-member:600000001"
+        "target_member_id": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
       },
       "sections": [],
       "disclaimers": [
@@ -429,7 +429,7 @@
       ]
     }
   },
-  "seoul-gangdong:council-member:600000002": {
+  "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643": {
     "person_name": "이나리",
     "office_type": "basic_council",
     "summary": {
@@ -456,7 +456,6 @@
     "meeting_activity": [],
     "finance_activity": [],
     "elected_basis": {
-      "huboid": "600000002",
       "sgTypecode": "6"
     },
     "source_refs": [
@@ -485,9 +484,8 @@
       "spot_check": {
         "kind": "member_source_docid",
         "council_slug": "서울_강동구의회_002003",
-        "huboid": "600000002",
         "member_source_docid": "GD-MEMBER-002",
-        "person_key": "seoul-gangdong:council-member:600000002"
+        "person_key": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643"
       }
     },
     "freshness": {
@@ -508,7 +506,7 @@
           "sns",
           "council_site"
         ],
-        "target_member_id": "seoul-gangdong:council-member:600000002"
+        "target_member_id": "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643"
       },
       "sections": [],
       "disclaimers": [
