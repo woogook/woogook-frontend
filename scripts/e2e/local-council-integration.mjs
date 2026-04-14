@@ -105,6 +105,7 @@ function getDatabaseConfig() {
     DEFAULT_POSTGRES_PASSWORD;
   const preserveDatabase =
     process.env.PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE === "1";
+  const databaseUrl = `postgresql+psycopg://${user}:${password}@${host}:${port}/${database}`;
 
   return {
     host,
@@ -114,9 +115,7 @@ function getDatabaseConfig() {
     user,
     password,
     preserveDatabase,
-    databaseUrl:
-      process.env.WOOGOOK_DATABASE_URL ||
-      `postgresql+psycopg://${user}:${password}@${host}:${port}/${database}`,
+    databaseUrl,
   };
 }
 

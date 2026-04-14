@@ -163,6 +163,9 @@ npm run e2e:integration
   - `PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO`
 - integration database 이름
   - `PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE`
+- integration database 접속 target
+  - harness는 `PLAYWRIGHT_LOCAL_COUNCIL_PG*` 값으로 내부 `WOOGOOK_DATABASE_URL`을 조립한다.
+  - shell에 기존 `WOOGOOK_DATABASE_URL`이 export되어 있어도 integration E2E 대상은 오염되지 않는다.
 - integration database 보존
   - `PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE=1`
   - 실패 상태를 직접 확인해야 할 때만 사용한다.
