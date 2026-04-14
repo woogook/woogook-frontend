@@ -59,7 +59,8 @@
 ### Gemini
 
 - `gemini-code-assist` inline review thread에는 실질 답글을 먼저 남긴다.
-- 그 답글과 `/gemini review-comment-reply` 추가는 connector를 우선 사용하고, connector gap이나 권한 오류가 있을 때만 `gh` fallback을 사용한다.
+- 그 답글이 기록된 뒤에만 같은 thread에 `/gemini review-comment-reply`를 추가한다.
+- 두 write는 connector를 우선 사용하고, connector gap이나 권한 오류가 있을 때만 `gh` fallback을 사용한다.
 
 ### Codex
 

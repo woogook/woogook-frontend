@@ -25,7 +25,7 @@
 2. 요청이 있으면 현재 변경이 기준 Issue와 일치하는지 다시 확인한다.
 3. PR을 생성하기 전에 commit history를 검토하고, commit squash가 필요한지 판단한 후 정리한다. 각 commit은 `.agents/workflows/commit.md` 기준을 따라야 한다.
 4. PR 생성과 관련 GitHub write는 위 GitHub 도구 우선순위를 따른다.
-5. CLI 경로로 PR을 만들 때 작성자가 사람 계정이면 `--assignee <creator-login>` 또는 `--assignee @me`를 함께 사용해 최대한(best-effort) 할당(assign)을 시도한다.
+5. CLI를 통해 할당(assign)을 시도할 때, 작성자가 사람 계정일 때 `--assignee <creator-login>` 또는 `--assignee @me`를 함께 사용해 최대한(best-effort) 할당(assign)을 시도한다.
 6. 작성자가 봇 또는 앱 계정이면 자동 할당(auto-assign)을 시도하지 않는다.
 7. PR label은 아래 얕은 규칙으로만 추론하고, 저장소에 실제로 있는 label만 추가한다.
    - `docs(` 또는 `docs:` prefix이거나 문서-only 변경이면 `documentation`
