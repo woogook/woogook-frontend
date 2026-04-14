@@ -85,6 +85,17 @@ describe("local-council integration harness database config", () => {
         "postgresql+psycopg://custom-user:custom-password@127.0.0.2:5544/custom-e2e-db",
     });
   });
+
+  it("databaseUrl은 reserved character가 포함된 credential을 percent-encode한다", () => {
+    const databaseConfig = getDatabaseConfig({
+      PLAYWRIGHT_LOCAL_COUNCIL_PGUSER: "user:name@example.com",
+      PLAYWRIGHT_LOCAL_COUNCIL_PGPASSWORD: "pa:ss#word/with?chars",
+    });
+
+    expect(databaseConfig.databaseUrl).toBe(
+      "postgresql+psycopg://user%3Aname%40example.com:pa%3Ass%23word%2Fwith%3Fchars@127.0.0.1:5433/woogook_local_council_e2e",
+    );
+  });
 });
 
 describe("local-council harness backend port preflight", () => {

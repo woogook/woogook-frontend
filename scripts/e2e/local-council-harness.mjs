@@ -11,6 +11,10 @@ const DEFAULT_POSTGRES_PASSWORD = "woogook";
 const DEFAULT_HEALTH_ATTEMPTS = 60;
 const DEFAULT_HEALTH_DELAY_MS = 1000;
 
+function encodeUrlComponent(value) {
+  return encodeURIComponent(value);
+}
+
 export function getDatabaseConfig(env = process.env) {
   const host = env.PLAYWRIGHT_LOCAL_COUNCIL_PGHOST || DEFAULT_POSTGRES_HOST;
   const port = Number(
@@ -26,7 +30,9 @@ export function getDatabaseConfig(env = process.env) {
     env.PLAYWRIGHT_LOCAL_COUNCIL_PGPASSWORD || DEFAULT_POSTGRES_PASSWORD;
   const preserveDatabase =
     env.PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE === "1";
-  const databaseUrl = `postgresql+psycopg://${user}:${password}@${host}:${port}/${database}`;
+  const encodedUser = encodeUrlComponent(user);
+  const encodedPassword = encodeUrlComponent(password);
+  const databaseUrl = `postgresql+psycopg://${encodedUser}:${encodedPassword}@${host}:${port}/${database}`;
 
   return {
     host,
