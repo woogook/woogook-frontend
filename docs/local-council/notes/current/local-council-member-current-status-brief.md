@@ -180,13 +180,15 @@ detail 카드가 현재 해석하는 출처 규칙은 아래다.
 핵심 회귀 검증은 아래다.
 
 ```bash
-npx tsc -p tsconfig.json --noEmit
 npm run test:local-council-samples
-npx --yes tsx --test tests/local_council_detail.test.ts
+npx --yes tsx --test tests/local_council_api_client.test.ts tests/local_council_proxy.test.ts tests/local_council_detail.test.ts
 ```
 
 테스트가 잠그는 핵심은 아래다.
 
+- backend 미가동/503 시 강동구 sample fallback
+- 강동구 외 주소의 제한 안내
+- Next proxy relay와 `person_key` 인코딩
 - diagnostics/freshness/evidence helper 정규화
 - overlay helper 정규화와 `보강 정보` 렌더링
 - source label/source_url/source_links 해석
