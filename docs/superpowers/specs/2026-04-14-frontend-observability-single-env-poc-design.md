@@ -4,8 +4,8 @@
 - 소유 도메인: `common`
 - 상태: `draft`
 - 관련 문서:
-  - [/Users/eric/dev/upstage/woogook/woogook-frontend/docs/superpowers/specs/2026-04-12-frontend-observability-local-stack-design.md](/Users/eric/dev/upstage/woogook/woogook-frontend/docs/superpowers/specs/2026-04-12-frontend-observability-local-stack-design.md)
-  - [/Users/eric/dev/upstage/woogook/woogook-frontend/docs/common/runbooks/frontend-observability-local-runbook.md](/Users/eric/dev/upstage/woogook/woogook-frontend/docs/common/runbooks/frontend-observability-local-runbook.md)
+  - [2026-04-12-frontend-observability-local-stack-design.md](./2026-04-12-frontend-observability-local-stack-design.md)
+  - [frontend-observability-local-runbook.md](../../common/runbooks/frontend-observability-local-runbook.md)
 
 ## 배경
 

@@ -34,9 +34,9 @@
 - `Docker Desktop` 또는 `Docker Engine + Docker Compose`
 - `Node.js`와 `npm`
 - 권장 Node.js 버전:
-  - [`.nvmrc`](/Users/eric/dev/upstage/woogook/woogook-frontend/.worktrees/31-frontend-observability-single-env-poc/.nvmrc) 기준 `22.22.2`
+  - [`.nvmrc`](../../../.nvmrc) 기준 `22.22.2`
 - 최소 Node.js 버전:
-  - `20.9.0`
+  - `20.12.0`
 - 선택 사항:
   - `python3`
     - JSON 출력을 보기 좋게 정리할 때 사용한다.
@@ -64,7 +64,7 @@
 ### 0-1. 저장소 루트로 이동
 
 ```bash
-cd /Users/eric/dev/upstage/woogook/woogook-frontend
+cd /path/to/your/woogook-frontend
 pwd
 ```
 

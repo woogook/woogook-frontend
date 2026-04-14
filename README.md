@@ -13,8 +13,8 @@ npm run dev
 
 브라우저에서 `http://localhost:3000`을 열면 됩니다.
 
-- 프로젝트 기준 Node.js 버전은 [`.nvmrc`](/Users/eric/dev/upstage/woogook/woogook-frontend/.worktrees/31-frontend-observability-single-env-poc/.nvmrc) 기준 `22.22.2`다.
-- `nvm`을 쓰지 않는다면 `Node.js >= 20.9.0` 환경이 필요하다.
+- 프로젝트 기준 Node.js 버전은 [`.nvmrc`](./.nvmrc) 기준 `22.22.2`다.
+- `nvm`을 쓰지 않는다면 `Node.js >= 20.12.0` 환경이 필요하다.
 
 ## Observability
 
