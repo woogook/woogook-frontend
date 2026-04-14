@@ -46,7 +46,8 @@
 - 구청장 sample detail에서는 `보강 정보` 구역이 보이고 `준비 완료` 상태와 1건 이상의 overlay item을 확인할 수 있다.
 - 구의원 sample detail에서는 `보강 정보`가 `준비 중` 또는 비어 있는 상태라도 공식 결정적 결과 구역은 그대로 동작해야 한다.
 - 구의원 sample detail의 `person_key`는 opaque key 예시를 따른다.
-- sample에는 현재 live read API와 같은 opaque `person_key` 패턴(`seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640`)을 사용하고, 필요하면 `spot_check.huboid`로 추가 식별자를 함께 확인한다.
+- sample에는 fallback형 opaque `person_key` 패턴(`seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640`)을 사용하고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
+- 필요하면 `spot_check.huboid`와 `member_source_docid`를 함께 보고 실제 대상 인물을 역추적한다.
 
 ### backend-connected live mode
 

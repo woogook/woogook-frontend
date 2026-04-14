@@ -260,8 +260,8 @@ test("fetchLocalCouncilPerson falls back to the local sample when fetch rejects 
   }
 });
 
-test("fetchLocalCouncilPerson rejects dossier responses missing the stable overlay field", async () => {
-  const { ApiError, fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+test("fetchLocalCouncilPerson accepts older dossier responses missing overlay and diagnostics", async () => {
+  const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
   const originalConsoleError = console.error;
 
@@ -286,7 +286,6 @@ test("fetchLocalCouncilPerson rejects dossier responses missing the stable overl
         finance_activity: [],
         elected_basis: {},
         source_refs: [],
-        diagnostics: {},
         spot_check: null,
         freshness: {},
       }),
@@ -299,16 +298,13 @@ test("fetchLocalCouncilPerson rejects dossier responses missing the stable overl
     );
 
   try {
-    await assert.rejects(
-      () =>
-        fetchLocalCouncilPerson(
-          "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
-        ),
-      (error: unknown) =>
-        error instanceof ApiError &&
-        error.status === 502 &&
-        error.message === "응답 형식이 예상과 다릅니다. 잠시 후 다시 시도해주세요.",
+    const result = await fetchLocalCouncilPerson(
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
+
+    assert.equal(result.data.person_name, "김가동");
+    assert.equal(result.data.overlay, undefined);
+    assert.equal(result.data.diagnostics, undefined);
   } finally {
     globalThis.fetch = originalFetch;
     console.error = originalConsoleError;

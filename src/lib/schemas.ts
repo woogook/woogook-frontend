@@ -427,7 +427,7 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   office_type: z.string(),
   summary: localCouncilPersonSummarySchema,
   evidence: z.array(localCouncilPayloadObjectSchema).optional(),
-  overlay: localCouncilOverlaySchema,
+  overlay: localCouncilOverlaySchema.optional(),
   official_profile: localCouncilPayloadObjectSchema,
   committees: z.array(localCouncilPayloadObjectSchema),
   bills: z.array(localCouncilPayloadObjectSchema),
@@ -435,7 +435,7 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   finance_activity: z.array(localCouncilPayloadObjectSchema),
   elected_basis: localCouncilPayloadObjectSchema,
   source_refs: z.array(localCouncilPayloadObjectSchema),
-  diagnostics: localCouncilDiagnosticsSchema,
+  diagnostics: localCouncilDiagnosticsSchema.optional(),
   spot_check: localCouncilSpotCheckSchema.nullable().optional(),
   freshness: localCouncilFreshnessSchema.extend({
     explanation_lines: z.unknown().optional(),

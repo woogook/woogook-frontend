@@ -31,8 +31,41 @@ if (
   throw new Error("expected at least one opaque fallback person_key sample");
 }
 
-for (const dossier of dossiers) {
+for (const [personKey, dossier] of Object.entries(personSamples)) {
   localCouncilPersonDossierResponseSchema.parse(dossier);
+
+  const spotCheckCarrier = dossier as {
+    diagnostics?: {
+      spot_check?: {
+        kind?: string;
+        member_source_docid?: string;
+        person_key?: string;
+      };
+    };
+    spot_check?: {
+      kind?: string;
+      member_source_docid?: string;
+      person_key?: string;
+    };
+  };
+  const spotCheck =
+    spotCheckCarrier.diagnostics?.spot_check ?? spotCheckCarrier.spot_check;
+  if (spotCheck?.person_key && spotCheck.person_key !== personKey) {
+    throw new Error(`expected spot_check.person_key to match dossier key: ${personKey}`);
+  }
+
+  const gangdongFallbackPrefix =
+    "seoul-gangdong:council-member:서울_강동구의회_002003:";
+  if (
+    personKey.startsWith(gangdongFallbackPrefix) &&
+    spotCheck?.kind === "member_source_docid" &&
+    spotCheck.member_source_docid &&
+    personKey !== `${gangdongFallbackPrefix}${spotCheck.member_source_docid}`
+  ) {
+    throw new Error(
+      `expected fallback person_key and member_source_docid to align: ${personKey}`,
+    );
+  }
 }
 
 console.log(`validated ${dossiers.length} local council person dossier samples`);

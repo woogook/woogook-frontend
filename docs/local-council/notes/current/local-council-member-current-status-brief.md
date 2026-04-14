@@ -68,7 +68,7 @@
   - `overlay.disclaimers`: 사람이 먼저 읽어야 할 주의 문구와 한계 설명이다.
 - 식별자 계약: `basic_council` `person_key`는 opaque key로만 소비한다.
 - `huboid`가 있으면 `seoul-gangdong:council-member:<huboid>` 형태를 쓸 수 있고, 없으면 `council_slug + source_docid` fallback 키를 쓸 수 있다.
-- frontend sample도 fallback형 opaque key 예시를 1건 포함해 non-ASCII 인코딩 회귀를 함께 막는다.
+- frontend sample은 fallback형 opaque key 예시를 포함해 non-ASCII 인코딩 회귀를 막고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
 - 출처 처리:
   - `source_url`: 대표로 노출할 primary 출처 링크다.
   - `source_links`: 함께 보여 줄 ordered related link 목록이다.
