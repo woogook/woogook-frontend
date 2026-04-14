@@ -10,7 +10,7 @@ type ObservabilityClientModule = typeof import("../src/lib/observability/client"
 function loadLocalCouncilApiClient(options?: {
   observabilityClient?: Partial<ObservabilityClientModule>;
 }) {
-  const runtimeRequire = createRequire(__filename);
+  const runtimeRequire = createRequire(import.meta.url);
   const moduleLoader = Module as typeof Module & {
     _load: (request: string, parent: unknown, isMain: boolean) => unknown;
     _resolveFilename: (
