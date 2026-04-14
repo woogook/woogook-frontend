@@ -17,6 +17,7 @@ import {
 } from "../src/features/local-council/detail";
 import {
   buildLocalCouncilSourceContractSummaryViewModel,
+  buildLocalCouncilOverlayViewModel,
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
@@ -573,6 +574,52 @@ test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloa
   });
 });
 
+test("local council helpers normalize overlay payload into supplemental view model", () => {
+  const overlay = buildLocalCouncilOverlayViewModel({
+    status: "ready",
+    support_tier: "supplemental",
+    generated_at: "2026-04-09T12:00:00+09:00",
+    basis: {
+      allowed_sources: ["news_article", "council_site"],
+      target_member_id: "seoul-gangdong:district-head",
+    },
+    sections: [
+      {
+        channel: "news_article",
+        title: "최근 보도",
+        summary: "공식 결정적 결과를 보강하는 뉴스 맥락이다.",
+        items: [
+          {
+            title: "강동구청장, 도서관 확충 추진",
+            snippet: "추가 보강 정보 요약",
+            source_name: "강동뉴스",
+            source_url: "https://example.com/news/1",
+            published_at: "2026-04-09T09:00:00+09:00",
+            confidence: "high",
+            support_tier: "supplemental",
+            provenance: {
+              source_kind: "news_article",
+              document_id: "news-001",
+            },
+          },
+        ],
+      },
+    ],
+    disclaimers: ["보강 정보는 공식 결정적 결과를 대체하지 않습니다."],
+  });
+
+  assert.equal(overlay.statusLabel, "준비 완료");
+  assert.equal(overlay.supportTierLabel, "보강 정보");
+  assert.deepEqual(overlay.allowedSourceLabels, ["뉴스", "의회·공개자료"]);
+  assert.equal(overlay.summaryLine, "1개 채널에서 1건의 보강 정보를 제공합니다.");
+  assert.equal(overlay.sections[0]?.channelLabel, "뉴스");
+  assert.equal(overlay.sections[0]?.items[0]?.confidenceLabel, "신뢰 높음");
+  assert.equal(
+    overlay.sections[0]?.items[0]?.provenanceSummary,
+    "news_article · news-001",
+  );
+});
+
 test("buildSectionCardViewModel adds symmetric actions for bills, meetings, and finance items", () => {
   const commonSourceRefs = [
     {
@@ -1069,6 +1116,9 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   const councilMember = dossiers[
     "seoul-gangdong:council-member:600000001"
   ];
+  const councilMemberSecondary = dossiers[
+    "seoul-gangdong:council-member:600000002"
+  ];
 
   assert.deepEqual(districtHead.summary.evidence_digest, [
     "공식 프로필 1건",
@@ -1142,6 +1192,12 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.deepEqual(districtHead.freshness.explanation_lines, [
     "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
   ]);
+  assert.equal(districtHead.overlay?.status, "ready");
+  assert.equal(councilMember.overlay?.status, "unavailable");
+  assert.equal(
+    councilMemberSecondary.overlay?.basis?.target_member_id,
+    "seoul-gangdong:council-member:600000002",
+  );
 });
 
 test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-check, and freshness panels", () => {
@@ -1163,6 +1219,47 @@ test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-ch
   assert.match(html, /스냅샷 배치 완료 시각/);
   assert.match(html, /구청장 spot-check/);
   assert.match(html, /강동구청장실 공식 프로필/);
+});
+
+test("LocalCouncilPersonDetailView renders a collapsed supplemental overlay summary when present", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /보강 정보/);
+  assert.match(html, /준비 완료/);
+  assert.match(
+    html,
+    /보강 정보는 공식 결정적 결과가 아니라 별도 표식이 있는 supplemental surface입니다/,
+  );
+  assert.match(html, /1개 채널에서 1건의 보강 정보를 제공합니다/);
+  assert.doesNotMatch(html, /추가 보강 정보 요약/);
+});
+
+test("LocalCouncilPersonDetailView renders overlay items when the supplemental section is expanded", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "overlay",
+  });
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /최근 보도/);
+  assert.match(html, /강동구청장, 도서관 확충 추진/);
+  assert.match(html, /추가 보강 정보 요약/);
+  assert.match(html, /강동뉴스/);
+  assert.match(html, /신뢰 높음/);
+  assert.match(html, /news_article · news-001/);
+  assert.match(html, /원문 보기/);
 });
 
 test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagnostics spot_check is missing", () => {

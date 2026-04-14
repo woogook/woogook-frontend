@@ -164,6 +164,44 @@
       "explanation_lines": [
         "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다."
       ]
+    },
+    "overlay": {
+      "status": "ready",
+      "support_tier": "supplemental",
+      "generated_at": "2026-04-09T12:00:00+09:00",
+      "basis": {
+        "allowed_sources": [
+          "news_article",
+          "council_site"
+        ],
+        "target_member_id": "seoul-gangdong:district-head"
+      },
+      "sections": [
+        {
+          "channel": "news_article",
+          "title": "최근 보도",
+          "summary": "공식 결정적 결과를 보강하는 뉴스 맥락이다.",
+          "items": [
+            {
+              "title": "강동구청장, 도서관 확충 추진",
+              "snippet": "추가 보강 정보 요약",
+              "source_name": "강동뉴스",
+              "source_url": "https://example.com/news/1",
+              "published_at": "2026-04-09T09:00:00+09:00",
+              "confidence": "high",
+              "support_tier": "supplemental",
+              "provenance": {
+                "source_kind": "news_article",
+                "document_id": "news-001"
+              }
+            }
+          ]
+        }
+      ],
+      "disclaimers": [
+        "보강 정보는 공식 결정적 결과를 대체하지 않습니다.",
+        "보강 정보의 원문과 신뢰 수준을 함께 확인하세요."
+      ]
     }
   },
   "seoul-gangdong:council-member:600000001": {
@@ -371,6 +409,24 @@
       "lineage": [],
       "staleness_bucket": "fresh",
       "explanation": "published_batch_finished_at=2026-04-08T10:05:00+09:00 기준으로 2026-04-08T10:06:00+09:00 생성본을 사용했다. latest promote 가능한 batch 기준 freshness다. agentic 결과는 degraded 상태다."
+    },
+    "overlay": {
+      "status": "unavailable",
+      "support_tier": "supplemental",
+      "generated_at": "2026-04-08T10:06:00+09:00",
+      "basis": {
+        "allowed_sources": [
+          "news_article",
+          "sns",
+          "council_site"
+        ],
+        "target_member_id": "seoul-gangdong:council-member:600000001"
+      },
+      "sections": [],
+      "disclaimers": [
+        "보강 정보는 공식 결정적 결과를 대체하지 않습니다.",
+        "추가 근거가 연결되기 전까지는 보강 정보가 비어 있을 수 있습니다."
+      ]
     }
   },
   "seoul-gangdong:council-member:600000002": {
@@ -441,6 +497,24 @@
       "source_mode": "stored_projection_only",
       "is_snapshot_based": false,
       "note": "강동구 구의원 상세 미리보기"
+    },
+    "overlay": {
+      "status": "unavailable",
+      "support_tier": "supplemental",
+      "generated_at": "2026-04-08T10:06:00+09:00",
+      "basis": {
+        "allowed_sources": [
+          "news_article",
+          "sns",
+          "council_site"
+        ],
+        "target_member_id": "seoul-gangdong:council-member:600000002"
+      },
+      "sections": [],
+      "disclaimers": [
+        "보강 정보는 공식 결정적 결과를 대체하지 않습니다.",
+        "추가 근거가 연결되기 전까지는 보강 정보가 비어 있을 수 있습니다."
+      ]
     }
   }
 }

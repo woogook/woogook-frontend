@@ -9,6 +9,7 @@ import {
   buildLocalCouncilSourceContractSummaryViewModel,
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilExplainabilityLines,
+  buildLocalCouncilOverlayViewModel,
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilFreshnessLabel,
@@ -447,6 +448,196 @@ function PersonHeroAvatar({
         </>
       ) : null}
     </div>
+  );
+}
+
+function SupplementalOverlaySection({
+  person,
+}: {
+  person: LocalCouncilPersonDossierResponse;
+}) {
+  const overlay = buildLocalCouncilOverlayViewModel(person.overlay);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const expanded = expandedKey === "overlay";
+  const canExpand = overlay.hasContent;
+  const metaRows: LocalCouncilLabelValue[] = [];
+
+  if (overlay.generatedAt) {
+    metaRows.push({ label: "생성 시각", value: overlay.generatedAt });
+  }
+  if (overlay.targetMemberId) {
+    metaRows.push({ label: "대상", value: overlay.targetMemberId });
+  }
+
+  return (
+    <section
+      className="mt-6 rounded-lg border p-4"
+      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
+              보강 정보
+            </h2>
+            <span
+              className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+            >
+              {overlay.statusLabel}
+            </span>
+            <span
+              className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--amber)" }}
+            >
+              {overlay.supportTierLabel}
+            </span>
+          </div>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            보강 정보는 공식 결정적 결과가 아니라 별도 표식이 있는 supplemental surface입니다.
+          </p>
+          <p className="mt-3 text-sm" style={{ color: "var(--foreground)" }}>
+            {overlay.summaryLine}
+          </p>
+        </div>
+        {canExpand ? (
+          <button
+            type="button"
+            onClick={() => setExpandedKey(expanded ? null : "overlay")}
+            aria-expanded={expanded}
+            aria-controls="local-council-overlay-content"
+            className="rounded-lg border px-3 py-2 text-sm font-semibold"
+            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+          >
+            {expanded ? "닫기" : "열기"}
+          </button>
+        ) : null}
+      </div>
+
+      {overlay.allowedSourceLabels.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+            허용 소스
+          </p>
+          <ChipGroup items={overlay.allowedSourceLabels} />
+        </div>
+      ) : null}
+
+      {metaRows.length > 0 ? (
+        <div className="mt-4">
+          <ValueRows rows={metaRows} />
+        </div>
+      ) : null}
+
+      {!canExpand && overlay.disclaimers.length > 0 ? (
+        <div className="mt-4 grid gap-2">
+          {overlay.disclaimers.map((line) => (
+            <p key={line} className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      {expanded ? (
+        <div id="local-council-overlay-content" className="mt-4 grid gap-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+          {overlay.disclaimers.length > 0 ? (
+            <div className="grid gap-2">
+              {overlay.disclaimers.map((line) => (
+                <p key={line} className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : null}
+
+          {overlay.sections.map((section) => (
+            <div
+              key={`${section.channel}:${section.title}`}
+              className="rounded-lg border p-4"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-bold" style={{ color: "var(--navy)" }}>
+                  {section.title}
+                </p>
+                <span
+                  className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                >
+                  {section.channelLabel}
+                </span>
+              </div>
+              {section.summary ? (
+                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {section.summary}
+                </p>
+              ) : null}
+              <div className="mt-4 grid gap-3">
+                {section.items.map((item) => (
+                  <div
+                    key={`${section.channel}:${item.title}:${item.sourceName}`}
+                    className="rounded-lg border p-3"
+                    style={{ borderColor: "var(--border)", background: "var(--background)" }}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold" style={{ color: "var(--navy)" }}>
+                        {item.title}
+                      </p>
+                      {item.confidenceLabel ? (
+                        <span
+                          className="rounded-full border px-2.5 py-1 text-[12px]"
+                          style={{ borderColor: "var(--border)", color: "var(--amber)" }}
+                        >
+                          {item.confidenceLabel}
+                        </span>
+                      ) : null}
+                      <span
+                        className="rounded-full border px-2.5 py-1 text-[12px]"
+                        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                      >
+                        {item.supportTierLabel}
+                      </span>
+                    </div>
+                    {item.snippet ? (
+                      <p className="mt-2 text-sm" style={{ color: "var(--foreground)" }}>
+                        {item.snippet}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 grid gap-2 text-sm">
+                      <p style={{ color: "var(--text-secondary)" }}>출처 · {item.sourceName}</p>
+                      {item.publishedAt ? (
+                        <p style={{ color: "var(--text-secondary)" }}>
+                          수집/발행 시각 · {item.publishedAt}
+                        </p>
+                      ) : null}
+                      {item.provenanceSummary ? (
+                        <p style={{ color: "var(--text-secondary)" }}>
+                          추적 값 · {item.provenanceSummary}
+                        </p>
+                      ) : null}
+                    </div>
+                    {item.sourceUrl ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                        >
+                          원문 보기
+                        </a>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -967,6 +1158,8 @@ export default function LocalCouncilPersonDetailView({
         <ExpandableRecordList title="회의" items={meetingItems} />
         <ExpandableRecordList title="재정 활동" items={financeItems} />
       </div>
+
+      <SupplementalOverlaySection person={person} />
     </section>
   );
 }

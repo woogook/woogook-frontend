@@ -2,6 +2,7 @@ import type {
   LocalCouncilDataSource,
   LocalCouncilDiagnostics,
   LocalCouncilFreshness,
+  LocalCouncilOverlay,
   LocalCouncilPersonDossierResponse,
   LocalCouncilRosterPerson,
   LocalCouncilSpotCheck,
@@ -66,6 +67,38 @@ export interface LocalCouncilSourceContractSummaryViewModel {
   issueCount: number;
   issueRows: string[];
   explanationLines: string[];
+}
+
+export interface LocalCouncilOverlayItemViewModel {
+  title: string;
+  snippet: string | null;
+  sourceName: string;
+  sourceUrl: string | null;
+  publishedAt: string | null;
+  confidenceLabel: string | null;
+  supportTierLabel: string;
+  provenanceSummary: string | null;
+}
+
+export interface LocalCouncilOverlaySectionViewModel {
+  channel: string;
+  channelLabel: string;
+  title: string;
+  summary: string | null;
+  items: LocalCouncilOverlayItemViewModel[];
+}
+
+export interface LocalCouncilOverlayViewModel {
+  status: string;
+  statusLabel: string;
+  supportTierLabel: string;
+  generatedAt: string | null;
+  targetMemberId: string | null;
+  allowedSourceLabels: string[];
+  disclaimers: string[];
+  sections: LocalCouncilOverlaySectionViewModel[];
+  summaryLine: string;
+  hasContent: boolean;
 }
 
 const qualitySignalLabels: Record<string, string> = {
@@ -166,6 +199,60 @@ function getLocalCouncilFreshnessSourceModeLabel(sourceMode: string) {
     live_api: "실시간 API",
   };
   return labels[sourceMode] || sourceMode;
+}
+
+function getLocalCouncilOverlayStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    ready: "준비 완료",
+    partial: "부분 준비",
+    stale: "오래된 보강",
+    unavailable: "준비 중",
+    disabled: "비활성화",
+  };
+  return labels[status] || status;
+}
+
+function getLocalCouncilOverlaySupportTierLabel(supportTier: string) {
+  const labels: Record<string, string> = {
+    supplemental: "보강 정보",
+    exploratory: "탐색형 보강",
+  };
+  return labels[supportTier] || supportTier;
+}
+
+function getLocalCouncilOverlayChannelLabel(channel: string) {
+  const labels: Record<string, string> = {
+    news_article: "뉴스",
+    sns: "SNS",
+    council_site: "의회·공개자료",
+  };
+  return labels[channel] || channel;
+}
+
+function getLocalCouncilOverlayConfidenceLabel(confidence: string | null) {
+  if (!confidence) {
+    return null;
+  }
+  const labels: Record<string, string> = {
+    high: "신뢰 높음",
+    medium: "신뢰 보통",
+    low: "신뢰 낮음",
+  };
+  return labels[confidence] || confidence;
+}
+
+function buildLocalCouncilOverlayProvenanceSummary(
+  provenance: Record<string, unknown> | null,
+) {
+  if (!provenance) {
+    return null;
+  }
+  const tokens = [
+    getStringValue(provenance.source_kind),
+    getStringValue(provenance.document_id),
+    getStringValue(provenance.profile_pack_run_id),
+  ].filter((item): item is string => Boolean(item));
+  return tokens.length > 0 ? tokens.join(" · ") : null;
 }
 
 export function getLocalCouncilFreshnessDetailRows(
@@ -433,6 +520,103 @@ export function buildLocalCouncilSourceContractSummaryViewModel(
     issueCount: Math.max(issueCount ?? 0, uniqueIssueRows.length),
     issueRows: uniqueIssueRows,
     explanationLines: getLocalCouncilExplainabilityLines(explanationLines),
+  };
+}
+
+export function buildLocalCouncilOverlayViewModel(
+  overlay: LocalCouncilOverlay | Record<string, unknown> | null | undefined,
+): LocalCouncilOverlayViewModel {
+  const record = getRecordValue(overlay);
+  const status = getStringValue(record?.status) || "unavailable";
+  const supportTier = getStringValue(record?.support_tier) || "supplemental";
+  const basis = getRecordValue(record?.basis) || {};
+  const allowedSourceLabels = Array.from(
+    new Set(
+      getStringArrayValue(basis.allowed_sources).map((item) =>
+        getLocalCouncilOverlayChannelLabel(item),
+      ),
+    ),
+  );
+  const sections = Array.isArray(record?.sections)
+    ? record.sections
+        .map((section) => {
+          const sectionRecord = getRecordValue(section);
+          if (!sectionRecord) {
+            return null;
+          }
+          const channel = getStringValue(sectionRecord.channel);
+          const title = getStringValue(sectionRecord.title);
+          if (!channel || !title) {
+            return null;
+          }
+          const items = Array.isArray(sectionRecord.items)
+            ? sectionRecord.items
+                .map((item) => {
+                  const itemRecord = getRecordValue(item);
+                  const itemTitle = getStringValue(itemRecord?.title);
+                  if (!itemRecord || !itemTitle) {
+                    return null;
+                  }
+                  const confidence = getStringValue(itemRecord.confidence);
+                  const itemSupportTier =
+                    getStringValue(itemRecord.support_tier) || supportTier;
+                  return {
+                    title: itemTitle,
+                    snippet: getStringValue(itemRecord.snippet),
+                    sourceName: getStringValue(itemRecord.source_name) || "보강 정보",
+                    sourceUrl: getStringValue(itemRecord.source_url),
+                    publishedAt: getStringValue(itemRecord.published_at),
+                    confidenceLabel: getLocalCouncilOverlayConfidenceLabel(confidence),
+                    supportTierLabel: getLocalCouncilOverlaySupportTierLabel(
+                      itemSupportTier,
+                    ),
+                    provenanceSummary: buildLocalCouncilOverlayProvenanceSummary(
+                      getRecordValue(itemRecord.provenance),
+                    ),
+                  } satisfies LocalCouncilOverlayItemViewModel;
+                })
+                .filter(
+                  (
+                    item,
+                  ): item is LocalCouncilOverlayItemViewModel => Boolean(item),
+                )
+            : [];
+          if (items.length === 0) {
+            return null;
+          }
+          return {
+            channel,
+            channelLabel: getLocalCouncilOverlayChannelLabel(channel),
+            title,
+            summary: getStringValue(sectionRecord.summary),
+            items,
+          } satisfies LocalCouncilOverlaySectionViewModel;
+        })
+        .filter(
+          (
+            section,
+          ): section is LocalCouncilOverlaySectionViewModel => Boolean(section),
+        )
+    : [];
+  const itemCount = sections.reduce((count, section) => count + section.items.length, 0);
+  const summaryLine =
+    itemCount > 0
+      ? `${sections.length}개 채널에서 ${itemCount}건의 보강 정보를 제공합니다.`
+      : status === "disabled"
+        ? "이 인물의 보강 정보는 현재 비활성화되어 있습니다."
+        : "추가 보강 정보가 아직 연결되지 않았습니다.";
+
+  return {
+    status,
+    statusLabel: getLocalCouncilOverlayStatusLabel(status),
+    supportTierLabel: getLocalCouncilOverlaySupportTierLabel(supportTier),
+    generatedAt: getStringValue(record?.generated_at),
+    targetMemberId: getStringValue(basis.target_member_id),
+    allowedSourceLabels,
+    disclaimers: getStringArrayValue(record?.disclaimers),
+    sections,
+    summaryLine,
+    hasContent: itemCount > 0,
   };
 }
 

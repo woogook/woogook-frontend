@@ -387,11 +387,47 @@ export const localCouncilPersonSummarySchema = z
   })
   .catchall(z.unknown());
 
+export const localCouncilOverlayItemSchema = z
+  .object({
+    title: z.string(),
+    snippet: z.string().nullable().optional(),
+    source_name: z.string(),
+    source_url: z.string().nullable().optional(),
+    published_at: z.string().nullable().optional(),
+    confidence: z.string().nullable().optional(),
+    support_tier: z.enum(["supplemental", "exploratory"]).optional(),
+    provenance: localCouncilPayloadObjectSchema.optional(),
+  })
+  .catchall(z.unknown());
+
+export const localCouncilOverlaySectionSchema = z
+  .object({
+    channel: z.string(),
+    title: z.string(),
+    summary: z.string().nullable().optional(),
+    items: z.array(localCouncilOverlayItemSchema).optional(),
+  })
+  .catchall(z.unknown());
+
+export const localCouncilOverlaySchema = z
+  .object({
+    status: z
+      .enum(["ready", "partial", "stale", "unavailable", "disabled"])
+      .optional(),
+    support_tier: z.enum(["supplemental", "exploratory"]).optional(),
+    generated_at: z.string().nullable().optional(),
+    basis: localCouncilPayloadObjectSchema.optional(),
+    sections: z.array(localCouncilOverlaySectionSchema).optional(),
+    disclaimers: z.array(z.string()).optional(),
+  })
+  .catchall(z.unknown());
+
 export const localCouncilPersonDossierResponseSchema = z.object({
   person_name: z.string(),
   office_type: z.string(),
   summary: localCouncilPersonSummarySchema,
   evidence: z.array(localCouncilPayloadObjectSchema).optional(),
+  overlay: localCouncilOverlaySchema.optional(),
   official_profile: localCouncilPayloadObjectSchema,
   committees: z.array(localCouncilPayloadObjectSchema),
   bills: z.array(localCouncilPayloadObjectSchema),
@@ -520,6 +556,7 @@ export type LocalCouncilFreshness = z.infer<typeof localCouncilFreshnessSchema>;
 export type LocalCouncilSpotCheck = z.infer<typeof localCouncilSpotCheckSchema>;
 export type LocalCouncilDiagnostics = z.infer<typeof localCouncilDiagnosticsSchema>;
 export type LocalCouncilPersonSummary = z.infer<typeof localCouncilPersonSummarySchema>;
+export type LocalCouncilOverlay = z.infer<typeof localCouncilOverlaySchema>;
 export type LocalCouncilPersonDossierResponse = z.infer<
   typeof localCouncilPersonDossierResponseSchema
 >;
