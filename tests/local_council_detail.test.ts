@@ -16,6 +16,8 @@ import {
   buildExpandableSectionContentId,
 } from "../src/features/local-council/detail";
 import {
+  buildLocalCouncilSourceContractSummaryViewModel,
+  buildLocalCouncilOverlayViewModel,
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
@@ -454,16 +456,46 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
       needs_human_review: [
         {
           reason_code: "member_source_docid_check",
-          person_key: "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+          person_key: "seoul-gangdong:council-member:600000001",
           note: "1인 spot-check 대상",
         },
       ],
       spot_check: {
         kind: "member_source_docid",
         council_slug: "seoul-gangdong",
+        huboid: "600000001",
         member_source_docid: "GD-MEMBER-001",
-        person_key: "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+        person_key: "seoul-gangdong:council-member:600000001",
       },
+      quality_signals: {
+        official_profile: {
+          count: 0,
+          status: "missing",
+          confidence: "low",
+          severity: "warning",
+        },
+        bills: {
+          count: 2,
+          status: "confirmed",
+          confidence: "high",
+          severity: "info",
+        },
+      },
+      source_contract_summary: {
+        issue_count: 1,
+        issues: [
+          {
+            issue_code: "missing_role",
+            source_kind: "local_council_portal_members",
+            role: "official_profile",
+          },
+        ],
+        explanation_lines: ["official_profile source에 role이 비어 있다."],
+      },
+      explanation_lines: [
+        "최종 발행 상태: publishable.",
+        "출처 계약 이슈: 1건.",
+      ],
     }),
     {
       statusRows: [
@@ -474,23 +506,117 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
       ],
       dataGapFlags: ["no_finance_activity"],
       needsHumanReview: [
-        "member_source_docid_check · 1인 spot-check 대상 · seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+        "member_source_docid_check · 1인 spot-check 대상 · seoul-gangdong:council-member:600000001",
       ],
       spotCheckTitle: "구의원 spot-check",
       spotCheckRows: [
         { label: "유형", value: "member_source_docid" },
         {
           label: "대상",
-          value: "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001",
+          value: "seoul-gangdong:council-member:600000001",
         },
         { label: "의회", value: "seoul-gangdong" },
+        { label: "huboid", value: "600000001" },
         { label: "member_source_docid", value: "GD-MEMBER-001" },
+      ],
+      qualitySignalRows: [
+        { label: "공식 프로필", value: "0건 · missing · low · warning" },
+        { label: "의안", value: "2건 · confirmed · high · info" },
+      ],
+      sourceContractRows: [{ label: "출처 계약 이슈", value: "1건" }],
+      sourceContractIssues: ["missing_role · 지방의정포털 의원 정보 · official_profile"],
+      sourceContractExplanationLines: ["official_profile source에 role이 비어 있다."],
+      explanationLines: [
+        "최종 발행 상태: publishable.",
+        "출처 계약 이슈: 1건.",
       ],
     },
   );
   assert.equal(
     getLocalCouncilOfficeExplanation("basic_head"),
     "구청장은 구 행정을 총괄하는 단체장입니다.",
+  );
+});
+
+test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloads", () => {
+  const summary = buildLocalCouncilSourceContractSummaryViewModel([
+    {
+      status: "ok",
+      issue_count: 0,
+      issues: [],
+      explanation_lines: ["summary source contract line"],
+    },
+    {
+      issue_count: 2,
+      issues: [
+        {
+          issue_code: "invalid_source_url",
+          source_kind: "local_finance_365",
+          role: "finance_activity_source",
+        },
+        "missing_source_display_label",
+      ],
+      explanation_lines: ["diagnostics source contract line"],
+    },
+  ]);
+
+  assert.deepEqual(summary, {
+    status: "ok",
+    issueCount: 2,
+    issueRows: [
+      "invalid_source_url · 지방재정365 · finance_activity_source",
+      "missing_source_display_label",
+    ],
+    explanationLines: [
+      "summary source contract line",
+      "diagnostics source contract line",
+    ],
+  });
+});
+
+test("local council helpers normalize overlay payload into supplemental view model", () => {
+  const overlay = buildLocalCouncilOverlayViewModel({
+    status: "ready",
+    support_tier: "supplemental",
+    generated_at: "2026-04-09T12:00:00+09:00",
+    basis: {
+      allowed_sources: ["news_article", "council_site"],
+      target_member_id: "seoul-gangdong:district-head",
+    },
+    sections: [
+      {
+        channel: "news_article",
+        title: "최근 보도",
+        summary: "공식 결정적 결과를 보강하는 뉴스 맥락이다.",
+        items: [
+          {
+            title: "강동구청장, 도서관 확충 추진",
+            snippet: "추가 보강 정보 요약",
+            source_name: "강동뉴스",
+            source_url: "https://example.com/news/1",
+            published_at: "2026-04-09T09:00:00+09:00",
+            confidence: "high",
+            support_tier: "supplemental",
+            provenance: {
+              source_kind: "news_article",
+              document_id: "news-001",
+            },
+          },
+        ],
+      },
+    ],
+    disclaimers: ["보강 정보는 공식 결정적 결과를 대체하지 않습니다."],
+  });
+
+  assert.equal(overlay.statusLabel, "준비 완료");
+  assert.equal(overlay.supportTierLabel, "보강 정보");
+  assert.deepEqual(overlay.allowedSourceLabels, ["뉴스", "의회·공개자료"]);
+  assert.equal(overlay.summaryLine, "1개 채널에서 1건의 보강 정보를 제공합니다.");
+  assert.equal(overlay.sections[0]?.channelLabel, "뉴스");
+  assert.equal(overlay.sections[0]?.items[0]?.confidenceLabel, "신뢰 높음");
+  assert.equal(
+    overlay.sections[0]?.items[0]?.provenanceSummary,
+    "news_article · news-001",
   );
 });
 
@@ -988,7 +1114,10 @@ test("LocalCouncilRosterView explains the roster office terminology", () => {
 test("sample dossiers expose evidence digest, diagnostics, and richer freshness metadata", () => {
   const districtHead = dossiers["seoul-gangdong:district-head"];
   const councilMember = dossiers[
-    "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001"
+    "seoul-gangdong:council-member:600000001"
+  ];
+  const councilMemberSecondary = dossiers[
+    "seoul-gangdong:council-member:600000002"
   ];
 
   assert.deepEqual(districtHead.summary.evidence_digest, [
@@ -1004,15 +1133,71 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.equal(districtHead.freshness.source_mode, "stored_projection_only");
 
   assert.deepEqual(councilMember.summary.evidence_digest, [
-    "공식 프로필 1건",
+    "상임위 1건",
     "의안 2건",
     "회의 활동 1건",
   ]);
   assert.equal(councilMember.summary.fallback_reason, "source_coverage_limited");
+  assert.deepEqual(councilMember.summary.explanation_lines, [
+    "지방의정포털, 중앙선거관리위원회, 강동구의회 기준으로 검증 가능한 정보만 요약했다.",
+    "확인한 핵심 근거: 상임위 1건, 의안 2건, 회의 활동 1건.",
+    "요약 생성 상태: fallback (source_coverage_limited).",
+  ]);
+  assert.equal(Array.isArray(councilMember.evidence), true);
+  assert.equal(councilMember.evidence[0]?.kind, "official_profile");
+  assert.equal(councilMember.evidence[0]?.status, "missing");
   assert.equal(councilMember.diagnostics?.spot_check?.kind, "member_source_docid");
+  assert.equal(councilMember.diagnostics?.spot_check?.huboid, "600000001");
   assert.equal(councilMember.diagnostics?.agentic_review_status, "pass");
   assert.equal(councilMember.diagnostics?.agentic_enrichment_status, "fallback");
+  assert.deepEqual(councilMember.diagnostics?.data_gap_flags, []);
+  assert.deepEqual(councilMember.diagnostics?.needs_human_review, [
+    "summary_fallback",
+  ]);
   assert.equal(councilMember.freshness.basis_kind, "published_batch_finished_at");
+  assert.equal(
+    councilMember.diagnostics?.quality_signals?.official_profile?.status,
+    "missing",
+  );
+  assert.equal(
+    councilMember.diagnostics?.source_contract_summary?.issue_count,
+    0,
+  );
+  assert.deepEqual(councilMember.diagnostics?.explanation_lines, [
+    "최종 발행 상태: publishable_degraded.",
+    "출처 계약 이슈: 0건.",
+    "사람 확인 포인트: summary_fallback.",
+  ]);
+  assert.equal(councilMember.freshness.staleness_bucket, "fresh");
+  assert.deepEqual(councilMember.freshness.lineage, []);
+  assert.equal(
+    councilMember.freshness.note,
+    "latest promote 가능한 batch 기준 freshness다. agentic 결과는 degraded 상태다.",
+  );
+  assert.equal(
+    councilMember.freshness.explanation,
+    "published_batch_finished_at=2026-04-08T10:05:00+09:00 기준으로 2026-04-08T10:06:00+09:00 생성본을 사용했다. latest promote 가능한 batch 기준 freshness다. agentic 결과는 degraded 상태다.",
+  );
+  assert.equal(
+    districtHead.summary.source_contract_summary?.issue_count,
+    0,
+  );
+  assert.deepEqual(districtHead.summary.explanation_lines, [
+    "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+    "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다.",
+  ]);
+  assert.deepEqual(districtHead.diagnostics?.explanation_lines, [
+    "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+  ]);
+  assert.deepEqual(districtHead.freshness.explanation_lines, [
+    "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
+  ]);
+  assert.equal(districtHead.overlay?.status, "ready");
+  assert.equal(councilMember.overlay?.status, "unavailable");
+  assert.equal(
+    councilMemberSecondary.overlay?.basis?.target_member_id,
+    "seoul-gangdong:council-member:600000002",
+  );
 });
 
 test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-check, and freshness panels", () => {
@@ -1036,6 +1221,47 @@ test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-ch
   assert.match(html, /강동구청장실 공식 프로필/);
 });
 
+test("LocalCouncilPersonDetailView renders a collapsed supplemental overlay summary when present", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /보강 정보/);
+  assert.match(html, /준비 완료/);
+  assert.match(
+    html,
+    /보강 정보는 공식 결정적 결과가 아니라 별도 표식이 있는 supplemental surface입니다/,
+  );
+  assert.match(html, /1개 채널에서 1건의 보강 정보를 제공합니다/);
+  assert.doesNotMatch(html, /추가 보강 정보 요약/);
+});
+
+test("LocalCouncilPersonDetailView renders overlay items when the supplemental section is expanded", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "overlay",
+  });
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /최근 보도/);
+  assert.match(html, /강동구청장, 도서관 확충 추진/);
+  assert.match(html, /추가 보강 정보 요약/);
+  assert.match(html, /강동뉴스/);
+  assert.match(html, /신뢰 높음/);
+  assert.match(html, /news_article · news-001/);
+  assert.match(html, /원문 보기/);
+});
+
 test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagnostics spot_check is missing", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const districtHead = dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse;
@@ -1056,6 +1282,211 @@ test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagn
   );
 
   assert.match(html, /구청장 spot-check/);
+});
+
+test("LocalCouncilPersonDetailView renders additive explanation lines and source contract summary when present", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: {
+        ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse),
+        summary: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).summary,
+          explanation_lines: [
+            "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+          ],
+          source_contract_summary: {
+            status: "ok",
+            issue_count: 2,
+            issues: [
+              {
+                issue_code: "invalid_source_url",
+                source_kind: "local_finance_365",
+                role: "finance_activity_source",
+                field: "source_url",
+              },
+              {
+                issue_code: "missing_source_display_label",
+                source_kind: "gangdong_council_official_activity",
+                role: "official_activity",
+              },
+            ],
+            explanation_lines: ["summary source contract line"],
+          },
+        },
+        diagnostics: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).diagnostics,
+          explanation_lines: [
+            "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+          ],
+          source_contract_summary: {
+            issue_count: 1,
+            issues: ["diagnostics_source_contract_hint"],
+            explanation_lines: ["diagnostics source contract line"],
+          },
+        },
+        freshness: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).freshness,
+          explanation_lines: [
+            "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
+          ],
+        },
+      },
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /설명 가능한 진단/);
+  assert.match(html, /요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다\./);
+  assert.match(html, /출처 계약 점검/);
+  assert.match(html, /점검 이슈 3건/);
+  assert.match(html, /출처 계약 상태/);
+  assert.match(html, /ok/);
+  assert.match(html, /invalid_source_url · 지방재정365 · finance_activity_source/);
+  assert.match(html, /diagnostics_source_contract_hint/);
+  assert.match(html, /summary source contract line/);
+  assert.match(html, /diagnostics source contract line/);
+  assert.match(html, /발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다\./);
+  assert.match(html, /기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다\./);
+});
+
+test("LocalCouncilPersonDetailView renders evidence quality, source contract, summary explanations, and freshness lineage", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: {
+        person_name: "김가동",
+        office_type: "basic_council",
+        summary: {
+          headline: "김가동 공식 근거 요약",
+          grounded_summary: "공식 프로필과 의안, 회의 활동 근거를 바탕으로 요약했다.",
+          summary_mode: "fallback",
+          summary_basis: {
+            source_kinds: [
+              "local_council_portal_members",
+              "gangdong_council_official_activity",
+            ],
+          },
+          evidence_digest: ["상임위 1건", "의안 2건", "회의 활동 1건"],
+          explanation_lines: [
+            "지방의정포털과 강동구의회 근거만으로 요약을 구성했다.",
+          ],
+        },
+        evidence: [
+          {
+            kind: "official_profile",
+            label: "공식 프로필",
+            count: 0,
+            present: false,
+            status: "missing",
+            confidence: "low",
+            severity: "warning",
+            explanation: "공식 프로필 section이 아직 없다.",
+          },
+          {
+            kind: "finance_activity",
+            label: "재정 활동",
+            count: 0,
+            present: false,
+            status: "not_applicable",
+            confidence: "high",
+            severity: "info",
+            explanation: "기초의원 dossier에는 재정 활동 근거를 적용하지 않는다.",
+          },
+        ],
+        diagnostics: {
+          publish_status: "publishable",
+          final_publish_status: "publishable_degraded",
+          agentic_review_status: "pass",
+          agentic_enrichment_status: "fallback",
+          data_gap_flags: [],
+          needs_human_review: ["summary_fallback"],
+          spot_check: {
+            kind: "member_source_docid",
+            council_slug: "서울_강동구의회_002003",
+            member_source_docid: "GD-MEMBER-001",
+            huboid: "600000001",
+            person_key: "seoul-gangdong:council-member:600000001",
+          },
+          quality_signals: {
+            official_profile: {
+              count: 0,
+              status: "missing",
+              confidence: "low",
+              severity: "warning",
+            },
+            finance_activity: {
+              count: 0,
+              status: "not_applicable",
+              confidence: "high",
+              severity: "info",
+            },
+          },
+          source_contract_summary: {
+            issue_count: 1,
+            issues: [
+              {
+                issue_code: "missing_role",
+                source_kind: "local_council_portal_members",
+                role: "official_profile",
+              },
+            ],
+            explanation_lines: ["official_profile source에 role이 비어 있다."],
+          },
+          explanation_lines: [
+            "최종 발행 상태: publishable_degraded.",
+          ],
+        },
+        official_profile: {
+          office_label: "강동구의원",
+        },
+        committees: [],
+        bills: [],
+        meeting_activity: [],
+        finance_activity: [],
+        elected_basis: {
+          election_id: "0020220601",
+          huboid: "600000001",
+        },
+        source_refs: [],
+        freshness: {
+          basis_kind: "published_batch_finished_at",
+          basis_timestamp: "2026-04-08T10:05:00+09:00",
+          generated_at: "2026-04-08T10:06:00+09:00",
+          source_mode: "stored_projection_only",
+          is_snapshot_based: false,
+          staleness_bucket: "fresh",
+          explanation: "최근 발행 묶음 기준이다.",
+          lineage: [
+            {
+              label: "published_batch_finished_at",
+              timestamp: "2026-04-08T10:05:00+09:00",
+            },
+          ],
+        },
+      } as unknown as LocalCouncilPersonDossierResponse,
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /요약 설명/);
+  assert.match(html, /지방의정포털과 강동구의회 근거만으로 요약을 구성했다\./);
+  assert.match(html, /근거 현황/);
+  assert.match(html, /공식 프로필 section이 아직 없다\./);
+  assert.match(html, /품질 신호/);
+  assert.match(html, /공식 프로필<\/span><span[^>]*>0건 · missing · low · warning/);
+  assert.match(html, /출처 계약/);
+  assert.match(html, /missing_role · 지방의정포털 의원 정보 · official_profile/);
+  assert.match(html, /진단 설명/);
+  assert.match(html, /최종 발행 상태: publishable_degraded\./);
+  assert.match(html, /신선도 계보/);
+  assert.match(html, /staleness_bucket/);
+  assert.match(html, /fresh/);
+  assert.match(html, /최근 발행 묶음 기준이다\./);
+  assert.match(html, /huboid/);
+  assert.match(html, /600000001/);
 });
 
 test("sample district head dossier exposes enough data for hero block and section actions", () => {
