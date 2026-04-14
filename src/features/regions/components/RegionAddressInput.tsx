@@ -36,6 +36,7 @@ interface RegionAddressInputProps {
 }
 
 function SelectField({
+  id,
   label,
   sublabel,
   value,
@@ -44,6 +45,7 @@ function SelectField({
   placeholder,
   options,
 }: {
+  id: string;
   label: string;
   sublabel?: string;
   value: string;
@@ -55,6 +57,7 @@ function SelectField({
   return (
     <div>
       <label
+        htmlFor={id}
         className="mb-1.5 block text-[11px] font-semibold tracking-wide"
         style={{ color: "var(--text-secondary)" }}
       >
@@ -65,6 +68,7 @@ function SelectField({
       </label>
       <div className="relative">
         <select
+          id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
@@ -197,6 +201,7 @@ export default function RegionAddressInput({
 
         <div className="stagger-3 mb-5 animate-fade-in-up space-y-3">
           <SelectField
+            id="region-city"
             label="시/도"
             value={city}
             onChange={handleCityChange}
@@ -205,6 +210,7 @@ export default function RegionAddressInput({
           />
 
           <SelectField
+            id="region-district"
             label="구/군/시"
             value={district}
             onChange={handleDistrictChange}
@@ -222,6 +228,7 @@ export default function RegionAddressInput({
           />
 
           <SelectField
+            id="region-dong"
             label="읍/면/동"
             sublabel="(선택)"
             value={dong}
