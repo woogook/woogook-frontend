@@ -1,6 +1,7 @@
 import {
   assertOk,
   buildBrowserErrorBatch,
+  formatCorrelationIdLine,
   getFrontendBaseUrl,
   getSyntheticEmitAttempts,
   getSyntheticEmitDelayMs,
@@ -34,8 +35,9 @@ async function main() {
   console.log(`- target: ${url.toString()}`);
   console.log(`- attempts: ${attempts}`);
   console.log(`- accepted: ${responsePayload?.accepted ?? "unknown"}`);
+  console.log(formatCorrelationIdLine(responsePayload?.correlation_id));
   console.log(
-    `- correlation_id: ${responsePayload?.correlation_id ?? "missing"}`,
+    "- 사용 시점: 같은 event를 Grafana, Loki, local log file에서 추적할 때만 사용",
   );
 }
 
