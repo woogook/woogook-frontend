@@ -1,5 +1,11 @@
 # Requested PR Review Follow-Up Workflow
 
+## 먼저 적용할 GitHub 규칙
+
+- inline review thread reply, review comment update, top-level PR comment 같은 GitHub write는 GitHub connector를 우선 사용한다.
+- unresolved thread 상태 조회(`isResolved`, `isOutdated`)와 thread resolve는 connector에 경로가 없을 때 `gh api graphql` 또는 `gh` CLI를 사용한다.
+- connector에 없는 write나 connector 권한 오류, coverage gap이 있을 때만 `gh` fallback을 사용한다.
+
 ## 목적
 
 - 사람이 명시적으로 요청한 경우에만 PR review follow-up을 진행한다.
@@ -37,6 +43,7 @@
 3. 코드나 문서가 바뀌는 경우에는 `수정 -> 검증 -> commit -> push 확인 -> thread reply` 순서를 따른다.
 4. thread reply는 짧고 구체적으로 작성하되, 무엇을 반영했고 무엇을 반영하지 않았는지 분명히 적는다.
 5. 코드나 문서 변경을 반영한 thread reply 마지막 줄에는 해당 조치가 포함된 최신 commit hash를 남긴다.
+6. review thread reply, update, resolve, top-level comment 처리에는 위 GitHub 도구 우선순위를 따른다.
 
 ## 금지 또는 예외
 
@@ -53,11 +60,13 @@
 
 - `gemini-code-assist` inline review thread에는 실질 답글을 먼저 남긴다.
 - 그 답글이 기록된 뒤에만 같은 thread에 `/gemini review-comment-reply`를 추가한다.
+- 두 write는 connector를 우선 사용하고, connector gap이나 권한 오류가 있을 때만 `gh` fallback을 사용한다.
 
 ### Codex
 
-- `Codex` inline review thread에는 실질 답글을 남긴 직후 바로 resolved 처리한다.
+- `Codex` inline review thread에는 실질 답글을 connector를 우선 사용해 남긴 직후 바로 resolved 처리한다.
 - Codex는 별도 후속 요청이 없어도 자동으로 재리뷰를 진행하므로 `/gemini review-comment-reply` 같은 추가 명령을 남기지 않는다.
+- reply write나 resolved 처리용 connector 경로가 없으면 `gh api graphql` 또는 `gh` fallback으로 thread를 정리한다.
 
 ## 완료 조건
 

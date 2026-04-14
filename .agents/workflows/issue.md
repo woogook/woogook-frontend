@@ -1,5 +1,12 @@
 # Issue Workflow
 
+## 먼저 적용할 GitHub 규칙
+
+- GitHub Issue 생성 경로가 있으면 GitHub connector를 우선 사용한다.
+- assignee처럼 connector에 없는 Issue metadata는 `gh` 같은 CLI 경로로 보완한다.
+- 현재 tool surface에 Issue 생성용 connector write가 없을 때만 `gh issue create` 같은 CLI 경로를 사용한다.
+- CLI fallback을 쓰더라도 할당(assign) 실패는 Issue 생성 자체를 막지 않는다.
+
 ## 목적
 
 - 현재 작업의 기준 GitHub Issue를 정한다.
@@ -29,12 +36,13 @@
    - 검증
    - 문서 영향
    - 필요 시 참고 자료
-6. 새 Issue를 `gh issue create` 같은 CLI 경로로 만들 수 있으면, 작성자가 사람 계정일 때 `--assignee <creator-login>`을 함께 사용해 최대한(best-effort) 할당(assign)을 시도한다.
-7. 작성자가 봇 또는 앱 계정이면 자동 할당(auto-assign)을 시도하지 않는다.
-8. 할당(assign)이 실패해도 Issue 생성 자체는 막지 않고, 실패 사유를 Issue 본문이나 댓글에 남기지 않는다.
-9. Issue 제목과 본문은 한글을 기본으로 작성한다.
-10. 영어가 더 정확하거나 자연스러운 경우에만 괄호로 병기한다.
-11. label, 링크, 경로, 명령어 같은 literal은 원문을 유지한다.
+6. 새 Issue 생성과 관련 GitHub write는 위 GitHub 도구 우선순위를 따른다.
+7. CLI를 통해 할당(assign)을 시도할 때, 작성자가 사람 계정일 때 `--assignee <creator-login>`을 함께 사용해 최대한(best-effort) 할당(assign)을 시도한다.
+8. 작성자가 봇 또는 앱 계정이면 자동 할당(auto-assign)을 시도하지 않는다.
+9. 할당(assign)이 실패해도 Issue 생성 자체는 막지 않고, 실패 사유를 Issue 본문이나 댓글에 남기지 않는다.
+10. Issue 제목과 본문은 한글을 기본으로 작성한다.
+11. 영어가 더 정확하거나 자연스러운 경우에만 괄호로 병기한다.
+12. label, 링크, 경로, 명령어 같은 literal은 원문을 유지한다.
 
 ## 완료 조건
 
