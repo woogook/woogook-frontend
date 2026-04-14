@@ -15,7 +15,8 @@ const DEFAULT_BACKEND_HOST = "127.0.0.1";
 const DEFAULT_BACKEND_PORT = 18000;
 const DEFAULT_POSTGRES_HOST = "127.0.0.1";
 const DEFAULT_POSTGRES_PORT = 5433;
-const DEFAULT_POSTGRES_DATABASE = "woogook";
+const DEFAULT_POSTGRES_DATABASE = "woogook_local_council_e2e";
+const DEFAULT_POSTGRES_ADMIN_DATABASE = "postgres";
 const DEFAULT_POSTGRES_USER = "woogook";
 const DEFAULT_POSTGRES_PASSWORD = "woogook";
 const DEFAULT_HEALTH_ATTEMPTS = 60;
@@ -79,18 +80,40 @@ function resolveBackendRoot() {
 }
 
 function getDatabaseConfig() {
-  const host = process.env.PGHOST || DEFAULT_POSTGRES_HOST;
-  const port = Number(process.env.PGPORT || String(DEFAULT_POSTGRES_PORT));
-  const database = process.env.PGDATABASE || DEFAULT_POSTGRES_DATABASE;
-  const user = process.env.PGUSER || DEFAULT_POSTGRES_USER;
-  const password = process.env.PGPASSWORD || DEFAULT_POSTGRES_PASSWORD;
+  const host =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGHOST ||
+    process.env.PGHOST ||
+    DEFAULT_POSTGRES_HOST;
+  const port = Number(
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGPORT ||
+      process.env.PGPORT ||
+      String(DEFAULT_POSTGRES_PORT),
+  );
+  const database =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE ||
+    DEFAULT_POSTGRES_DATABASE;
+  const adminDatabase =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_ADMIN_DATABASE ||
+    DEFAULT_POSTGRES_ADMIN_DATABASE;
+  const user =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGUSER ||
+    process.env.PGUSER ||
+    DEFAULT_POSTGRES_USER;
+  const password =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PGPASSWORD ||
+    process.env.PGPASSWORD ||
+    DEFAULT_POSTGRES_PASSWORD;
+  const preserveDatabase =
+    process.env.PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE === "1";
 
   return {
     host,
     port,
     database,
+    adminDatabase,
     user,
     password,
+    preserveDatabase,
     databaseUrl:
       process.env.WOOGOOK_DATABASE_URL ||
       `postgresql+psycopg://${user}:${password}@${host}:${port}/${database}`,
@@ -136,6 +159,20 @@ function getNpmCommand() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
+function getClientConfig(databaseConfig, databaseName = databaseConfig.database) {
+  return {
+    host: databaseConfig.host,
+    port: databaseConfig.port,
+    database: databaseName,
+    user: databaseConfig.user,
+    password: databaseConfig.password,
+  };
+}
+
+function quoteIdentifier(identifier) {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
 function runCommand(command, args, options = {}) {
   const {
     cwd = process.cwd(),
@@ -153,6 +190,7 @@ function runCommand(command, args, options = {}) {
 
     let stdout = "";
     let stderr = "";
+    let settled = false;
 
     if (captureOutput) {
       child.stdout?.on("data", (chunk) => {
@@ -163,29 +201,58 @@ function runCommand(command, args, options = {}) {
       });
     }
 
-    child.on("error", rejectPromise);
-    child.on("exit", (code) => {
-      if (code === 0 || allowFailure) {
-        resolvePromise({
-          code,
-          stdout: stdout.trim(),
-          stderr: stderr.trim(),
-        });
+    const settle = (callback) => {
+      if (settled) {
         return;
       }
+      settled = true;
+      callback();
+    };
 
-      rejectPromise(
-        new Error(
-          [
-            `명령 실행에 실패했습니다: ${command} ${args.join(" ")}`,
-            `cwd: ${cwd}`,
-            captureOutput && stdout ? `stdout:\n${stdout.trim()}` : null,
-            captureOutput && stderr ? `stderr:\n${stderr.trim()}` : null,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        ),
-      );
+    child.on("error", (error) => {
+      settle(() => {
+        rejectPromise(
+          new Error(
+            [
+              `명령 실행에 실패했습니다: ${command} ${args.join(" ")}`,
+              `cwd: ${cwd}`,
+              `spawn error: ${error.message}`,
+              captureOutput && stdout ? `stdout:\n${stdout.trim()}` : null,
+              captureOutput && stderr ? `stderr:\n${stderr.trim()}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            { cause: error },
+          ),
+        );
+      });
+    });
+
+    child.on("close", (code, signal) => {
+      settle(() => {
+        if (code === 0 || allowFailure) {
+          resolvePromise({
+            code,
+            stdout: stdout.trim(),
+            stderr: stderr.trim(),
+          });
+          return;
+        }
+
+        rejectPromise(
+          new Error(
+            [
+              `명령 실행에 실패했습니다: ${command} ${args.join(" ")}`,
+              `cwd: ${cwd}`,
+              signal ? `signal: ${signal}` : null,
+              captureOutput && stdout ? `stdout:\n${stdout.trim()}` : null,
+              captureOutput && stderr ? `stderr:\n${stderr.trim()}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          ),
+        );
+      });
     });
   });
 }
@@ -215,6 +282,7 @@ async function waitForOk(url, label, options = {}) {
   };
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    options.beforeAttempt?.();
     try {
       const response = await fetch(url, {
         signal: AbortSignal.timeout(2000),
@@ -231,6 +299,57 @@ async function waitForOk(url, label, options = {}) {
   throw new Error(`${label} 확인에 실패했습니다: ${url}`);
 }
 
+async function recreateIsolatedDatabase(databaseConfig) {
+  const adminClient = new Client(
+    getClientConfig(databaseConfig, databaseConfig.adminDatabase),
+  );
+  const quotedDatabaseName = quoteIdentifier(databaseConfig.database);
+
+  await adminClient.connect();
+
+  try {
+    await adminClient.query(
+      `
+        select pg_terminate_backend(pid)
+        from pg_stat_activity
+        where datname = $1
+          and pid <> pg_backend_pid();
+      `,
+      [databaseConfig.database],
+    );
+    await adminClient.query(`drop database if exists ${quotedDatabaseName}`);
+    await adminClient.query(
+      `create database ${quotedDatabaseName} template template0`,
+    );
+  } finally {
+    await adminClient.end();
+  }
+}
+
+async function dropIsolatedDatabase(databaseConfig) {
+  const adminClient = new Client(
+    getClientConfig(databaseConfig, databaseConfig.adminDatabase),
+  );
+  const quotedDatabaseName = quoteIdentifier(databaseConfig.database);
+
+  await adminClient.connect();
+
+  try {
+    await adminClient.query(
+      `
+        select pg_terminate_backend(pid)
+        from pg_stat_activity
+        where datname = $1
+          and pid <> pg_backend_pid();
+      `,
+      [databaseConfig.database],
+    );
+    await adminClient.query(`drop database if exists ${quotedDatabaseName}`);
+  } finally {
+    await adminClient.end();
+  }
+}
+
 async function waitForDatabase(databaseConfig, options = {}) {
   const { attempts, delayMs } = {
     ...getHealthRetryConfig(),
@@ -238,13 +357,7 @@ async function waitForDatabase(databaseConfig, options = {}) {
   };
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const client = new Client({
-      host: databaseConfig.host,
-      port: databaseConfig.port,
-      database: databaseConfig.database,
-      user: databaseConfig.user,
-      password: databaseConfig.password,
-    });
+    const client = new Client(getClientConfig(databaseConfig));
 
     try {
       await client.connect();
@@ -261,13 +374,7 @@ async function waitForDatabase(databaseConfig, options = {}) {
 }
 
 async function seedIntegrationFixture(databaseConfig) {
-  const client = new Client({
-    host: databaseConfig.host,
-    port: databaseConfig.port,
-    database: databaseConfig.database,
-    user: databaseConfig.user,
-    password: databaseConfig.password,
-  });
+  const client = new Client(getClientConfig(databaseConfig));
 
   await client.connect();
 
@@ -767,6 +874,7 @@ async function main() {
   );
 
   let backendProcess = null;
+  let backendProcessFailure = null;
 
   log(`backend root: ${backendRoot}`);
   log(
@@ -785,6 +893,16 @@ async function main() {
       cwd: backendRoot,
     });
 
+    await waitForDatabase(
+      {
+        ...databaseConfig,
+        database: databaseConfig.adminDatabase,
+      },
+      healthConfig,
+    );
+
+    log("격리 integration database 재생성");
+    await recreateIsolatedDatabase(databaseConfig);
     await waitForDatabase(databaseConfig, healthConfig);
 
     log("alembic upgrade head");
@@ -800,19 +918,36 @@ async function main() {
 
     log("backend 시작");
     backendProcess = startBackendServer(backendRoot, backendConfig, databaseConfig);
+    backendProcess.on("error", (error) => {
+      backendProcessFailure = new Error(
+        `${LOG_PREFIX} backend 시작에 실패했습니다: ${error.message}`,
+        { cause: error },
+      );
+      console.error(backendProcessFailure.message);
+    });
     backendProcess.on("exit", (code, signal) => {
       if (signal === "SIGTERM" || signal === "SIGKILL" || code === 143) {
         return;
       }
 
       if (code !== 0 && code !== null) {
+        backendProcessFailure = new Error(
+          `${LOG_PREFIX} backend가 비정상 종료했습니다. exit code=${code}, signal=${signal ?? "none"}`,
+        );
         console.error(
           `${LOG_PREFIX} backend가 비정상 종료했습니다. exit code=${code}, signal=${signal ?? "none"}`,
         );
       }
     });
 
-    await waitForOk(backendHealthUrl, "backend health", healthConfig);
+    await waitForOk(backendHealthUrl, "backend health", {
+      ...healthConfig,
+      beforeAttempt: () => {
+        if (backendProcessFailure) {
+          throw backendProcessFailure;
+        }
+      },
+    });
 
     log("Playwright integration spec 실행");
     await runCommand(getNpmCommand(), ["run", "e2e:integration:spec"], {
@@ -829,6 +964,13 @@ async function main() {
     });
   } finally {
     await terminateProcess(backendProcess, "backend");
+
+    if (!databaseConfig.preserveDatabase) {
+      log("격리 integration database 정리");
+      await dropIsolatedDatabase(databaseConfig).catch((error) => {
+        console.error(`${LOG_PREFIX} integration database 정리에 실패했습니다.`, error);
+      });
+    }
 
     if (!postgresWasRunning) {
       log("postgres 종료");

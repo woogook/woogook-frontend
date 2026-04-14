@@ -136,13 +136,14 @@ npm run e2e:integration
 - `npm run e2e:integration`은 내부적으로 아래를 자동 수행한다.
   - backend 저장소를 찾는다.
   - `docker compose up -d postgres`를 실행한다.
+  - dedicated integration database(격리된 integration 전용 데이터베이스)를 재생성한다.
   - Postgres readiness(기동 완료 상태)를 확인한다.
   - `uv run alembic upgrade head`를 실행한다.
   - `local_election_contest`, `local_election_contest_emd`, `gu`, `local_council_*` 최소 fixture seed(테스트용 고정 데이터 입력)를 넣는다.
   - backend를 전용 포트에서 띄운다.
   - backend `/health`를 확인한다.
   - Playwright integration spec을 실행한다.
-  - 테스트가 끝나면 backend를 정리한다.
+  - 테스트가 끝나면 backend와 integration database를 정리한다.
 
 ### 6.2 자동으로 잡는 기본 포트
 
@@ -150,15 +151,29 @@ npm run e2e:integration
   - `127.0.0.1:18000`
 - Postgres
   - `127.0.0.1:5433`
+- integration database
+  - 기본값은 `woogook_local_council_e2e`
+  - 기존 개발용 `woogook` 데이터베이스를 덮어쓰지 않도록 격리해서 사용한다.
 - frontend dev server
   - `http://localhost:3000`
 
-### 6.3 이 동작이 중요한 이유
+### 6.3 필요한 경우 바꿀 수 있는 환경 변수
+
+- backend repo 경로
+  - `PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO`
+- integration database 이름
+  - `PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE`
+- integration database 보존
+  - `PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE=1`
+  - 실패 상태를 직접 확인해야 할 때만 사용한다.
+
+### 6.4 이 동작이 중요한 이유
 
 - 처음 보는 사람은 backend를 수동으로 띄우는 절차를 몰라도 된다.
 - smoke E2E와 integration E2E의 차이가 명확해진다.
   - smoke는 샘플 경로를 본다.
   - integration은 실제 backend 계약을 본다.
+- 개발용 데이터베이스를 덮어쓰지 않고, 매번 깨끗한 integration 전용 데이터베이스로 시작할 수 있다.
 
 ## 7. 권장 실행 순서
 
