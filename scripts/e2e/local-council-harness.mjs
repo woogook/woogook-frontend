@@ -10,6 +10,7 @@ const DEFAULT_POSTGRES_USER = "woogook";
 const DEFAULT_POSTGRES_PASSWORD = "woogook";
 const DEFAULT_HEALTH_ATTEMPTS = 60;
 const DEFAULT_HEALTH_DELAY_MS = 1000;
+const DEFAULT_FRONTEND_PORT = 3000;
 
 function encodeUrlComponent(value) {
   return encodeURIComponent(value);
@@ -69,6 +70,26 @@ export function getHealthRetryConfig(env = process.env) {
       env.PLAYWRIGHT_LOCAL_COUNCIL_HEALTH_DELAY_MS ||
         String(DEFAULT_HEALTH_DELAY_MS),
     ),
+  };
+}
+
+export function getIntegrationPlaywrightEnv(
+  env = process.env,
+  { backendConfig, databaseConfig },
+) {
+  const frontendPort = String(DEFAULT_FRONTEND_PORT);
+
+  return {
+    ...env,
+    PLAYWRIGHT_LOCAL_COUNCIL_INTEGRATION: "1",
+    PLAYWRIGHT_BASE_URL: `http://localhost:${frontendPort}`,
+    PORT: frontendPort,
+    WOOGOOK_BACKEND_BASE_URL: backendConfig.baseUrl,
+    PGHOST: databaseConfig.host,
+    PGPORT: String(databaseConfig.port),
+    PGDATABASE: databaseConfig.database,
+    PGUSER: databaseConfig.user,
+    PGPASSWORD: databaseConfig.password,
   };
 }
 

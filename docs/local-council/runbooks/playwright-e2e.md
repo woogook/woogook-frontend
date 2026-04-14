@@ -156,6 +156,7 @@ npm run e2e:integration
   - 기존 개발용 `woogook` 데이터베이스를 덮어쓰지 않도록 격리해서 사용한다.
 - frontend dev server
   - `http://localhost:3000`
+  - integration harness는 ambient `PLAYWRIGHT_BASE_URL`과 `PORT`가 있어도 이 로컬 주소로 고정한다.
 
 ### 6.3 필요한 경우 바꿀 수 있는 환경 변수
 

@@ -11,6 +11,7 @@ import {
   getBackendConfig,
   getDatabaseConfig,
   getHealthRetryConfig,
+  getIntegrationPlaywrightEnv,
 } from "./local-council-harness.mjs";
 
 const { Client } = pg;
@@ -888,14 +889,9 @@ async function main() {
     log("Playwright integration spec 실행");
     await runCommand(getNpmCommand(), ["run", "e2e:integration:spec"], {
       cwd: process.cwd(),
-      env: createEnv({
-        PLAYWRIGHT_LOCAL_COUNCIL_INTEGRATION: "1",
-        WOOGOOK_BACKEND_BASE_URL: backendConfig.baseUrl,
-        PGHOST: databaseConfig.host,
-        PGPORT: String(databaseConfig.port),
-        PGDATABASE: databaseConfig.database,
-        PGUSER: databaseConfig.user,
-        PGPASSWORD: databaseConfig.password,
+      env: getIntegrationPlaywrightEnv(createEnv({}), {
+        backendConfig,
+        databaseConfig,
       }),
     });
   } finally {

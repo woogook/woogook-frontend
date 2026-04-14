@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertPortAvailable,
+  getIntegrationPlaywrightEnv,
   getDatabaseConfig,
 } from "./local-council-harness.mjs";
 
@@ -159,5 +160,42 @@ describe("local-council harness backend port preflight", () => {
         label: "backend",
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("local-council integration Playwright env", () => {
+  it("ambient PLAYWRIGHT_BASE_URL과 PORT를 무시하고 로컬 frontend target으로 고정한다", () => {
+    const env = getIntegrationPlaywrightEnv(
+      {
+        PLAYWRIGHT_BASE_URL: "https://external.example.com",
+        PORT: "4123",
+        SOME_OTHER_ENV: "keep-me",
+      },
+      {
+        backendConfig: {
+          baseUrl: "http://127.0.0.1:18000",
+        },
+        databaseConfig: {
+          host: "127.0.0.1",
+          port: 5433,
+          database: "woogook_local_council_e2e",
+          user: "woogook",
+          password: "woogook",
+        },
+      },
+    );
+
+    expect(env).toMatchObject({
+      PLAYWRIGHT_LOCAL_COUNCIL_INTEGRATION: "1",
+      PLAYWRIGHT_BASE_URL: "http://localhost:3000",
+      PORT: "3000",
+      WOOGOOK_BACKEND_BASE_URL: "http://127.0.0.1:18000",
+      PGHOST: "127.0.0.1",
+      PGPORT: "5433",
+      PGDATABASE: "woogook_local_council_e2e",
+      PGUSER: "woogook",
+      PGPASSWORD: "woogook",
+      SOME_OTHER_ENV: "keep-me",
+    });
   });
 });
