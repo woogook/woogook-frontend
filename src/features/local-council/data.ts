@@ -56,6 +56,11 @@ export interface LocalCouncilDiagnosticsViewModel {
   spotCheckRows: LocalCouncilLabelValue[];
 }
 
+export interface LocalCouncilSourceContractSummaryViewModel {
+  issueCount: number;
+  issueRows: string[];
+}
+
 export function getLocalCouncilSourceLabel(sourceKind: string) {
   const labels: Record<string, string> = {
     nec_current_holder: "중앙선거관리위원회 현직자 근거",
@@ -94,6 +99,19 @@ function getStringArrayValue(value: unknown) {
   return value
     .map((item) => getStringValue(item))
     .filter((item): item is string => Boolean(item));
+}
+
+function getUniqueStringArrayValue(values: string[]) {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const value of values) {
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    deduped.push(value);
+  }
+  return deduped;
 }
 
 function getRecordValue(value: unknown) {
@@ -185,6 +203,93 @@ export function getLocalCouncilSummaryFallbackReason(
   summary: LocalCouncilPersonDossierResponse["summary"] | Record<string, unknown>,
 ) {
   return getStringValue(summary.fallback_reason);
+}
+
+function getLocalCouncilSourceContractIssueLine(issue: Record<string, unknown>) {
+  const issueCode = getStringValue(issue.issue_code);
+  const sourceKind = getStringValue(issue.source_kind);
+  const role = getStringValue(issue.role);
+  const field = getStringValue(issue.field);
+  const value = getStringValue(issue.value);
+  const parts = [
+    issueCode,
+    sourceKind ? getLocalCouncilSourceLabel(sourceKind) : null,
+    role,
+  ].filter((item): item is string => Boolean(item));
+
+  if (field && value) {
+    parts.push(`${field}=${value}`);
+  } else if (field) {
+    parts.push(field);
+  }
+
+  return parts.join(" · ");
+}
+
+export function getLocalCouncilExplainabilityLines(
+  values: Array<unknown>,
+) {
+  const lines: string[] = [];
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      lines.push(...getStringArrayValue(value));
+      continue;
+    }
+    const record = getRecordValue(value);
+    if (!record) {
+      continue;
+    }
+    lines.push(...getStringArrayValue(record.explanation_lines));
+  }
+  return getUniqueStringArrayValue(lines);
+}
+
+export function buildLocalCouncilSourceContractSummaryViewModel(
+  values: Array<unknown>,
+): LocalCouncilSourceContractSummaryViewModel | null {
+  let hasSummary = false;
+  let issueCount: number | null = null;
+  const issueRows: string[] = [];
+
+  for (const value of values) {
+    const record = getRecordValue(value);
+    if (!record) {
+      continue;
+    }
+    const rawIssueCount = record.issue_count;
+    const nextIssueCount =
+      typeof rawIssueCount === "number" && Number.isFinite(rawIssueCount)
+        ? Math.max(0, Math.floor(rawIssueCount))
+        : null;
+    const nextIssueRows = Array.isArray(record.issues)
+      ? record.issues
+          .map((item) => getRecordValue(item))
+          .filter((item): item is Record<string, unknown> => Boolean(item))
+          .map((item) => getLocalCouncilSourceContractIssueLine(item))
+          .filter((item): item is string => Boolean(item))
+      : [];
+
+    if (nextIssueRows.length === 0 && nextIssueCount === null) {
+      continue;
+    }
+
+    hasSummary = true;
+    if (nextIssueCount !== null) {
+      issueCount =
+        issueCount === null ? nextIssueCount : Math.max(issueCount, nextIssueCount);
+    }
+    issueRows.push(...nextIssueRows);
+  }
+
+  if (!hasSummary) {
+    return null;
+  }
+
+  const uniqueIssueRows = getUniqueStringArrayValue(issueRows);
+  return {
+    issueCount: Math.max(issueCount ?? 0, uniqueIssueRows.length),
+    issueRows: uniqueIssueRows,
+  };
 }
 
 function describeReviewItem(value: unknown) {

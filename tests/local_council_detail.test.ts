@@ -16,6 +16,7 @@ import {
   buildExpandableSectionContentId,
 } from "../src/features/local-council/detail";
 import {
+  buildLocalCouncilSourceContractSummaryViewModel,
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
@@ -492,6 +493,30 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
     getLocalCouncilOfficeExplanation("basic_head"),
     "구청장은 구 행정을 총괄하는 단체장입니다.",
   );
+});
+
+test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloads", () => {
+  const summary = buildLocalCouncilSourceContractSummaryViewModel([
+    {
+      issue_count: 0,
+      issues: [],
+    },
+    {
+      issue_count: 2,
+      issues: [
+        {
+          issue_code: "invalid_source_url",
+          source_kind: "local_finance_365",
+          role: "finance_activity_source",
+        },
+      ],
+    },
+  ]);
+
+  assert.deepEqual(summary, {
+    issueCount: 2,
+    issueRows: ["invalid_source_url · 지방재정365 · finance_activity_source"],
+  });
 });
 
 test("buildSectionCardViewModel adds symmetric actions for bills, meetings, and finance items", () => {
@@ -1013,6 +1038,20 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.equal(councilMember.diagnostics?.agentic_review_status, "pass");
   assert.equal(councilMember.diagnostics?.agentic_enrichment_status, "fallback");
   assert.equal(councilMember.freshness.basis_kind, "published_batch_finished_at");
+  assert.equal(
+    districtHead.summary.source_contract_summary?.issue_count,
+    0,
+  );
+  assert.deepEqual(districtHead.summary.explanation_lines, [
+    "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+    "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다.",
+  ]);
+  assert.deepEqual(districtHead.diagnostics?.explanation_lines, [
+    "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+  ]);
+  assert.deepEqual(districtHead.freshness.explanation_lines, [
+    "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
+  ]);
 });
 
 test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-check, and freshness panels", () => {
@@ -1056,6 +1095,61 @@ test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagn
   );
 
   assert.match(html, /구청장 spot-check/);
+});
+
+test("LocalCouncilPersonDetailView renders additive explanation lines and source contract summary when present", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: {
+        ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse),
+        summary: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).summary,
+          explanation_lines: [
+            "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+          ],
+          source_contract_summary: {
+            issue_count: 2,
+            issues: [
+              {
+                issue_code: "invalid_source_url",
+                source_kind: "local_finance_365",
+                role: "finance_activity_source",
+                field: "source_url",
+              },
+              {
+                issue_code: "missing_source_display_label",
+                source_kind: "gangdong_council_official_activity",
+                role: "official_activity",
+              },
+            ],
+          },
+        },
+        diagnostics: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).diagnostics,
+          explanation_lines: [
+            "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+          ],
+        },
+        freshness: {
+          ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse).freshness,
+          explanation_lines: [
+            "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
+          ],
+        },
+      },
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /설명 가능한 진단/);
+  assert.match(html, /요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다\./);
+  assert.match(html, /출처 계약 점검/);
+  assert.match(html, /점검 이슈 2건/);
+  assert.match(html, /invalid_source_url · 지방재정365 · finance_activity_source/);
+  assert.match(html, /발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다\./);
+  assert.match(html, /기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다\./);
 });
 
 test("sample district head dossier exposes enough data for hero block and section actions", () => {

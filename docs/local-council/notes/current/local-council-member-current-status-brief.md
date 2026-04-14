@@ -28,7 +28,7 @@
 - 브라우저는 Next route만 호출하고, Next route가 `WOOGOOK_BACKEND_BASE_URL` 기반으로 backend를 proxy한다.
 - backend가 없거나 503 계열로 실패하면 `강동구`에 한해 로컬 sample fixture로 같은 흐름을 유지한다.
 - roster는 `구청장 1명 + 구의원 명단`과 `freshness`, `source_coverage` 요약을 보여 준다.
-- detail은 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `committees`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`를 현재 계약 범위 안에서 보여 준다.
+- detail은 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `committees`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`, `source_contract_summary`를 현재 계약 범위 안에서 보여 준다.
 - section card는 `source_url`, `source_links`, legacy `source_urls`, `download_url`을 함께 처리하고 placeholder URL은 숨긴다.
 
 ### 아직 아닌 것
@@ -117,9 +117,14 @@ detail 화면은 아래 묶음으로 나뉜다.
   - `summary.evidence_digest`
   - `summary.summary_basis.source_kinds`
   - `summary.fallback_reason`
+  - `summary.explanation_lines`
+  - `summary.source_contract_summary`
 - 발행·진단
   - `freshness`
   - `diagnostics`
+  - `freshness.explanation_lines`
+  - `diagnostics.explanation_lines`
+  - `source_contract_summary`
   - `data_gap_flags`
   - `needs_human_review`
   - `spot_check`

@@ -6,7 +6,9 @@ import type {
   LocalCouncilPersonDossierResponse,
 } from "@/lib/schemas";
 import {
+  buildLocalCouncilSourceContractSummaryViewModel,
   buildLocalCouncilDiagnosticsViewModel,
+  getLocalCouncilExplainabilityLines,
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilFreshnessLabel,
@@ -367,6 +369,16 @@ export default function LocalCouncilPersonDetailView({
       ? { ...(person.diagnostics ?? {}), spot_check: person.spot_check }
       : person.diagnostics;
   const diagnostics = buildLocalCouncilDiagnosticsViewModel(diagnosticsSource);
+  const explainabilityLines = getLocalCouncilExplainabilityLines([
+    person.summary.explanation_lines,
+    person.diagnostics?.explanation_lines,
+    person.freshness.explanation_lines,
+  ]);
+  const sourceContractSummary = buildLocalCouncilSourceContractSummaryViewModel([
+    person.summary.source_contract_summary,
+    person.diagnostics?.source_contract_summary,
+    person.source_contract_summary,
+  ]);
   const officialProfileSections = person.official_profile["official_profile_sections"];
   const profileSections = Array.isArray(officialProfileSections)
     ? officialProfileSections.filter(
@@ -657,6 +669,53 @@ export default function LocalCouncilPersonDetailView({
           ) : null}
         </section>
       </div>
+
+      {explainabilityLines.length > 0 || sourceContractSummary ? (
+        <section
+          className="mt-4 rounded-lg border p-4"
+          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+        >
+          <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
+            설명 가능한 진단
+          </h2>
+          {explainabilityLines.length > 0 ? (
+            <ul className="mt-3 grid gap-2">
+              {explainabilityLines.map((line) => (
+                <li
+                  key={line}
+                  className="text-sm leading-6"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {line}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {sourceContractSummary ? (
+            <div className="mt-4">
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                출처 계약 점검
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "var(--foreground)" }}>
+                점검 이슈 {sourceContractSummary.issueCount}건
+              </p>
+              {sourceContractSummary.issueRows.length > 0 ? (
+                <ul className="mt-2 grid gap-1">
+                  {sourceContractSummary.issueRows.map((row) => (
+                    <li
+                      key={row}
+                      className="text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {row}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {diagnostics.spotCheckRows.length > 0 ? (
         <section

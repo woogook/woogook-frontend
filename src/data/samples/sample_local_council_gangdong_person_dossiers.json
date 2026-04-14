@@ -20,7 +20,15 @@
           "local_finance_365"
         ]
       },
-      "fallback_reason": null
+      "fallback_reason": null,
+      "explanation_lines": [
+        "요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다.",
+        "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다."
+      ],
+      "source_contract_summary": {
+        "issue_count": 0,
+        "issues": []
+      }
     },
     "official_profile": {
       "office_label": "강동구청장",
@@ -141,7 +149,10 @@
         "kind": "district_head",
         "person_key": "seoul-gangdong:district-head",
         "source_kind": "gangdong_district_head_official_profile"
-      }
+      },
+      "explanation_lines": [
+        "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다."
+      ]
     },
     "freshness": {
       "basis_kind": "snapshot_batch_finished_at",
@@ -149,7 +160,10 @@
       "generated_at": "2026-04-08T10:11:00+09:00",
       "source_mode": "stored_projection_only",
       "is_snapshot_based": true,
-      "note": "강동구 구청장 상세 미리보기"
+      "note": "강동구 구청장 상세 미리보기",
+      "explanation_lines": [
+        "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다."
+      ]
     }
   },
   "seoul-gangdong:council-member:서울_강동구의회_002003:GD-MEMBER-001": {

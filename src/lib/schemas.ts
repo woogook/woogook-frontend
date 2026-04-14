@@ -322,6 +322,8 @@ const localCouncilSpotCheckSchema = z
   })
   .catchall(z.unknown());
 
+const localCouncilSourceContractSummarySchema = localCouncilPayloadObjectSchema;
+
 const localCouncilDiagnosticsSchema = z
   .object({
     publish_status: z.string().nullable().optional(),
@@ -331,6 +333,8 @@ const localCouncilDiagnosticsSchema = z
     data_gap_flags: z.array(z.string()).optional(),
     needs_human_review: z.unknown().optional(),
     spot_check: localCouncilSpotCheckSchema.nullable().optional(),
+    explanation_lines: z.unknown().optional(),
+    source_contract_summary: localCouncilSourceContractSummarySchema.optional(),
   })
   .catchall(z.unknown());
 
@@ -373,6 +377,8 @@ export const localCouncilPersonSummarySchema = z
     summary_basis: localCouncilPayloadObjectSchema,
     evidence_digest: z.array(z.string()).optional(),
     fallback_reason: z.string().nullable().optional(),
+    explanation_lines: z.unknown().optional(),
+    source_contract_summary: localCouncilSourceContractSummarySchema.optional(),
   })
   .catchall(z.unknown());
 
@@ -389,7 +395,10 @@ export const localCouncilPersonDossierResponseSchema = z.object({
   source_refs: z.array(localCouncilPayloadObjectSchema),
   diagnostics: localCouncilDiagnosticsSchema.optional(),
   spot_check: localCouncilSpotCheckSchema.nullable().optional(),
-  freshness: localCouncilFreshnessSchema,
+  freshness: localCouncilFreshnessSchema.extend({
+    explanation_lines: z.unknown().optional(),
+  }),
+  source_contract_summary: localCouncilSourceContractSummarySchema.optional(),
 });
 
 /** GET /api/assembly/v1/members/{mona_cd}/card — 백엔드 AssemblyMemberMetaCard */
