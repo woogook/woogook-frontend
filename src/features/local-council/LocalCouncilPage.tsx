@@ -5,13 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
+  buildLocalCouncilRosterScreenResult,
   fetchLocalCouncilPerson,
+  fetchLocalCouncilRoster,
   fetchLocalCouncilResolve,
+  mergeLocalCouncilDataSources,
   type LocalCouncilResult,
 } from "@/lib/api-client";
 import type {
   LocalCouncilPersonDossierResponse,
-  LocalCouncilResolveResponse,
+  LocalCouncilRosterScreenData,
   LocalCouncilRosterPerson,
 } from "@/lib/schemas";
 import { isLocalCouncilRosterPerson } from "@/features/local-council/data";
@@ -44,8 +47,8 @@ function getHistoryState(value: unknown): LocalCouncilHistoryState {
   };
 }
 
-function getFallbackView(hasResolveResult: boolean): View {
-  return hasResolveResult ? "roster" : "address";
+function getFallbackView(hasRosterResult: boolean): View {
+  return hasRosterResult ? "roster" : "address";
 }
 
 function createHistoryState(view: View, personKey?: string): LocalCouncilHistoryState {
@@ -65,7 +68,7 @@ function hasViewState(state: LocalCouncilHistoryState) {
 }
 
 function findSelectedRosterPerson(
-  result: LocalCouncilResult<LocalCouncilResolveResponse> | null,
+  result: LocalCouncilResult<LocalCouncilRosterScreenData> | null,
   personKey: string | null,
 ) {
   if (!result || !personKey) {
@@ -85,8 +88,8 @@ function findSelectedRosterPerson(
 
 export default function LocalCouncilPage() {
   const [view, setView] = useState<View>("address");
-  const [resolveResult, setResolveResult] =
-    useState<LocalCouncilResult<LocalCouncilResolveResponse> | null>(null);
+  const [rosterScreenResult, setRosterScreenResult] =
+    useState<LocalCouncilResult<LocalCouncilRosterScreenData> | null>(null);
   const [personResult, setPersonResult] =
     useState<LocalCouncilResult<LocalCouncilPersonDossierResponse> | null>(null);
   const [selectedPersonKey, setSelectedPersonKey] = useState<string | null>(null);
@@ -95,14 +98,17 @@ export default function LocalCouncilPage() {
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const viewRef = useRef<View>("address");
-  const resolveResultRef =
-    useRef<LocalCouncilResult<LocalCouncilResolveResponse> | null>(null);
+  const rosterScreenResultRef =
+    useRef<LocalCouncilResult<LocalCouncilRosterScreenData> | null>(null);
   const personResultRef =
     useRef<LocalCouncilResult<LocalCouncilPersonDossierResponse> | null>(null);
   const selectedPersonKeyRef = useRef<string | null>(null);
   const resolveRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
-  const selectedRosterPerson = findSelectedRosterPerson(resolveResult, selectedPersonKey);
+  const selectedRosterPerson = findSelectedRosterPerson(
+    rosterScreenResult,
+    selectedPersonKey,
+  );
 
   const rootStyle: CSSProperties = {
     background: "var(--background)",
@@ -118,8 +124,8 @@ export default function LocalCouncilPage() {
   }, [view]);
 
   useEffect(() => {
-    resolveResultRef.current = resolveResult;
-  }, [resolveResult]);
+    rosterScreenResultRef.current = rosterScreenResult;
+  }, [rosterScreenResult]);
 
   useEffect(() => {
     personResultRef.current = personResult;
@@ -165,7 +171,7 @@ export default function LocalCouncilPage() {
   useEffect(() => {
     const reconcileHistoryState = (rawState: unknown) => {
       const historyState = getHistoryState(rawState);
-      const hasResolveResult = Boolean(resolveResultRef.current);
+      const hasRosterResult = Boolean(rosterScreenResultRef.current);
       const hasPersonResult = Boolean(personResultRef.current);
       const requestedView = historyState.view || "address";
 
@@ -182,7 +188,7 @@ export default function LocalCouncilPage() {
           return;
         }
 
-        const fallbackView = getFallbackView(hasResolveResult);
+        const fallbackView = getFallbackView(hasRosterResult);
         cancelDetailRequest();
         setDetailError(null);
         if (fallbackView === "address") {
@@ -195,7 +201,7 @@ export default function LocalCouncilPage() {
       }
 
       if (requestedView === "roster") {
-        if (hasResolveResult) {
+        if (hasRosterResult) {
           cancelDetailRequest();
           updateViewOnly("roster");
           return;
@@ -232,20 +238,32 @@ export default function LocalCouncilPage() {
     setLoading(true);
     setError(null);
     setDetailError(null);
-    setResolveResult(null);
+    setRosterScreenResult(null);
     setPersonResult(null);
     setSelectedPersonKey(null);
-    resolveResultRef.current = null;
+    rosterScreenResultRef.current = null;
     personResultRef.current = null;
     selectedPersonKeyRef.current = null;
 
     try {
-      const result = await fetchLocalCouncilResolve({ city, district, dong });
+      const resolved = await fetchLocalCouncilResolve({ city, district, dong });
+      let roster = null;
+
+      try {
+        roster = await fetchLocalCouncilRoster(resolved.data.district.gu_code);
+      } catch (rosterError) {
+        console.warn(
+          "[local-council] falling back to resolve roster payload",
+          rosterError,
+        );
+      }
+
       if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
         return;
       }
-      setResolveResult(result);
-      resolveResultRef.current = result;
+      const result = buildLocalCouncilRosterScreenResult({ resolved, roster });
+      setRosterScreenResult(result);
+      rosterScreenResultRef.current = result;
       pushView("roster", createHistoryState("roster"));
     } catch (err) {
       if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
@@ -362,11 +380,11 @@ export default function LocalCouncilPage() {
             error={error}
           />
         )}
-        {view === "roster" && resolveResult && (
+        {view === "roster" && rosterScreenResult && (
           <>
             <LocalCouncilRosterView
-              resolveData={resolveResult.data}
-              dataSource={resolveResult.dataSource}
+              rosterData={rosterScreenResult.data}
+              dataSource={rosterScreenResult.dataSource}
               onSelectPerson={handleSelectPerson}
               onBack={handleRosterBack}
             />
@@ -391,7 +409,10 @@ export default function LocalCouncilPage() {
         {view === "detail" && personResult && (
           <LocalCouncilPersonDetailView
             person={personResult.data}
-            dataSource={personResult.dataSource}
+            dataSource={mergeLocalCouncilDataSources(
+              rosterScreenResult?.dataSource,
+              personResult.dataSource,
+            )}
             partyName={selectedRosterPerson?.party_name ?? null}
             onBack={handleDetailBack}
           />

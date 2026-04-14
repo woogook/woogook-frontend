@@ -12,8 +12,45 @@ if (dossiers.length < 2) {
   throw new Error("expected at least two local council person dossier samples");
 }
 
-for (const dossier of dossiers) {
-  localCouncilPersonDossierResponseSchema.parse(dossier);
+const rosterPersonKeys = [
+  resolveSample.roster.district_head.person_key,
+  ...resolveSample.roster.council_members.map((person) => person.person_key),
+].filter((personKey): personKey is string => typeof personKey === "string" && personKey.length > 0);
+const missingDossiers = rosterPersonKeys.filter((personKey) => !(personKey in personSamples));
+if (missingDossiers.length > 0) {
+  throw new Error(
+    `expected dossier samples for every roster person: ${missingDossiers.join(", ")}`,
+  );
+}
+
+if (
+  !resolveSample.roster.council_members.some((person) =>
+    person.person_key.includes("서울_강동구의회_002003"),
+  )
+) {
+  throw new Error("expected at least one opaque fallback person_key sample");
+}
+
+for (const [personKey, dossier] of Object.entries(personSamples)) {
+  const parsedDossier = localCouncilPersonDossierResponseSchema.parse(dossier);
+  const spotCheck =
+    parsedDossier.diagnostics?.spot_check ?? parsedDossier.spot_check;
+  if (spotCheck?.person_key && spotCheck.person_key !== personKey) {
+    throw new Error(`expected spot_check.person_key to match dossier key: ${personKey}`);
+  }
+
+  const gangdongFallbackPrefix =
+    "seoul-gangdong:council-member:서울_강동구의회_002003:";
+  if (
+    personKey.startsWith(gangdongFallbackPrefix) &&
+    spotCheck?.kind === "member_source_docid" &&
+    spotCheck.member_source_docid &&
+    personKey !== `${gangdongFallbackPrefix}${spotCheck.member_source_docid}`
+  ) {
+    throw new Error(
+      `expected fallback person_key and member_source_docid to align: ${personKey}`,
+    );
+  }
 }
 
 console.log(`validated ${dossiers.length} local council person dossier samples`);

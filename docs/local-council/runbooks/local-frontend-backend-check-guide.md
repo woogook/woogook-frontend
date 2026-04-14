@@ -45,14 +45,15 @@
 - sample detail에서 `요약 설명`, `근거 현황`, `품질 신호`, `출처 계약 점검`, `신선도 계보`, `spot-check`가 함께 보인다.
 - 구청장 sample detail에서는 `보강 정보` 구역이 보이고 `준비 완료` 상태와 1건 이상의 overlay item을 확인할 수 있다.
 - 구의원 sample detail에서는 `보강 정보`가 `준비 중` 또는 비어 있는 상태라도 공식 결정적 결과 구역은 그대로 동작해야 한다.
-- 구의원 sample detail의 `person_key`는 `huboid` 우선 opaque key 예시(`seoul-gangdong:council-member:600000001`)를 따른다.
+- 구의원 sample detail의 `person_key`는 opaque key 예시를 따른다.
+- sample에는 fallback형 opaque `person_key` 패턴(`seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640`)을 사용하고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
+- 필요하면 `spot_check.huboid`와 `member_source_docid`를 함께 보고 실제 대상 인물을 역추적한다.
 
 ### backend-connected live mode
 
 - 이 경로는 frontend가 실제 backend 응답을 받는지 보는 절차다.
 - `/api/local-council/v1/resolve`, `/districts/11740/roster`, `/persons/{person_key}`가 backend에서 200을 반환한다.
-- frontend Next proxy는 현재 `/api/local-council/v1/resolve`와 `/api/local-council/v1/persons/{person_key}`를 relay한다.
-- roster는 별도 frontend proxy route가 아니라 `resolve` 응답에 포함된 live payload로 화면에 들어온다.
+- frontend Next proxy는 `/api/local-council/v1/resolve`, `/api/local-council/v1/districts/{gu_code}/roster`, `/api/local-council/v1/persons/{person_key}`를 relay한다.
 - `/local-council` 화면 상단 배지가 `공식 근거 데이터`다.
 - fallback 안내 문구가 사라지고, live roster/detail이 보인다.
 - non-Gangdong 입력은 계속 제한 안내 또는 backend 404 경계 안에 머문다.
@@ -125,8 +126,7 @@ npx --yes tsx --test tests/local_council_api_client.test.ts tests/local_council_
 
 ### 여기서 목표
 
-- frontend proxy가 `resolve`와 `persons/{person_key}` 응답을 그대로 relay하는지 확인한다.
-- roster는 `resolve` 응답 안의 live payload로 화면에 들어오는지 확인한다.
+- frontend proxy가 `resolve`, `roster`, `persons/{person_key}` 응답을 그대로 relay하는지 확인한다.
 - sample fallback이 아니라 live payload를 화면에 보여 주는지 확인한다.
 - overlay가 있어도 공식 상세 카드가 깨지지 않는지 확인한다.
 
@@ -296,7 +296,8 @@ curl 'http://127.0.0.1:8000/api/local-council/v1/persons/seoul-gangdong%3Adistri
 - `resolve` 응답에 `resolution_status: "resolved"`
 - `district.gu_code == "11740"`
 - `roster.district_head`와 `roster.council_members`가 채워짐
-- `persons/seoul-gangdong%3Adistrict-head` 응답에 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`, `source_contract_summary`가 존재함
+- `persons/seoul-gangdong%3Adistrict-head` 응답에 `summary`, `evidence`, `diagnostics`, `spot_check`, `official_profile`, `bills`, `meeting_activity`, `finance_activity`, `elected_basis`, `source_refs`, `freshness`, `overlay`가 존재함
+- 출처 계약 요약은 기본적으로 `diagnostics.source_contract_summary`에서 확인함
 
 ## 2-8. frontend를 backend에 연결한다
 
@@ -349,21 +350,29 @@ frontend person proxy:
 curl 'http://127.0.0.1:3000/api/local-council/v1/persons/seoul-gangdong%3Adistrict-head'
 ```
 
+frontend roster proxy:
+
+```bash
+curl 'http://127.0.0.1:3000/api/local-council/v1/districts/11740/roster'
+```
+
 기대 결과:
 
-- 두 요청 모두 200이다.
+- 세 요청 모두 200이다.
 - resolve proxy 응답의 `district.gu_code == "11740"`다.
-- person proxy 응답에 `summary`, `evidence`, `diagnostics`, `spot_check`, `source_refs`, `freshness`, `source_contract_summary`가 존재한다.
-- person proxy 응답에 `overlay`가 있으면 `status`, `support_tier`, `basis`, `sections`, `disclaimers` shape가 그대로 relay된다.
+- roster proxy 응답에 `district_head.person_key`와 `council_members[*].person_key`가 존재한다.
+- person proxy 응답에 `summary`, `evidence`, `diagnostics`, `spot_check`, `source_refs`, `freshness`가 존재한다.
+- person proxy에서 출처 계약 요약은 기본적으로 `diagnostics.source_contract_summary` 아래에서 확인한다.
+- person proxy 응답에 `overlay.status`, `overlay.support_tier`, `overlay.basis`, `overlay.sections`, `overlay.disclaimers` shape가 그대로 relay된다.
 - backend live payload가 degraded 상태여도 proxy 자체는 shape를 보존해 전달한다.
 
 ## 2-10. 최종 수동 확인 체크리스트
 
 - frontend-only sample mode에서 `로컬 미리보기 데이터` 배지와 fallback 안내 문구를 확인했다.
 - backend-connected live mode에서 `공식 근거 데이터` 배지와 live roster/detail을 확인했다.
-- backend API와 frontend proxy API가 모두 강동구 resolve/person 요청에 200을 반환했다.
+- backend API와 frontend proxy API가 모두 강동구 resolve/roster/person 요청에 200을 반환했다.
 - 강동구 외 입력은 제한 안내 또는 backend 404 경계 안에 머문다.
-- detail 화면에서 `summary`, `evidence`, `diagnostics`, `freshness`, `source_contract_summary`, `source_refs`가 렌더링된다.
+- detail 화면에서 `summary`, `evidence`, `diagnostics`, `freshness`, `diagnostics.source_contract_summary`, `source_refs`가 렌더링된다.
 - detail 화면에서 `overlay`가 있으면 `보강 정보` 구역이 렌더링되고, `overlay`가 비어 있거나 `unavailable`이어도 deterministic core는 그대로 렌더링된다.
 - model env가 없는 live backend라면 `publishable_degraded / unavailable / skipped` 조합을 UI failure로 보지 않는다.
 

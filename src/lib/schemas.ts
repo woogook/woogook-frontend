@@ -549,6 +549,10 @@ export type LocalCouncilRosterPerson = z.infer<typeof localCouncilRosterPersonSc
 export type LocalCouncilDistrictRosterResponse = z.infer<
   typeof localCouncilDistrictRosterResponseSchema
 >;
+export type LocalCouncilRosterScreenData = {
+  district: LocalCouncilDistrictRef;
+  roster: LocalCouncilDistrictRosterResponse;
+};
 export type LocalCouncilResolveResponse = z.infer<
   typeof localCouncilResolveResponseSchema
 >;

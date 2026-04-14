@@ -5,6 +5,9 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import sampleLocalCouncilGangdongResolve from "../src/data/samples/sample_local_council_gangdong_resolve.json";
+import { localCouncilResolveResponseSchema } from "../src/lib/schemas";
+
 type ObservabilityClientModule = typeof import("../src/lib/observability/client");
 
 function loadLocalCouncilApiClient(options?: {
@@ -165,6 +168,55 @@ test("fetchLocalCouncilResolve returns the Gangdong-only limitation message for 
   }
 });
 
+test("fetchLocalCouncilRoster falls back to the Gangdong sample when backend is unavailable", async () => {
+  const { fetchLocalCouncilRoster } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 명단 API가 잠시 응답하지 않습니다.");
+
+  try {
+    const result = await fetchLocalCouncilRoster("11740");
+
+    assert.equal(result.dataSource, "local_sample");
+    assert.equal(result.data.council_members.length > 0, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("mergeLocalCouncilDataSources marks mixed resolve/roster inputs as local_sample", () => {
+  const { mergeLocalCouncilDataSources } = loadLocalCouncilApiClient();
+
+  assert.equal(
+    mergeLocalCouncilDataSources(),
+    "local_sample",
+  );
+  assert.equal(
+    mergeLocalCouncilDataSources("backend", "backend"),
+    "backend",
+  );
+  assert.equal(
+    mergeLocalCouncilDataSources("local_sample", "backend"),
+    "local_sample",
+  );
+});
+
+test("buildLocalCouncilRosterScreenResult falls back to the resolve roster payload", () => {
+  const { buildLocalCouncilRosterScreenResult } = loadLocalCouncilApiClient();
+
+  const result = buildLocalCouncilRosterScreenResult({
+    resolved: {
+      data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+      dataSource: "backend",
+    },
+  });
+
+  assert.equal(result.dataSource, "backend");
+  assert.equal(result.data.district.gu_code, "11740");
+  assert.equal(result.data.roster.council_members.length > 0, true);
+});
+
 test("fetchLocalCouncilPerson falls back to the local sample when backend is unavailable", async () => {
   const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
@@ -174,15 +226,34 @@ test("fetchLocalCouncilPerson falls back to the local sample when backend is una
 
   try {
     const result = await fetchLocalCouncilPerson(
-      "seoul-gangdong:council-member:600000001",
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
 
     assert.equal(result.dataSource, "local_sample");
     assert.equal(Boolean(result.data.person_name), true);
     assert.equal(
       result.data.overlay?.basis?.target_member_id,
-      "seoul-gangdong:council-member:600000001",
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchLocalCouncilPerson falls back to the local sample for opaque fallback keys", async () => {
+  const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const opaqueKey =
+    "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643";
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
+
+  try {
+    const result = await fetchLocalCouncilPerson(opaqueKey);
+
+    assert.equal(result.dataSource, "local_sample");
+    assert.equal(result.data.overlay?.basis?.target_member_id, opaqueKey);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -198,14 +269,85 @@ test("fetchLocalCouncilPerson falls back to the local sample when fetch rejects 
 
   try {
     const result = await fetchLocalCouncilPerson(
-      "seoul-gangdong:council-member:600000001",
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
 
     assert.equal(result.dataSource, "local_sample");
     assert.equal(
       result.data.overlay?.basis?.target_member_id,
-      "seoul-gangdong:council-member:600000001",
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchLocalCouncilPerson accepts older dossier responses missing overlay and diagnostics", async () => {
+  const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+
+  console.error = () => undefined;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        person_name: "김가동",
+        office_type: "basic_council",
+        summary: {
+          headline: "김가동 공식 근거 요약",
+          grounded_summary: "요약",
+          summary_mode: "fallback",
+          summary_basis: {},
+        },
+        evidence: [],
+        official_profile: {},
+        committees: [],
+        bills: [],
+        meeting_activity: [],
+        finance_activity: [],
+        elected_basis: {},
+        source_refs: [],
+        spot_check: null,
+        freshness: {},
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  try {
+    const result = await fetchLocalCouncilPerson(
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
+    );
+
+    assert.equal(result.data.person_name, "김가동");
+    assert.equal(result.data.overlay, undefined);
+    assert.equal(result.data.diagnostics, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  }
+});
+
+test("fetchLocalCouncilPerson falls back to the local sample for huboid keys from live backend", async () => {
+  const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const huboidKey = "seoul-gangdong:council-member:600000001";
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
+
+  try {
+    const result = await fetchLocalCouncilPerson(huboidKey);
+
+    assert.equal(result.dataSource, "local_sample");
+    assert.equal(result.data.person_name, "김가동");
+    assert.equal(result.data.overlay?.basis?.target_member_id, huboidKey);
+    assert.equal(result.data.diagnostics?.spot_check?.person_key, huboidKey);
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -50,7 +50,6 @@
   - `elected_basis`: 당선 근거와 선거 이력을 요약한다.
   - `source_refs`: 응답 전체나 섹션이 참조한 공식 출처 목록이다.
   - `freshness`: 언제 어떤 기준 시점의 데이터를 보여 주는지 설명한다.
-  - `source_contract_summary`: 출처 계약이 얼마나 깨끗한지 요약한 값이다.
   - `overlay`: 결정적 결과와 분리해서 보여 주는 additive 보강 정보다.
 - 설명 가능성:
   - `summary.explanation_lines`: 요약 판단을 사람이 읽기 쉽게 풀어쓴 문장 목록이다.
@@ -67,7 +66,9 @@
   - `overlay.basis.target_member_id`: overlay가 겨냥한 원본 member 식별자다.
   - `overlay.sections`: 채널·주제별로 나뉜 보강 카드 목록이다.
   - `overlay.disclaimers`: 사람이 먼저 읽어야 할 주의 문구와 한계 설명이다.
-- 식별자 계약: `basic_council` sample과 live contract 기준 `person_key`는 `huboid` 우선 opaque key를 따른다.
+- 식별자 계약: `basic_council` `person_key`는 opaque key로만 소비한다.
+- `huboid`가 있으면 `seoul-gangdong:council-member:<huboid>` 형태를 쓸 수 있고, 없으면 `council_slug + source_docid` fallback 키를 쓸 수 있다.
+- frontend sample은 fallback형 opaque key 예시를 포함해 non-ASCII 인코딩 회귀를 막고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
 - 출처 처리:
   - `source_url`: 대표로 노출할 primary 출처 링크다.
   - `source_links`: 함께 보여 줄 ordered related link 목록이다.
@@ -89,8 +90,7 @@
   - backend 없이도 `/local-council` 주소 입력, roster, detail, overlay sample을 끝까지 확인한다.
   - `로컬 미리보기 데이터` 배지와 fallback 안내 문구가 보여야 한다.
 - `backend-connected live mode`
-  - frontend Next proxy를 통해 `resolve`와 `person detail`이 실제 backend 응답을 받는지 확인한다.
-  - roster는 별도 proxy route가 아니라 `resolve` 응답에 포함된 live payload가 화면에 들어오는지 확인한다.
+  - frontend Next proxy를 통해 `resolve`, `roster`, `person detail`이 실제 backend 응답을 받는지 확인한다.
   - `공식 근거 데이터` 배지와 live payload가 보여야 한다.
 - `scope guard`
   - 강동구 외 주소는 제한 안내 또는 backend 404 경계에 머물러야 한다.
@@ -102,7 +102,7 @@
 - `frontend` 개발 서버는 현재 `Node.js 20.9 이상`이 필요하다.
 - backend가 없거나 `WOOGOOK_BACKEND_BASE_URL`이 비어 있으면 `로컬 미리보기 데이터` 배지와 강동구 sample fixture가 보여야 한다.
 - backend가 연결되면 `공식 근거 데이터` 배지와 live roster/detail payload가 보여야 한다.
-- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `quality/evidence/source contract copy`, `보강 정보(overlay) surface`, `source badge / source path 구분`, `frontend proxy 경유 API(resolve/person)`까지 확인했다.
+- 수동 검증은 `주소 제출`, `roster 렌더링`, `detail 렌더링`, `quality/evidence/source contract copy`, `보강 정보(overlay) surface`, `source badge / source path 구분`, `frontend proxy 경유 API(resolve/roster/person)`까지 확인했다.
 - 강동구 외 주소는 계속 제한 안내 또는 backend 404 경계 안에 머물러야 하며, 서울 전역 지원으로 해석하면 안 된다.
 - live backend가 model env 없이 seed된 경우 detail의 diagnostics에 `final_publish_status=publishable_degraded`, `agentic_review_status=unavailable`, `agentic_enrichment_status=skipped`가 보일 수 있고, 현재 smoke에서는 이를 UI failure로 보지 않는다.
 
@@ -124,7 +124,7 @@
 화면 전환 기준은 아래와 같다.
 
 - 주소 제출 시 `resolve`를 호출한다.
-- resolve 성공 시 roster로 이동한다.
+- resolve 성공 후 `district.gu_code`로 `roster`를 다시 호출하고, 그 결과로 roster 화면에 이동한다.
 - 인물 선택 시 `persons/{person_key}`를 호출한다.
 - 브라우저 back/forward는 client history state로 맞춘다.
 - view 전환 시 진행 중이던 resolve/detail 요청은 request id로 무효화한다.
@@ -134,13 +134,14 @@
 현재 네트워크 경계는 아래와 같다.
 
 - 브라우저 -> `GET /api/local-council/v1/resolve?address=...`
+- 브라우저 -> `GET /api/local-council/v1/districts/{gu_code}/roster`
 - 브라우저 -> `GET /api/local-council/v1/persons/{person_key}`
 - Next route -> backend FastAPI proxy
 
 fallback 기준은 아래다.
 
 - `WOOGOOK_BACKEND_BASE_URL`이 없거나 backend proxy가 503 계열로 실패하면 sample fallback을 검토한다.
-- fallback은 `서울특별시 강동구` resolve와 sample dossier index에 있는 `person_key`에만 허용한다.
+- fallback은 `서울특별시 강동구` `resolve`, `gu_code=11740 roster`, sample dossier index에 있는 `person_key`에만 허용한다.
 - `강동구` 외 지역은 `현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.`로 안내한다.
 - sample fallback으로 들어온 화면은 `로컬 미리보기 데이터` 배지를 보여 준다.
 
@@ -198,7 +199,7 @@ detail 화면은 아래 묶음으로 나뉜다.
   - `diagnostics`: 발행 상태와 품질 진단 전체 묶음
   - `freshness.explanation_lines`: 최신성 판단을 풀어쓴 문장 목록
   - `diagnostics.explanation_lines`: 발행·품질 진단을 풀어쓴 문장 목록
-  - `source_contract_summary`: top-level에서 읽는 출처 계약 상태 요약
+  - top-level `source_contract_summary`: legacy compat로만 허용하는 출처 계약 상태 요약
   - `data_gap_flags`: 비어 있거나 약한 데이터 영역을 표시하는 플래그
   - `needs_human_review`: 사람이 다시 확인해야 하는지 여부
   - `spot_check`: 수동 검증용 식별자와 확인 포인트

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type {
   LocalCouncilDataSource,
-  LocalCouncilResolveResponse,
+  LocalCouncilRosterScreenData,
   LocalCouncilRosterPerson,
 } from "@/lib/schemas";
 import {
@@ -17,7 +17,7 @@ import {
 } from "@/features/local-council/data";
 
 interface LocalCouncilRosterViewProps {
-  resolveData: LocalCouncilResolveResponse;
+  rosterData: LocalCouncilRosterScreenData;
   dataSource: LocalCouncilDataSource;
   onSelectPerson: (person: LocalCouncilRosterPerson) => void;
   onBack: () => void;
@@ -106,15 +106,15 @@ function PersonCard({
 }
 
 export default function LocalCouncilRosterView({
-  resolveData,
+  rosterData,
   dataSource,
   onSelectPerson,
   onBack,
 }: LocalCouncilRosterViewProps) {
-  const districtHead = isLocalCouncilRosterPerson(resolveData.roster.district_head)
-    ? resolveData.roster.district_head
+  const districtHead = isLocalCouncilRosterPerson(rosterData.roster.district_head)
+    ? rosterData.roster.district_head
     : null;
-  const members = resolveData.roster.council_members;
+  const members = rosterData.roster.council_members;
   const officeGlossaryCopy = [
     getLocalCouncilOfficeExplanation("basic_head"),
     getLocalCouncilOfficeExplanation("basic_council"),
@@ -139,13 +139,13 @@ export default function LocalCouncilRosterView({
             {getLocalCouncilDataSourceLabel(dataSource)}
           </p>
           <h1 className="mt-2 text-3xl font-bold" style={{ color: "var(--navy)" }}>
-            {resolveData.district.district_name || "서울특별시 강동구"}
+            {rosterData.district.district_name || "서울특별시 강동구"}
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {getLocalCouncilFreshnessLabel(resolveData.roster.freshness)}
+            {getLocalCouncilFreshnessLabel(rosterData.roster.freshness)}
           </p>
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {getLocalCouncilSourceCoverageSummary(resolveData.roster.source_coverage)}
+            {getLocalCouncilSourceCoverageSummary(rosterData.roster.source_coverage)}
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
             {officeGlossaryCopy}

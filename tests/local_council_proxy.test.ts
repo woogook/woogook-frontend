@@ -8,6 +8,7 @@ function clearLocalCouncilProxyModuleCache() {
   for (const request of [
     "../src/app/api/local-council/v1/_shared",
     "../src/app/api/local-council/v1/resolve/route",
+    "../src/app/api/local-council/v1/districts/[guCode]/roster/route",
     "../src/app/api/local-council/v1/persons/[personKey]/route",
   ]) {
     const resolved = runtimeRequire.resolve(request);
@@ -18,6 +19,13 @@ function clearLocalCouncilProxyModuleCache() {
 function loadResolveRoute() {
   clearLocalCouncilProxyModuleCache();
   return runtimeRequire("../src/app/api/local-council/v1/resolve/route") as typeof import("../src/app/api/local-council/v1/resolve/route");
+}
+
+function loadRosterRoute() {
+  clearLocalCouncilProxyModuleCache();
+  return runtimeRequire(
+    "../src/app/api/local-council/v1/districts/[guCode]/roster/route",
+  ) as typeof import("../src/app/api/local-council/v1/districts/[guCode]/roster/route");
 }
 
 function loadPersonRoute() {
@@ -110,10 +118,46 @@ test("local council resolve route returns 503 when backend base URL is missing",
   });
 });
 
+test("local council roster route relays gu_code-based backend requests", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;
+  const fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    if (originalBackendBaseUrl === undefined) {
+      delete process.env.WOOGOOK_BACKEND_BASE_URL;
+    } else {
+      process.env.WOOGOOK_BACKEND_BASE_URL = originalBackendBaseUrl;
+    }
+  });
+
+  process.env.WOOGOOK_BACKEND_BASE_URL = "http://backend.test";
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    fetchCalls.push({ input, init });
+    return buildJsonResponse({ council_members: [] }, 200);
+  }) as typeof fetch;
+
+  const { GET } = loadRosterRoute();
+  const response = await GET(new Request("http://127.0.0.1:3000"), {
+    params: Promise.resolve({ guCode: "11740" }),
+  });
+
+  assert.equal(
+    fetchCalls[0]?.input,
+    "http://backend.test/api/local-council/v1/districts/11740/roster",
+  );
+  assert.equal(fetchCalls[0]?.init?.cache, "no-store");
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { council_members: [] });
+});
+
 test("local council person route encodes person keys before proxying", async (t) => {
   const originalFetch = globalThis.fetch;
   const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;
   const fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+  const opaqueKey =
+    "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643";
 
   t.after(() => {
     globalThis.fetch = originalFetch;
@@ -133,13 +177,13 @@ test("local council person route encodes person keys before proxying", async (t)
   const { GET } = loadPersonRoute();
   const response = await GET(new Request("http://127.0.0.1:3000"), {
     params: Promise.resolve({
-      personKey: "seoul-gangdong:council-member:600000001",
+      personKey: opaqueKey,
     }),
   });
 
   assert.equal(
     fetchCalls[0]?.input,
-    "http://backend.test/api/local-council/v1/persons/seoul-gangdong%3Acouncil-member%3A600000001",
+    `http://backend.test/api/local-council/v1/persons/${encodeURIComponent(opaqueKey)}`,
   );
   assert.equal(fetchCalls[0]?.init?.cache, "no-store");
   assert.equal(response.status, 200);
@@ -188,13 +232,14 @@ test("local council proxy relays backend streams without buffering the full body
       },
     });
 
-    return backendResponse;
+      return backendResponse;
   }) as typeof fetch;
 
   const { GET } = loadPersonRoute();
   const response = await GET(new Request("http://127.0.0.1:3000"), {
     params: Promise.resolve({
-      personKey: "seoul-gangdong:council-member:600000001",
+      personKey:
+        "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     }),
   });
 
