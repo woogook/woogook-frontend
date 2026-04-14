@@ -332,3 +332,23 @@ test("fetchLocalCouncilPerson accepts older dossier responses missing overlay an
     console.error = originalConsoleError;
   }
 });
+
+test("fetchLocalCouncilPerson falls back to the local sample for huboid keys from live backend", async () => {
+  const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const huboidKey = "seoul-gangdong:council-member:600000001";
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
+
+  try {
+    const result = await fetchLocalCouncilPerson(huboidKey);
+
+    assert.equal(result.dataSource, "local_sample");
+    assert.equal(result.data.person_name, "김가동");
+    assert.equal(result.data.overlay?.basis?.target_member_id, huboidKey);
+    assert.equal(result.data.diagnostics?.spot_check?.person_key, huboidKey);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

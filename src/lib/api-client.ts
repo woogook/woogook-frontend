@@ -406,9 +406,71 @@ type LocalCouncilAddressSelection = {
   dong?: string;
 };
 
-const sampleLocalCouncilPersonDossierIndex = z
-  .record(z.string(), localCouncilPersonDossierResponseSchema)
-  .parse(sampleLocalCouncilGangdongPersonDossiers);
+function buildLocalCouncilSamplePersonDossierAlias(
+  dossier: LocalCouncilPersonDossierResponse,
+  personKey: string,
+): LocalCouncilPersonDossierResponse {
+  return {
+    ...dossier,
+    overlay: dossier.overlay
+      ? {
+          ...dossier.overlay,
+          basis: dossier.overlay.basis
+            ? {
+                ...dossier.overlay.basis,
+                target_member_id: personKey,
+              }
+            : dossier.overlay.basis,
+        }
+      : dossier.overlay,
+    diagnostics: dossier.diagnostics
+      ? {
+          ...dossier.diagnostics,
+          spot_check: dossier.diagnostics.spot_check
+            ? {
+                ...dossier.diagnostics.spot_check,
+                person_key: personKey,
+              }
+            : dossier.diagnostics.spot_check,
+        }
+      : dossier.diagnostics,
+    spot_check: dossier.spot_check
+      ? {
+          ...dossier.spot_check,
+          person_key: personKey,
+        }
+      : dossier.spot_check,
+  };
+}
+
+function buildLocalCouncilSamplePersonDossierIndex(
+  payload: unknown,
+): Record<string, LocalCouncilPersonDossierResponse> {
+  const parsed = z
+    .record(z.string(), localCouncilPersonDossierResponseSchema)
+    .parse(payload);
+  const index: Record<string, LocalCouncilPersonDossierResponse> = { ...parsed };
+
+  for (const [sampleKey, dossier] of Object.entries(parsed)) {
+    const spotCheck = dossier.diagnostics?.spot_check ?? dossier.spot_check;
+    const huboid = spotCheck?.huboid?.trim();
+    if (!huboid || !sampleKey.includes(":council-member:")) {
+      continue;
+    }
+
+    const prefix = sampleKey.split(":").slice(0, 2).join(":");
+    const aliasKey = `${prefix}:${huboid}`;
+    if (aliasKey in index) {
+      continue;
+    }
+    index[aliasKey] = buildLocalCouncilSamplePersonDossierAlias(dossier, aliasKey);
+  }
+
+  return index;
+}
+
+const sampleLocalCouncilPersonDossierIndex =
+  buildLocalCouncilSamplePersonDossierIndex(sampleLocalCouncilGangdongPersonDossiers);
 const sampleLocalCouncilGangdongRoster =
   localCouncilDistrictRosterResponseSchema.parse(sampleLocalCouncilGangdongResolve.roster);
 
