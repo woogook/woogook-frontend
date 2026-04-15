@@ -87,6 +87,23 @@ export const candidateBriefSchema = z.object({
   info_gap_flags: z.array(z.string()),
 });
 
+export const candidatePromiseOverlaySchema = z.object({
+  promise_item_count: z.number(),
+  representative_title: z.string().nullable(),
+  issue_keys: z.array(issueKeySchema),
+  source_label: z.string().nullable(),
+  source_url: z.string().nullable(),
+  promise_source_status: promiseSourceStatusSchema,
+  issue_matches: z.array(candidateIssueMatchSchema),
+});
+
+export const candidateNewsOverlaySchema = z.object({
+  evidence_status: evidenceStatusSchema,
+  summary_text: z.string().nullable(),
+  info_gap_flags: z.array(z.string()),
+  issue_matches: z.array(candidateIssueMatchSchema),
+});
+
 export const candidateCompareFactSchema = z.object({
   label: z.string(),
   value: z.string(),
@@ -206,21 +223,23 @@ export const candidateRecordSchema = z.object({
   gender: z.string(),
   birthdate_text: z.string().nullable(),
   age_text: z.string().nullable(),
-  address: z.string(),
+  address: z.string().nullable(),
   job: z.string(),
   education: z.string(),
   career: z.string(),
-  registration_date: z.string(),
-  crime_text: z.string(),
-  crime_parse_status: z.string(),
+  registration_date: z.string().nullable(),
+  crime_text: z.string().nullable(),
+  crime_parse_status: z.string().nullable(),
   crime_case_count: z.number().nullable(),
   crime_items: z.array(z.unknown()),
-  photo_url: z.string(),
-  detail_url: z.string(),
+  photo_url: z.string().nullable(),
+  detail_url: z.string().nullable(),
   source_scope_key: z.string(),
   source_scope_label: z.string(),
   source_kind: z.string(),
   source_file: z.string(),
+  promise_overlay: candidatePromiseOverlaySchema.nullable().optional(),
+  news_overlay: candidateNewsOverlaySchema.nullable().optional(),
   brief: candidateBriefSchema.nullable().optional(),
   issue_matches: z.array(candidateIssueMatchSchema).optional(),
   compare_entry: candidateCompareEntrySchema.nullable().optional(),
@@ -589,6 +608,8 @@ export type ChatMessageRole = z.infer<typeof chatMessageRoleSchema>;
 export type SourceRef = z.infer<typeof sourceRefSchema>;
 export type CandidateIssueMatch = z.infer<typeof candidateIssueMatchSchema>;
 export type CandidateBrief = z.infer<typeof candidateBriefSchema>;
+export type CandidatePromiseOverlay = z.infer<typeof candidatePromiseOverlaySchema>;
+export type CandidateNewsOverlay = z.infer<typeof candidateNewsOverlaySchema>;
 export type CandidateCompareFact = z.infer<typeof candidateCompareFactSchema>;
 export type CandidateCompareEntry = z.infer<typeof candidateCompareEntrySchema>;
 export type ElectionMeta = z.infer<typeof electionMetaSchema>;
