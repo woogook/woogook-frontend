@@ -10,6 +10,7 @@ import {
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilExplainabilityLines,
   buildLocalCouncilOverlayViewModel,
+  getLocalCouncilDataGapFlagLabel,
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilFreshnessLabel,
@@ -23,8 +24,10 @@ import {
   type LocalCouncilLabelValue,
 } from "@/features/local-council/data";
 import {
+  buildBillActivityCardViewModel,
   buildPersonHeroMeta,
   buildExpandableSectionContentId,
+  buildMeetingActivityCardViewModel,
   buildSectionCardViewModel,
   type SectionCardViewModel,
 } from "@/features/local-council/detail";
@@ -208,12 +211,14 @@ function ExpandableRecordList({
             const recordKey = `${title}:${index}`;
             const contentId = buildExpandableSectionContentId(title, index);
             const expanded = expandedKey === recordKey;
+            const hasViewAction = Boolean(item.actions.viewUrl && item.actions.viewLabel);
             const hasSourceBadge = Boolean(item.sourceLabel || item.sourceUrl);
             const hasDownloadAction = Boolean(item.actions.downloadUrl);
             const hasSourceLabel = Boolean(item.sourceLabel);
             const hasRelatedSourceLinks = item.sourceLinks.length > 0;
             const hasExpandedContent =
               item.detailRows.length > 0 ||
+              hasViewAction ||
               hasDownloadAction ||
               hasSourceBadge ||
               hasSourceLabel ||
@@ -229,6 +234,34 @@ function ExpandableRecordList({
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {item.meta}
+                  </p>
+                ) : null}
+                {item.badges && item.badges.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {item.badges.map((badge) => (
+                      <span
+                        key={`${recordKey}:${badge.label}`}
+                        className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
+                        style={{
+                          borderColor: "var(--border)",
+                          color:
+                            badge.tone === "accent"
+                              ? "var(--amber)"
+                              : "var(--text-secondary)",
+                          background:
+                            badge.tone === "accent"
+                              ? "var(--amber-bg)"
+                              : "var(--surface-alt)",
+                        }}
+                      >
+                        {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {item.summaryLine ? (
+                  <p className="mt-2 text-sm leading-6" style={{ color: "var(--foreground)" }}>
+                    {item.summaryLine}
                   </p>
                 ) : null}
               </div>
@@ -312,6 +345,19 @@ function ExpandableRecordList({
                         </a>
                       </div>
                     ) : null}
+                    {hasViewAction ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <a
+                          href={item.actions.viewUrl ?? undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+                          style={{ borderColor: "var(--border)", color: "var(--navy)" }}
+                        >
+                          {item.actions.viewLabel}
+                        </a>
+                      </div>
+                    ) : null}
                     {hasRelatedSourceLinks ? (
                       <div className="mt-3">
                         <p
@@ -346,7 +392,7 @@ function ExpandableRecordList({
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
-                            원문 다운로드
+                            {item.actions.downloadLabel ?? "원문 다운로드"}
                           </a>
                         ) : null}
                       </div>
@@ -745,27 +791,14 @@ export default function LocalCouncilPersonDetailView({
   );
   const officialActivityTitle = person.office_type === "basic_head" ? "공식 활동" : "의안";
   const officialActivityItems = person.bills.map((item) =>
-    buildSectionCardViewModel({
+    buildBillActivityCardViewModel({
       item,
-      titleKeys: ["bill_title", "bill_name", "title"],
-      metaKeys: ["proposed_at", "bill_date", "source_kind"],
-      detailFields: [{ label: "제안일", keys: ["proposed_at", "bill_date"] }],
-      preferredSourceKinds: [],
-      preferredSourceRoles: ["official_activity"],
       sectionSourceRefs: person.source_refs,
     }),
   );
   const meetingItems = person.meeting_activity.map((item) =>
-    buildSectionCardViewModel({
+    buildMeetingActivityCardViewModel({
       item,
-      titleKeys: ["session_label", "meeting_name", "title"],
-      metaKeys: ["meeting_date", "date"],
-      detailFields: [
-        { label: "회의명", keys: ["meeting_name", "title"] },
-        { label: "회의일", keys: ["meeting_date", "date"] },
-      ],
-      preferredSourceKinds: [],
-      preferredSourceRoles: ["official_activity"],
       sectionSourceRefs: person.source_refs,
     }),
   );
@@ -963,7 +996,7 @@ export default function LocalCouncilPersonDetailView({
               <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
                 data_gap_flags
               </p>
-              <ChipGroup items={diagnostics.dataGapFlags} />
+              <ChipGroup items={diagnostics.dataGapFlags.map(getLocalCouncilDataGapFlagLabel)} />
             </div>
           ) : null}
           {diagnostics.needsHumanReview.length > 0 ? (

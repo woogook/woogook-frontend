@@ -1113,6 +1113,70 @@ test("LocalCouncilPersonDetailView renders related source links in expanded cont
   );
 });
 
+test("LocalCouncilPersonDetailView renders bill badges, summary, and locator-aware action labels", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "의안:0",
+  });
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.match(html, /대표발의/);
+  assert.match(html, /강동구 청년 지원에 관한 조례를 정하는 의안이다\./);
+  assert.match(html, /의안 상세 열기/);
+});
+
+test("LocalCouncilPersonDetailView keeps unsupported meeting copy conservative", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "회의:0",
+  });
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.match(html, /공식 기록 위치 확인/);
+  assert.match(html, /내용 검토 전/);
+  assert.match(
+    html,
+    /공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음/,
+  );
+  assert.match(html, /회의록 위치 확인/);
+});
+
+test("LocalCouncilPersonDetailView translates district head data gaps instead of showing raw flags", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const person = dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.doesNotMatch(html, /uncollected:district_head_minutes_person_linkage/);
+  assert.match(html, /구청장 개인 회의 활동 linkage는 아직 수집\/검토 전입니다\./);
+});
+
 test("LocalCouncilPersonDetailView keeps the source badge non-clickable when backend sends an invalid placeholder URL", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "재정 활동:0",
