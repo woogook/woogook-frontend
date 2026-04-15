@@ -6,6 +6,7 @@ const DEFAULT_ROTATE_BYTES = 50 * 1024 * 1024;
 const DEFAULT_RETENTION_DAYS = 14;
 const DEFAULT_OUTBOUND_TIMEOUT_MS = 5_000;
 const DEFAULT_ANALYZER_LOOKBACK_MINUTES = 10;
+const DEFAULT_LLM_COOLDOWN_SECONDS = 15 * 60;
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   if (!value) return fallback;
@@ -21,6 +22,11 @@ function parseBoolean(value: string | undefined, fallback = false) {
 function trimToUndefined(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function parseLlmMode(value: string | undefined): "direct" | "relay" {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "relay" ? "relay" : "direct";
 }
 
 export function deriveLokiQueryUrl(pushUrl: string | undefined) {
@@ -56,6 +62,12 @@ export type ObservabilityConfig = {
   lokiPassword?: string;
   discordWebhookUrl?: string;
   llmWebhookUrl?: string;
+  llmMode?: "direct" | "relay";
+  llmProvider?: string;
+  llmApiUrl?: string;
+  llmApiKey?: string;
+  llmModel?: string;
+  llmCooldownSeconds?: number;
   outboundTimeoutMs: number;
   analyzerLookbackMinutes: number;
 };
@@ -104,6 +116,16 @@ export function parseObservabilityConfig(
       env.WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL,
     ),
     llmWebhookUrl: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL),
+    llmMode: parseLlmMode(trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_MODE)),
+    llmProvider:
+      trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_PROVIDER) ?? "upstage",
+    llmApiUrl: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_API_URL),
+    llmApiKey: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_API_KEY),
+    llmModel: trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_MODEL),
+    llmCooldownSeconds: parsePositiveInt(
+      trimToUndefined(env.WOOGOOK_OBSERVABILITY_LLM_COOLDOWN_SECONDS),
+      DEFAULT_LLM_COOLDOWN_SECONDS,
+    ),
     outboundTimeoutMs: parsePositiveInt(
       trimToUndefined(env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS),
       DEFAULT_OUTBOUND_TIMEOUT_MS,

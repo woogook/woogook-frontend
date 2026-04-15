@@ -10,6 +10,10 @@ policies:
     group_interval: 30s
     repeat_interval: 1h
     routes:
+      - receiver: frontend-analyzer
+        object_matchers:
+          - ["team", "=", "frontend-observability"]
+          - ["severity", "=", "error"]
       - receiver: frontend-discord
         object_matchers:
           - ["team", "=", "frontend-observability"]

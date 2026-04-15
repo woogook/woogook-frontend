@@ -3,12 +3,12 @@
 - 문서 유형: `runbook`
 - 소유 도메인: `common`
 - 상태: `draft`
-- 최종 갱신일: `2026-04-14`
+- 최종 갱신일: `2026-04-15`
 
 ## 목적
 
 - `woogook-frontend`의 로컬 observability stack(관측 스택)을 처음 실행하는 사람도 이 문서만 보고 따라갈 수 있게 한다.
-- `frontend 앱 실행 -> 로그/메트릭 적재 -> Grafana 조회 -> alert 발화 -> Discord 확인`까지 한 번에 점검할 수 있게 한다.
+- `frontend 앱 실행 -> 로그/메트릭 적재 -> Grafana 조회 -> alert 발화 -> analyzer LLM 분석 -> Discord 확인`까지 한 번에 점검할 수 있게 한다.
 
 ## 이 문서로 확인하는 범위
 
@@ -18,7 +18,8 @@
 - Prometheus가 `/api/observability/metrics`를 scrape(수집)하는가
 - Grafana dashboard(대시보드)와 alert rule이 자동으로 provisioning(사전 구성)되는가
 - synthetic error(합성 오류) 스크립트로 alert를 실제로 발화시킬 수 있는가
-- Discord webhook이 유효할 때 alert가 실제 채널까지 도달하는가
+- analyzer가 direct provider를 호출해 incident summary를 보강하는가
+- Discord webhook이 유효할 때 analyzer 결과가 실제 채널까지 도달하는가
 
 ## 구성 요소
 
@@ -41,7 +42,7 @@
   - `python3`
     - JSON 출력을 보기 좋게 정리할 때 사용한다.
   - 실제 `Discord webhook URL`
-    - Discord alert를 진짜로 확인할 때 필요하다.
+    - analyzer 결과를 실제 채널로 보내 확인할 때 필요하다.
 
 ### 권장 터미널 구성
 
@@ -116,13 +117,26 @@ test -f .env || cp .env.example .env
   - frontend 앱이 Loki로 로그를 보낼 주소다.
 - `WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL`
   - analyzer 또는 수동 조회 시 Loki query endpoint로 사용된다.
-- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`, `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
-  - analyzer outbound(외부 전송)를 따로 검증할 때만 채우면 된다.
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`
+  - analyzer가 최종 incident summary를 보낼 실제 Discord webhook이다.
+- `WOOGOOK_OBSERVABILITY_LLM_MODE=direct`
+  - 이번 범위의 기본값이다.
+- `WOOGOOK_OBSERVABILITY_LLM_PROVIDER=upstage`
+  - direct provider adapter 선택값이다.
+- `WOOGOOK_OBSERVABILITY_LLM_API_URL`, `WOOGOOK_OBSERVABILITY_LLM_MODEL`, `WOOGOOK_OBSERVABILITY_LLM_API_KEY`
+  - analyzer가 `Upstage Solar Pro 2`를 직접 호출할 때 필요하다.
+- `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
+  - direct 구현 이후에도 relay 호환용으로 남겨두는 값이다.
+- `WOOGOOK_OBSERVABILITY_LLM_COOLDOWN_SECONDS`
+  - 동일 incident 재분석 억제 시간이다.
 - `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`
   - Grafana 로그인 계정이다.
 - `GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`
   - 실제 Discord alert를 받고 싶다면 반드시 진짜 webhook으로 바꿔야 한다.
   - 비워 두면 stack은 올라오지만 Discord 전송은 실패한다.
+- `GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL`
+  - `Grafana`가 analyzer route를 호출할 webhook URL이다.
+  - 로컬 기본값은 `http://host.docker.internal:3000/api/observability/analyzer`다.
 - `FRONTEND_METRICS_TARGET`
   - Docker 안의 Prometheus가 호스트에서 실행 중인 frontend 앱의 metrics endpoint를 수집할 때 사용한다.
 
@@ -176,9 +190,10 @@ cat ops/observability/.env
 - `GRAFANA_ADMIN_USER`
 - `GRAFANA_ADMIN_PASSWORD`
 - `GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`
+- `GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL`
 - `FRONTEND_METRICS_TARGET`
 
-네 줄만 보인다.
+다섯 줄만 보인다.
 
 설명:
 
@@ -621,14 +636,15 @@ curl -su "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
 
 같은 값이 JSON 안에 보인다.
 
-## 13. Discord alert 확인
+## 13. analyzer -> Discord 확인
 
 ### 13-1. 실제 webhook을 넣은 경우
 
 확인 항목:
 
-- Discord 채널에 alert 메시지가 도착하는가
-- browser error와 API 5xx가 각각 별도 alert로 보이는가
+- Discord 채널에 analyzer가 정리한 incident summary 메시지가 도착하는가
+- headline, 영향 요약, 원인 후보, 다음 액션이 함께 보이는가
+- browser error와 API 5xx가 각각 별도 incident summary로 도착하는가
 
 ### 13-2. placeholder(예시값)를 넣은 경우
 
@@ -640,22 +656,38 @@ https://discord.invalid/replace-me
 
 예상 결과:
 
-- Grafana는 notifier(알림 전송기) 호출을 시도한다.
-- 실제 Discord 채널 전송은 실패한다.
+- Grafana는 analyzer webhook 호출까지는 시도한다.
+- analyzer는 Discord webhook 호출 단계에서 실패한다.
 
 실패 로그 확인:
 
 ```bash
+LOG_DAY=$(date +%F)
+
+tail -n 50 ".logs/frontend/${LOG_DAY}/analyzer.ndjson" \
+  | grep -E 'Discord webhook|pipeline_event|analysis_result'
+```
+
+기대 결과:
+
+- `signalType":"pipeline_event"`
+- `errorMessage":"Discord webhook failed ..."`
+
+같은 문자열이 보이면 analyzer의 최종 Discord 전송 단계에서 실패한 것이다.
+
+Grafana 자체 webhook 호출 실패 여부를 보고 싶다면:
+
+```bash
 docker compose -f ops/observability/docker-compose.yml --env-file ops/observability/.env logs grafana --tail=200 \
-  | grep -E 'Notify for alerts failed|discord'
+  | grep -E 'Notify for alerts failed|webhook'
 ```
 
 기대 결과:
 
 - `Notify for alerts failed`
-- `discord.invalid`
+- `webhook`
 
-같은 문자열이 보이면 placeholder(예시값) 때문에 실패한 것이다.
+같은 문자열이 보이면 Grafana -> analyzer webhook 구간에서 실패한 것이다.
 
 ## 14. 빠른 문제 해결
 
@@ -746,14 +778,17 @@ WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL=http://localhost:3100/loki/api/v1/push
 3. frontend를 재시작했는지 확인
 4. synthetic error를 다시 발생시켰는지 확인
 
-### 14-5. Discord alert가 오지 않음
+### 14-5. analyzer summary가 Discord에 오지 않음
 
 확인 순서:
 
-- `GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`이 placeholder가 아닌가
+- `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`이 placeholder가 아닌가
+- `WOOGOOK_OBSERVABILITY_LLM_API_URL`, `WOOGOOK_OBSERVABILITY_LLM_MODEL`, `WOOGOOK_OBSERVABILITY_LLM_API_KEY`가 실제 값인가
+- `GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL`이 frontend의 `/api/observability/analyzer`를 가리키는가
 - synthetic error 후 최소 20초 이상 기다렸는가
 - Grafana alert rule이 `Firing` 상태까지 올라왔는가
-- Grafana 로그에 notifier 실패가 찍히는가
+- `.logs/frontend/<오늘>/analyzer.ndjson`에 `analysis_result` 또는 `pipeline_event`가 찍히는가
+- Grafana 로그에 webhook 실패가 찍히는가
 
 ## 15. 정리와 종료
 

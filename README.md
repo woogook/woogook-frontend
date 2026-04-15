@@ -41,7 +41,13 @@ frontend observability:
 - `WOOGOOK_OBSERVABILITY_LOKI_USERNAME`
 - `WOOGOOK_OBSERVABILITY_LOKI_PASSWORD`
 - `WOOGOOK_OBSERVABILITY_DISCORD_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_MODE`
+- `WOOGOOK_OBSERVABILITY_LLM_PROVIDER`
+- `WOOGOOK_OBSERVABILITY_LLM_API_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_MODEL`
+- `WOOGOOK_OBSERVABILITY_LLM_API_KEY`
 - `WOOGOOK_OBSERVABILITY_LLM_WEBHOOK_URL`
+- `WOOGOOK_OBSERVABILITY_LLM_COOLDOWN_SECONDS`
 - `WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS`
 - `WOOGOOK_OBSERVABILITY_ANALYZER_LOOKBACK_MINUTES`
 
@@ -50,10 +56,12 @@ local observability stack:
 - `GRAFANA_ADMIN_USER`
 - `GRAFANA_ADMIN_PASSWORD`
 - `GRAFANA_ALERTS_DISCORD_WEBHOOK_URL`
+- `GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL`
 - `FRONTEND_METRICS_TARGET`
 
 로컬 개발에서는 기본적으로 full-fidelity 파일 로그만 남기고, `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true`일 때만 cloud 전송을 시도한다.
 `WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL`을 비우면 `.../loki/api/v1/push`에서 `.../loki/api/v1/query_range`를 자동 유도한다.
+`WOOGOOK_OBSERVABILITY_LLM_MODE=direct`이면 analyzer가 저장소 내부에서 provider API를 직접 호출하고, `relay`이면 기존 webhook 경로를 사용한다.
 
 ### 로컬 Grafana 스택
 
@@ -96,7 +104,7 @@ npm run observability:emit-api-5xx
 
 synthetic trigger 스크립트는 alert rule의 `increase(...[2m])`가 잡히도록 scrape interval을 넘겨 2회 전송한다.
 
-6. `http://localhost:3001`에서 Grafana를 열고, Discord webhook을 설정했다면 alert 도착 여부를 확인한다.
+6. `http://localhost:3001`에서 Grafana를 열고, `team=frontend-observability` / `severity=error` alert가 analyzer를 거쳐 Discord에 도착하는지 확인한다.
 
 상세 절차는 `docs/common/runbooks/frontend-observability-local-runbook.md`를 따른다.
 

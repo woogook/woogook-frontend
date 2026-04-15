@@ -32,6 +32,7 @@ describe("sync stack env", () => {
       "GRAFANA_ADMIN_USER",
       "GRAFANA_ADMIN_PASSWORD",
       "GRAFANA_ALERTS_DISCORD_WEBHOOK_URL",
+      "GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL",
       "FRONTEND_METRICS_TARGET",
     ]);
 
@@ -40,12 +41,15 @@ describe("sync stack env", () => {
         GRAFANA_ADMIN_USER: "admin",
         GRAFANA_ADMIN_PASSWORD: "admin",
         GRAFANA_ALERTS_DISCORD_WEBHOOK_URL: "https://discord.example/webhook",
+        GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL:
+          "http://host.docker.internal:3000/api/observability/analyzer",
         FRONTEND_METRICS_TARGET: "host.docker.internal:3000",
         WOOGOOK_OBSERVABILITY_ENV: "local",
       }),
     ).toBe(`GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=admin
 GRAFANA_ALERTS_DISCORD_WEBHOOK_URL=https://discord.example/webhook
+GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL=http://host.docker.internal:3000/api/observability/analyzer
 FRONTEND_METRICS_TARGET=host.docker.internal:3000
 `);
   });
@@ -56,6 +60,8 @@ FRONTEND_METRICS_TARGET=host.docker.internal:3000
         GRAFANA_ADMIN_USER: "admin",
         GRAFANA_ADMIN_PASSWORD: "admin",
         GRAFANA_ALERTS_DISCORD_WEBHOOK_URL: "",
+        GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL:
+          "http://host.docker.internal:3000/api/observability/analyzer",
         FRONTEND_METRICS_TARGET: "host.docker.internal:3000",
       }),
     ).toContain("GRAFANA_ALERTS_DISCORD_WEBHOOK_URL=\n");
@@ -65,6 +71,7 @@ FRONTEND_METRICS_TARGET=host.docker.internal:3000
     expect(REQUIRED_STACK_ENV_KEYS).toEqual([
       "GRAFANA_ADMIN_USER",
       "GRAFANA_ADMIN_PASSWORD",
+      "GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL",
       "FRONTEND_METRICS_TARGET",
     ]);
 
@@ -73,10 +80,11 @@ FRONTEND_METRICS_TARGET=host.docker.internal:3000
         GRAFANA_ADMIN_USER: "admin",
         GRAFANA_ADMIN_PASSWORD: "",
         GRAFANA_ALERTS_DISCORD_WEBHOOK_URL: "",
+        GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL: "",
         FRONTEND_METRICS_TARGET: "",
       }),
     ).toThrow(
-      "missing required stack env keys: GRAFANA_ADMIN_PASSWORD, FRONTEND_METRICS_TARGET",
+      "missing required stack env keys: GRAFANA_ADMIN_PASSWORD, GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL, FRONTEND_METRICS_TARGET",
     );
   });
 });
