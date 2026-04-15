@@ -70,14 +70,6 @@
       }
     ],
     "meeting_activity": [
-      {
-        "session_label": "제322회 임시회",
-        "meeting_date": "2026-03-25(수)",
-        "meeting_name": "제322회 임시회 구정질문",
-        "source_ref": {
-          "role": "official_activity"
-        }
-      }
     ],
     "finance_activity": [
       {
@@ -143,7 +135,9 @@
       "final_publish_status": "publishable",
       "agentic_review_status": "pass",
       "agentic_enrichment_status": "success",
-      "data_gap_flags": [],
+      "data_gap_flags": [
+        "uncollected:district_head_minutes_person_linkage"
+      ],
       "needs_human_review": [],
       "spot_check": {
         "kind": "district_head",
@@ -151,7 +145,7 @@
         "source_kind": "gangdong_district_head_official_profile"
       },
       "explanation_lines": [
-        "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다."
+        "구청장 개인 회의 활동은 아직 회의록 inventory를 개인 활동으로 귀속하지 않습니다."
       ]
     },
     "freshness": {
@@ -295,8 +289,29 @@
     ],
     "bills": [
       {
-        "bill_name": "서울특별시 강동구 예시 조례안",
-        "bill_date": "2026-04-01"
+        "bill_id": "0463",
+        "bill_title": "서울특별시 강동구 청년 지원 조례안",
+        "bill_name": "서울특별시 강동구 청년 지원 조례안",
+        "proposed_at": "2026-04-07",
+        "result_label": "원안가결",
+        "participation_type": "primary_sponsor",
+        "participation_label": "대표발의",
+        "bill_stage": "approved",
+        "ordinance_status": "approved_not_confirmed",
+        "bill_summary": {
+          "status": "title_only",
+          "summary_basis": "bill_title",
+          "summary_line": "강동구 청년 지원에 관한 조례를 정하는 의안이다."
+        },
+        "official_record_locator": {
+          "kind": "bill_detail",
+          "bill_id": "0463",
+          "source_url": "https://council.gangdong.go.kr/meeting/bill/bill.do",
+          "display_hint": "의안 상세 보기"
+        },
+        "source_ref": {
+          "role": "official_activity"
+        }
       },
       {
         "bill_name": "서울특별시 강동구 청년 지원 조례안",
@@ -306,8 +321,25 @@
     ],
     "meeting_activity": [
       {
-        "meeting_name": "제320회 임시회 본회의",
-        "meeting_date": "2026-04-03"
+        "session_label": "제322회 임시회",
+        "meeting_date": "2026-03-25(수)",
+        "meeting_name": "제322회 임시회 구정질문",
+        "activity_type": "district_question",
+        "activity_label": "구정질문",
+        "record_grounding_level": "record_located",
+        "activity_summary_line": null,
+        "content_grounding": {
+          "status": "unavailable",
+          "claim_type": "question"
+        },
+        "official_record_locator": {
+          "kind": "council_minutes_popup",
+          "source_url": "https://council.gangdong.go.kr/meeting/confer/recent.do",
+          "display_hint": "회의록 팝업 다시 열기"
+        },
+        "source_ref": {
+          "role": "official_activity"
+        }
       }
     ],
     "finance_activity": [],
@@ -342,7 +374,9 @@
       "final_publish_status": "publishable_degraded",
       "agentic_review_status": "pass",
       "agentic_enrichment_status": "fallback",
-      "data_gap_flags": [],
+      "data_gap_flags": [
+        "uncollected:meeting_content_grounding"
+      ],
       "needs_human_review": [
         "summary_fallback"
       ],

@@ -1151,7 +1151,9 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.equal(councilMember.diagnostics?.spot_check?.huboid, "600000001");
   assert.equal(councilMember.diagnostics?.agentic_review_status, "pass");
   assert.equal(councilMember.diagnostics?.agentic_enrichment_status, "fallback");
-  assert.deepEqual(councilMember.diagnostics?.data_gap_flags, []);
+  assert.deepEqual(councilMember.diagnostics?.data_gap_flags, [
+    "uncollected:meeting_content_grounding",
+  ]);
   assert.deepEqual(councilMember.diagnostics?.needs_human_review, [
     "summary_fallback",
   ]);
@@ -1188,7 +1190,7 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
     "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다.",
   ]);
   assert.deepEqual(districtHead.diagnostics?.explanation_lines, [
-    "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+    "구청장 개인 회의 활동은 아직 회의록 inventory를 개인 활동으로 귀속하지 않습니다.",
   ]);
   assert.deepEqual(districtHead.freshness.explanation_lines, [
     "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
@@ -1491,7 +1493,7 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
   assert.match(html, /600000001/);
 });
 
-test("sample district head dossier exposes enough data for hero block and section actions", () => {
+test("sample district head dossier exposes enough data for hero block and non-meeting section actions", () => {
   const person = dossiers["seoul-gangdong:district-head"];
   const hero = buildPersonHeroMeta(person);
   const officialActivity = buildSectionCardViewModel({
@@ -1499,18 +1501,6 @@ test("sample district head dossier exposes enough data for hero block and sectio
     titleKeys: ["bill_title", "bill_name", "title"],
     metaKeys: ["proposed_at", "bill_date", "source_kind"],
     detailFields: [{ label: "제안일", keys: ["proposed_at", "bill_date"] }],
-    preferredSourceKinds: [],
-    preferredSourceRoles: ["official_activity"],
-    sectionSourceRefs: person.source_refs,
-  });
-  const meeting = buildSectionCardViewModel({
-    item: person.meeting_activity[0],
-    titleKeys: ["session_label", "meeting_name", "title"],
-    metaKeys: ["meeting_date", "date"],
-    detailFields: [
-      { label: "회의명", keys: ["meeting_name", "title"] },
-      { label: "회의일", keys: ["meeting_date", "date"] },
-    ],
     preferredSourceKinds: [],
     preferredSourceRoles: ["official_activity"],
     sectionSourceRefs: person.source_refs,
@@ -1530,9 +1520,43 @@ test("sample district head dossier exposes enough data for hero block and sectio
   assert.equal(hero.educationItems.length > 0, true);
   assert.equal(hero.careerItems.length > 0, true);
   assert.equal((hero.links?.length ?? 0) > 0, true);
+  assert.deepEqual(person.meeting_activity, []);
 
   assert.equal(officialActivity.actions.viewUrl?.includes("gangdong.go.kr"), true);
-  assert.equal(meeting.actions.viewUrl?.includes("gangdong.go.kr"), true);
   assert.equal(finance.actions.viewUrl?.includes("finance"), true);
   assert.equal(finance.actions.downloadUrl?.includes("download"), true);
+});
+
+test("sample council member dossier includes activity grounding fields for bills and meetings", () => {
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ];
+
+  assert.equal(person.bills[0]?.participation_type, "primary_sponsor");
+  assert.equal(person.bills[0]?.bill_stage, "approved");
+  assert.equal(person.bills[0]?.ordinance_status, "approved_not_confirmed");
+  assert.equal(person.bills[0]?.bill_summary?.status, "title_only");
+  assert.equal(
+    person.bills[0]?.bill_summary?.summary_line,
+    "강동구 청년 지원에 관한 조례를 정하는 의안이다.",
+  );
+  assert.equal(person.bills[0]?.official_record_locator?.kind, "bill_detail");
+
+  assert.equal(person.meeting_activity[0]?.activity_type, "district_question");
+  assert.equal(person.meeting_activity[0]?.activity_label, "구정질문");
+  assert.equal(person.meeting_activity[0]?.record_grounding_level, "record_located");
+  assert.equal(person.meeting_activity[0]?.content_grounding?.status, "unavailable");
+});
+
+test("sample district head dossier reflects demoted meeting linkage policy", () => {
+  const person = dossiers["seoul-gangdong:district-head"];
+
+  assert.deepEqual(person.meeting_activity, []);
+  assert.equal(
+    person.diagnostics?.data_gap_flags?.includes(
+      "uncollected:district_head_minutes_person_linkage",
+    ),
+    true,
+  );
 });
