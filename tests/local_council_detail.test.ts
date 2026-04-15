@@ -22,10 +22,12 @@ import {
   buildLocalCouncilOverlayViewModel,
   buildLocalCouncilDiagnosticsViewModel,
   getLocalCouncilActivityTypeLabel,
+  getLocalCouncilBillStageLabel,
   getLocalCouncilContentGroundingStatusLabel,
   getLocalCouncilDataGapFlagLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
+  getLocalCouncilOrdinanceStatusLabel,
   getLocalCouncilParticipationTypeLabel,
   getLocalCouncilRecordGroundingLevelLabel,
   getLocalCouncilSummaryBasisLabels,
@@ -563,6 +565,11 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
 test("local council activity grounding helpers translate labels conservatively", () => {
   assert.equal(getLocalCouncilParticipationTypeLabel("primary_sponsor"), "대표발의");
   assert.equal(getLocalCouncilParticipationTypeLabel("listed_activity"), "의안 참여 기록");
+  assert.equal(getLocalCouncilBillStageLabel("approved"), "가결");
+  assert.equal(
+    getLocalCouncilOrdinanceStatusLabel("approved_not_confirmed"),
+    "가결 후 공포 전",
+  );
   assert.equal(
     getLocalCouncilRecordGroundingLevelLabel("record_located"),
     "공식 기록 위치 확인",
@@ -703,6 +710,7 @@ test("buildBillActivityCardViewModel prefers official record locators over gener
   const card = buildBillActivityCardViewModel({
     item: {
       bill_title: "서울특별시 강동구 청년 지원 조례안",
+      proposed_at: "2026-04-07",
       participation_type: "primary_sponsor",
       bill_stage: "approved",
       ordinance_status: "approved_not_confirmed",
@@ -733,6 +741,16 @@ test("buildBillActivityCardViewModel prefers official record locators over gener
     "원안가결",
   ]);
   assert.equal(card.summaryLine, "강동구 청년 지원에 관한 조례를 정하는 의안이다.");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "상태",
+      value: "의안 단계 가결 · 조례 상태 가결 후 공포 전 · 의결 결과 원안가결",
+    },
+    {
+      label: "제안일",
+      value: "2026-04-07",
+    },
+  ]);
   assert.equal(card.actions.viewLabel, "의안 상세 열기");
   assert.equal(card.actions.viewUrl, "https://example.com/bills/0463");
 });

@@ -132,6 +132,29 @@ export function getLocalCouncilParticipationTypeLabel(participationType: string)
   return labels[participationType] || participationType;
 }
 
+export function getLocalCouncilBillStageLabel(stage: string) {
+  const labels: Record<string, string> = {
+    proposed: "제안",
+    reviewed: "심사 완료",
+    approved: "가결",
+    amended_approved: "수정가결",
+    rejected: "부결",
+    pending: "계류",
+  };
+  return labels[stage] || stage;
+}
+
+export function getLocalCouncilOrdinanceStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    unknown: "확인 전",
+    not_ordinance: "조례 아님",
+    proposal_only: "발의안 단계",
+    approved_not_confirmed: "가결 후 공포 전",
+    promulgated: "공포 완료",
+  };
+  return labels[status] || status;
+}
+
 export function getLocalCouncilRecordGroundingLevelLabel(level: string) {
   const labels: Record<string, string> = {
     record_listed: "공식 기록 목록 확인",

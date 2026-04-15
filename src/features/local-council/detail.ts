@@ -1,6 +1,8 @@
 import {
   getLocalCouncilActivityTypeLabel,
+  getLocalCouncilBillStageLabel,
   getLocalCouncilContentGroundingStatusLabel,
+  getLocalCouncilOrdinanceStatusLabel,
   getLocalCouncilParticipationTypeLabel,
   getLocalCouncilRecordGroundingLevelLabel,
   getLocalCouncilSourceLabel,
@@ -692,8 +694,32 @@ export function buildBillActivityCardViewModel(args: {
     preferredSourceRoles: ["official_activity"],
   });
   const participationType = asText(args.item.participation_type);
+  const billStage = asText(args.item.bill_stage);
+  const ordinanceStatus = asText(args.item.ordinance_status);
   const resultLabel = asText(args.item.result_label);
   const billSummary = asRecord(args.item.bill_summary);
+  const statusParts = [
+    billStage ? `의안 단계 ${getLocalCouncilBillStageLabel(billStage)}` : null,
+    ordinanceStatus
+      ? `조례 상태 ${getLocalCouncilOrdinanceStatusLabel(ordinanceStatus)}`
+      : null,
+    resultLabel ? `의결 결과 ${resultLabel}` : null,
+  ].filter((value): value is string => Boolean(value));
+  const detailRows: SectionCardDetailRow[] = [];
+  if (statusParts.length > 0) {
+    detailRows.push({
+      label: "상태",
+      value: statusParts.join(" · "),
+    });
+  }
+
+  const proposedAt = asText(args.item.proposed_at) ?? asText(args.item.bill_date);
+  if (proposedAt) {
+    detailRows.push({
+      label: "제안일",
+      value: proposedAt,
+    });
+  }
 
   return {
     headline:
@@ -713,10 +739,7 @@ export function buildBillActivityCardViewModel(args: {
       resultLabel ? { label: resultLabel, tone: "subtle" } : null,
     ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
     summaryLine: asText(billSummary.summary_line) ?? null,
-    detailRows: buildSectionDetailRows(args.item, [
-      { label: "상태", keys: ["bill_stage", "ordinance_status"] },
-      { label: "제안일", keys: ["proposed_at", "bill_date"] },
-    ]),
+    detailRows,
     actions: {
       viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
       viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
