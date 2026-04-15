@@ -150,19 +150,19 @@ cat .env
 
 - `WOOGOOK_OBSERVABILITY_...`와 `GRAFANA_...` 항목이 함께 보인다.
 
-### 1-3. `.env.local`이 남아 있지 않은지 확인
+### 1-3. `.env.local`이 남아 있으면 `/.env`로 정리
 
 `Next.js`는 `.env.local`이 있으면 `.env`보다 우선 적용한다.
-예전 설정이 남아 있으면 이 runbook의 값이 적용되지 않을 수 있다.
+예전 설정이 남아 있으면 이 runbook의 값이 적용되지 않고, `observability:stack:sync-env`도 실패한다.
 
 ```bash
-test ! -f .env.local || echo ".env.local exists and overrides .env. Remove it or keep the two files in sync."
+test ! -f .env.local || echo ".env.local exists. Move its values into .env and remove .env.local before continuing."
 ```
 
 기대 결과:
 
 - 아무 출력이 없으면 가장 안전하다.
-- 경고 문구가 보이면 `.env.local` 값을 확인하거나 파일을 치워야 한다.
+- 경고 문구가 보이면 `.env.local` 값을 `/.env`로 옮기고 `.env.local`을 제거해야 한다.
 
 ## 2. generated stack env 확인
 
@@ -616,6 +616,7 @@ Grafana에서 아래 메뉴를 본다.
 두 rule이 보인다.
 
 synthetic error 직후에는 `Firing` 상태가 되는 것이 정상이다.
+이는 Grafana 내부 rule 상태 기준이다. analyzer 대상 error alert는 Discord에 raw `Firing` 본문이 아니라 analyzer 요약 메시지로 도착해야 한다.
 
 ### 12-2. CLI에서 확인
 
@@ -645,6 +646,7 @@ curl -su "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
 - Discord 채널에 analyzer가 정리한 incident summary 메시지가 도착하는가
 - headline, 영향 요약, 원인 후보, 다음 액션이 함께 보이는가
 - browser error와 API 5xx가 각각 별도 incident summary로 도착하는가
+- analyzer 대상 error alert에 대해 raw Grafana `Firing` 메시지가 중복으로 오지 않는가
 
 ### 13-2. placeholder(예시값)를 넣은 경우
 
@@ -732,7 +734,7 @@ cat .env
 추가 확인:
 
 ```bash
-test ! -f .env.local || echo ".env.local exists and may override .env"
+test ! -f .env.local || echo ".env.local exists. Move its values into .env and remove .env.local."
 ```
 
 2. metrics endpoint에 값이 있는지 확인
@@ -774,7 +776,7 @@ WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true
 WOOGOOK_OBSERVABILITY_LOKI_PUSH_URL=http://localhost:3100/loki/api/v1/push
 ```
 
-2. `.env.local`이 남아 있다면 같은 값으로 맞췄는지 확인
+2. `.env.local`이 남아 있다면 값을 `/.env`로 옮기고 파일을 지웠는지 확인
 3. frontend를 재시작했는지 확인
 4. synthetic error를 다시 발생시켰는지 확인
 

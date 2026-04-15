@@ -9,6 +9,17 @@ import {
 } from "./sync-stack-env.mjs";
 
 describe("sync stack env", () => {
+  it("rejects /.env.local to keep root /.env as the only source of truth", () => {
+    expect(() =>
+      resolveSourceEnvPath({
+        cwd: "/tmp/project",
+        existsSync: (target) => target === "/tmp/project/.env.local",
+      }),
+    ).toThrow(
+      "root .env.local is no longer supported. Move its values into root .env and remove .env.local.",
+    );
+  });
+
   it("prefers /.env over /.env.example", () => {
     expect(
       resolveSourceEnvPath({

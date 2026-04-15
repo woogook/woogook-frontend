@@ -50,6 +50,7 @@ function CandidatePhoto({
       }}
     >
       {src && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- 외부 후보 사진 URL, 도메인 가변
         <img
           src={src}
           alt={alt}

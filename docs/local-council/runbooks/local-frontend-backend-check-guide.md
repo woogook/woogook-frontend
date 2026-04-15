@@ -69,10 +69,12 @@
 
 ```bash
 cd woogook-frontend
+test -f .env || cp .env.example .env
 npm install
 ```
 
-`WOOGOOK_BACKEND_BASE_URL`을 넣은 `.env.local`이 이미 있다면 잠시 비워 둔다. 이 값이 있으면 frontend가 backend 연결을 시도한다.
+`WOOGOOK_BACKEND_BASE_URL`을 넣은 `.env`가 이미 있다면 잠시 비워 둔다. 이 값이 있으면 frontend가 backend 연결을 시도한다.
+`.env.local`이 남아 있다면 먼저 값을 `/.env`로 옮기고 `.env.local`은 지운다.
 기본 `node`가 20.9 미만이면 `npm run dev`가 뜨지 않는다. 이 환경에서는 예를 들어 `PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run dev`처럼 실행한다.
 
 ```bash
@@ -308,7 +310,7 @@ cd ../woogook-frontend
 npm install
 ```
 
-루트에 `.env.local`을 만들거나 수정해 아래 값을 넣는다.
+루트 `/.env`를 만들거나 수정해 아래 값을 넣는다.
 
 ```dotenv
 WOOGOOK_BACKEND_BASE_URL=http://127.0.0.1:8000
@@ -379,7 +381,7 @@ curl 'http://127.0.0.1:3000/api/local-council/v1/districts/11740/roster'
 ## 자주 걸리는 지점
 
 - frontend에 `WOOGOOK_BACKEND_BASE_URL`이 없으면 backend가 켜져 있어도 fallback으로 동작한다.
-- frontend `.env.local`에 `WOOGOOK_BACKEND_BASE_URL=http://localhost:8000`를 넣어도 보통 동작하지만, 문서와 curl 예시는 모두 `127.0.0.1`로 통일한다.
+- frontend `/.env`에 `WOOGOOK_BACKEND_BASE_URL=http://localhost:8000`를 넣어도 보통 동작하지만, 문서와 curl 예시는 모두 `127.0.0.1`로 통일한다.
 - `seed-local-council-projections`가 실패하면 보통 아래 둘 중 하나다.
   - `seed-local-election-candidates`가 아직 안 들어가 `basic_head` member_id를 못 찾음
   - `seed-local-council-members --council-slug 서울_강동구의회_002003`가 아직 안 들어가 `basic_council` member_id를 못 찾음

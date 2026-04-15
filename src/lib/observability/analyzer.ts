@@ -166,7 +166,7 @@ export function formatIncidentSummary(summary: IncidentSummary) {
   return [
     `## ${summary.headline}`,
     "",
-    `- 영향 요약: ${summary.impactSummary}`,
+    `- 영향: ${summary.impactSummary}`,
     `- 신뢰도: ${summary.confidence}`,
     "",
     "### 원인 후보",
@@ -186,22 +186,27 @@ export function buildIncidentSummary(
   const component = alert.labels.component ?? latest?.component ?? "unknown component";
   const environment = alert.labels.environment ?? latest?.environment ?? "unknown";
   const errorName = alert.labels.error_name ?? latest?.errorName ?? "UnknownError";
-  const errorMessage = latest?.errorMessage ?? alert.annotations?.summary ?? "세부 오류 메시지가 없습니다.";
+  const errorMessage =
+    latest?.errorMessage ??
+    alert.annotations?.summary ??
+    "세부 error message 없음.";
   const latencyLine =
-    latest?.latencyMs != null ? `최근 관측 latency는 ${latest.latencyMs}ms입니다.` : "최근 latency 정보는 없습니다.";
+    latest?.latencyMs != null
+      ? `최근 관측 latency ${latest.latencyMs}ms.`
+      : "최근 latency 정보 없음.";
 
   return {
     headline: `[${environment}] ${component} incident on ${route}`,
     rootCauseCandidates: [
-      `${errorName} 발생 여부를 먼저 확인합니다.`,
-      `${component}의 최근 배포와 설정 변경 이력을 확인합니다.`,
-      `${route}가 의존하는 외부 자원 또는 upstream 상태를 점검합니다.`,
+      `${errorName} 재발 가능성 있음`,
+      `${component} 배포 또는 설정 변경 영향 가능성 있음`,
+      `${route} upstream 또는 external dependency 이슈 가능성 있음`,
     ],
-    impactSummary: `${route} 경로에서 오류가 감지되었습니다. ${errorMessage} ${latencyLine}`,
+    impactSummary: `${route} 경로에서 오류 감지됨. ${errorMessage} ${latencyLine}`,
     nextActions: [
-      `${route} 최근 오류 로그와 correlation id를 확인합니다.`,
-      `${component} 관련 메트릭과 release 태그를 함께 비교합니다.`,
-      "동일 fingerprint 알림이 반복되는지 silence 전 상태를 점검합니다.",
+      `${route} 최근 error log와 correlation id 확인`,
+      `${component} 관련 metric과 release tag 비교`,
+      "fingerprint alert 반복 여부와 silence 상태 확인",
     ],
     confidence: recentEvents.length >= 3 ? "high" : recentEvents.length >= 1 ? "medium" : "low",
   };
