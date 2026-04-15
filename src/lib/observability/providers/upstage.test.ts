@@ -34,6 +34,12 @@ describe("invokeUpstageIncidentSummary", () => {
     });
 
     expect(fetchSpy).toHaveBeenCalledOnce();
+    const requestBody = JSON.parse(
+      String(fetchSpy.mock.calls[0]?.[1]?.body ?? "{}"),
+    ) as {
+      response_format?: { type?: string };
+    };
+    expect(requestBody.response_format).toEqual({ type: "json_object" });
     expect(summary.headline).toContain("incident");
     expect(summary.confidence).toBe("high");
 

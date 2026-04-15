@@ -192,11 +192,9 @@ async function analyzeAlert({
 export async function POST(request: Request) {
   return observeRoute(request, "observability/analyzer", async (context) => {
     const alerts = parseGrafanaAlertPayloads(await request.json()) as GrafanaAlertPayload[];
-    const results: Array<{ status: 200 | 202; body: AnalyzerResult }> = [];
-
-    for (const alert of alerts) {
-      results.push(await analyzeAlert({ alert, context }));
-    }
+    const results = await Promise.all(
+      alerts.map((alert) => analyzeAlert({ alert, context })),
+    );
 
     if (results.length === 1) {
       const [result] = results;

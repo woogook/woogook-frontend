@@ -11,6 +11,8 @@ vi.mock("@/lib/observability/server", () => ({
 import { proxyToBackendWithObservability } from "@/app/api/_shared/backend-proxy";
 
 const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;
+const originalObservabilityTimeout =
+  process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS;
 
 describe("proxyToBackendWithObservability", () => {
   beforeEach(() => {
@@ -23,6 +25,12 @@ describe("proxyToBackendWithObservability", () => {
       delete process.env.WOOGOOK_BACKEND_BASE_URL;
     } else {
       process.env.WOOGOOK_BACKEND_BASE_URL = originalBackendBaseUrl;
+    }
+    if (originalObservabilityTimeout == null) {
+      delete process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS;
+    } else {
+      process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS =
+        originalObservabilityTimeout;
     }
   });
 
@@ -60,6 +68,7 @@ describe("proxyToBackendWithObservability", () => {
 
   it("propagates correlation ids to the backend and relays them back to the client", async () => {
     process.env.WOOGOOK_BACKEND_BASE_URL = "https://backend.example.com";
+    process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS = "4321";
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), {
@@ -93,6 +102,7 @@ describe("proxyToBackendWithObservability", () => {
     );
     const forwardedHeaders = fetchSpy.mock.calls[0]?.[1]?.headers as Headers;
     expect(forwardedHeaders.get("x-correlation-id")).toBe("corr-from-client");
+    expect(fetchSpy.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(response.status).toBe(200);
     expect(response.headers.get("x-correlation-id")).toBe("corr-from-backend");
     await expect(response.json()).resolves.toMatchObject({ ok: true });
@@ -104,5 +114,29 @@ describe("proxyToBackendWithObservability", () => {
         httpStatus: 200,
       }),
     );
+  });
+
+  it("streams the backend response body without buffering it into text first", async () => {
+    process.env.WOOGOOK_BACKEND_BASE_URL = "https://backend.example.com";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("streamed-body", {
+        status: 200,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+        },
+      }),
+    );
+
+    const response = await proxyToBackendWithObservability({
+      request: new Request("https://example.com/api/assembly/v1/members"),
+      path: "/api/assembly/v1/members",
+      observableRoute: "assembly/v1/members",
+      missingBackendMessage: "missing",
+      unavailableMessage: "unavailable",
+    });
+
+    await expect(response.text()).resolves.toBe("streamed-body");
+    expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
   });
 });

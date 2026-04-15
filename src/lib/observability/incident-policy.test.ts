@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildIncidentKey,
@@ -106,5 +106,66 @@ describe("findRecentIncidentCooldown", () => {
 
     expect(result.skip).toBe(true);
     expect(result.lastAnalyzedAt).toBe("2026-04-15T05:55:30.000Z");
+  });
+
+  it("falls back to Loki analysis_result events when local files are disabled or empty", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              result: [
+                {
+                  values: [
+                    [
+                      "1",
+                      JSON.stringify({
+                        timestamp: "2026-04-15T05:55:30.000Z",
+                        level: "info",
+                        signalType: "analysis_result",
+                        service: "woogook-frontend",
+                        component: "llm-analyzer",
+                        environment: "production",
+                        release: "release-1",
+                        context: {
+                          incidentKey:
+                            "FrontendApi5xxDetected|/api/assembly/v1/members|next-api|production",
+                        },
+                      } satisfies ObservabilityEvent),
+                    ],
+                  ],
+                },
+              ],
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const result = await findRecentIncidentCooldown({
+      config: {
+        environment: "production",
+        release: "release-1",
+        localRootDir: "/tmp/non-existent-observability-dir",
+        writeLocalFiles: false,
+        rotateBytes: 1024,
+        retentionDays: 14,
+        mirrorToCloudInLocal: false,
+        lokiQueryUrl: "https://logs-prod.grafana.net/loki/api/v1/query_range",
+        outboundTimeoutMs: 5_000,
+        analyzerLookbackMinutes: 10,
+        llmCooldownSeconds: 600,
+      },
+      incidentKey:
+        "FrontendApi5xxDetected|/api/assembly/v1/members|next-api|production",
+      now: new Date("2026-04-15T06:00:00.000Z"),
+    });
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(result.skip).toBe(true);
+    expect(result.lastAnalyzedAt).toBe("2026-04-15T05:55:30.000Z");
+
+    fetchSpy.mockRestore();
   });
 });

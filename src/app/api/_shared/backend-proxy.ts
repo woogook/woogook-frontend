@@ -4,10 +4,16 @@ import {
   CORRELATION_HEADER,
   getOrCreateCorrelationId,
 } from "@/lib/observability/correlation";
+import { parseObservabilityConfig } from "@/lib/observability/config";
+import { fetchWithTimeout } from "@/lib/observability/http";
 import { logServerEvent } from "@/lib/observability/server";
 
 function getBackendBaseUrl() {
   return process.env.WOOGOOK_BACKEND_BASE_URL?.trim().replace(/\/$/, "") || null;
+}
+
+function getProxyTimeoutMs() {
+  return parseObservabilityConfig().outboundTimeoutMs;
 }
 
 type ProxyToBackendWithObservabilityParams = {
@@ -40,11 +46,10 @@ function buildJsonErrorResponse(params: {
   );
 }
 
-async function relayBackendResponse(
+function relayBackendResponse(
   response: Response,
   fallbackCorrelationId: string,
-): Promise<Response> {
-  const body = await response.text();
+): Response {
   const headers = new Headers();
   const contentType = response.headers.get("content-type");
   const correlationId =
@@ -56,7 +61,7 @@ async function relayBackendResponse(
   );
   headers.set(CORRELATION_HEADER, correlationId);
 
-  return new Response(body, {
+  return new Response(response.body, {
     status: response.status,
     headers,
   });
@@ -74,6 +79,7 @@ export async function proxyToBackendWithObservability({
   const baseUrl = getBackendBaseUrl();
   const correlationId = getOrCreateCorrelationId(new Headers(request.headers));
   const routeForLogs = observableRoute ?? path.split("?")[0] ?? path;
+  const timeoutMs = getProxyTimeoutMs();
 
   if (!baseUrl) {
     await logServerEvent({
@@ -105,11 +111,15 @@ export async function proxyToBackendWithObservability({
     }
     headers.set(CORRELATION_HEADER, correlationId);
 
-    const response = await fetch(`${baseUrl}${path}`, {
-      ...init,
-      cache: "no-store",
-      headers,
-    });
+    const response = await fetchWithTimeout(
+      `${baseUrl}${path}`,
+      {
+        ...init,
+        cache: "no-store",
+        headers,
+      },
+      timeoutMs,
+    );
 
     await logServerEvent({
       level: response.ok ? "info" : "warn",

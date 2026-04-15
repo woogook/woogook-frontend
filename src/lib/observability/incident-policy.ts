@@ -1,6 +1,11 @@
 import { readRecentObservabilityEvents } from "@/lib/observability/local-file";
-import type { GrafanaAlertPayload, IncidentSummary } from "@/lib/observability/analyzer";
+import {
+  extractEventsFromLokiResponse,
+  type GrafanaAlertPayload,
+  type IncidentSummary,
+} from "@/lib/observability/analyzer";
 import type { ObservabilityConfig } from "@/lib/observability/config";
+import { applyBasicAuth, fetchWithTimeout } from "@/lib/observability/http";
 import type { ObservabilityEvent } from "@/lib/observability/types";
 
 type FindRecentIncidentCooldownParams = {
@@ -64,6 +69,56 @@ function findRecentIncidentCooldownFromEvents(params: {
   return { skip: false as const, lastAnalyzedAt: latest.timestamp };
 }
 
+function buildRecentAnalysisResultsQuery(config: ObservabilityConfig) {
+  const streamFilters = ['service="woogook-frontend"'];
+
+  if (config.environment) {
+    streamFilters.push(`environment=${JSON.stringify(config.environment)}`);
+  }
+
+  return `{${streamFilters.join(",")}} | json | component="llm-analyzer" | signalType="analysis_result"`;
+}
+
+async function readRecentAnalysisEventsFromLoki(params: {
+  config: ObservabilityConfig;
+  maxEvents: number;
+  now: Date;
+}) {
+  const { config, maxEvents, now } = params;
+  if (!config.lokiQueryUrl) {
+    return [];
+  }
+
+  const url = new URL(config.lokiQueryUrl);
+  const start = new Date(
+    now.getTime() - config.analyzerLookbackMinutes * 60 * 1000,
+  );
+  url.searchParams.set("query", buildRecentAnalysisResultsQuery(config));
+  url.searchParams.set("limit", String(maxEvents));
+  url.searchParams.set("direction", "backward");
+  url.searchParams.set("start", `${start.getTime() * 1_000_000}`);
+  url.searchParams.set("end", `${now.getTime() * 1_000_000}`);
+
+  const headers = new Headers();
+  applyBasicAuth(headers, config.lokiUsername, config.lokiPassword);
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    },
+    config.outboundTimeoutMs,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Loki analysis_result query failed with status ${response.status}`);
+  }
+
+  return extractEventsFromLokiResponse(await response.json()).slice(0, maxEvents);
+}
+
 export async function findRecentIncidentCooldown({
   config,
   incidentKey,
@@ -76,14 +131,22 @@ export async function findRecentIncidentCooldown({
     return { skip: false as const, lastAnalyzedAt: undefined };
   }
 
-  const events =
-    recentEvents ??
-    (config
-      ? await readRecentObservabilityEvents({
-          rootDir: config.localRootDir,
-          maxEvents: 200,
-        })
-      : []);
+  let events = recentEvents ?? [];
+
+  if (!recentEvents && config) {
+    events = await readRecentObservabilityEvents({
+      rootDir: config.localRootDir,
+      maxEvents: 200,
+    });
+
+    if (events.length === 0 && config.lokiQueryUrl) {
+      events = await readRecentAnalysisEventsFromLoki({
+        config,
+        maxEvents: 200,
+        now,
+      });
+    }
+  }
 
   return findRecentIncidentCooldownFromEvents({
     incidentKey,
