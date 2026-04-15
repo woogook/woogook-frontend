@@ -45,17 +45,17 @@ export async function expectGangdongRoster(
   await expect(page.getByText(options.dataSourceLabel)).toBeVisible();
   await expect(page.getByRole("heading", { name: "구청장" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "구의원" })).toBeVisible();
-  await expect(page.getByRole("button", { name: new RegExp(options.districtHeadName) })).toBeVisible();
+  await expect(page.getByRole("button", { name: options.districtHeadName })).toBeVisible();
 
   for (const councilMemberName of options.councilMemberNames) {
     await expect(
-      page.getByRole("button", { name: new RegExp(councilMemberName) }),
+      page.getByRole("button", { name: councilMemberName }),
     ).toBeVisible();
   }
 }
 
 export async function openRosterPerson(page: Page, name: string) {
-  await page.getByRole("button", { name: new RegExp(name) }).click();
+  await page.getByRole("button", { name }).click();
   await expect(page.getByRole("button", { name: "명단으로 돌아가기" })).toBeVisible();
 }
 
