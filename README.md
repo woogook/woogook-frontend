@@ -135,6 +135,8 @@ synthetic trigger 스크립트는 alert rule의 `increase(...[2m])`가 잡히도
 - 배포 의사결정: `docs/common/canonical/frontend-deployment-decision.md`
 - 배포 runbook: `docs/common/runbooks/vercel-deployment-runbook.md`
 - 국회 온보딩: `docs/assembly/onboarding/assembly-team-onboarding.md`
+- 국회 현재 현황: `docs/assembly/notes/current/assembly-current-status-brief.md`
+- 지방선거 현재 현황: `docs/local-election/notes/current/local-election-current-status-brief.md`
 - 현직 지방의원 진입: `docs/local-council/canonical/llm-entry.md`
 
 ## 샘플 데이터
