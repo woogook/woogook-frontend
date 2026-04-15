@@ -1,6 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 
+import sampleLocalCouncilGangdongResolve from "@/data/samples/sample_local_council_gangdong_resolve.json";
+import sampleLocalCouncilGangdongPersonDossiers from "@/data/samples/sample_local_council_gangdong_person_dossiers.json";
+import {
+  createBrowserCorrelationHeaders,
+  reportBrowserError,
+  reportClientApiFailure,
+} from "@/lib/observability/client";
 import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
@@ -8,13 +15,27 @@ import {
   cityQuerySchema,
   citySigunguQuerySchema,
   emdResponseSchema,
+  localCouncilDistrictRosterResponseSchema,
   localElectionChatConversationCreateRequestSchema,
   localElectionChatConversationResponseSchema,
   localElectionChatMessageCreateRequestSchema,
   localElectionChatMessageResponseSchema,
+  localCouncilPersonDossierResponseSchema,
+  localCouncilResolveResponseSchema,
+  type LocalCouncilDataSource,
+  type LocalCouncilDistrictRosterResponse,
+  type LocalCouncilPersonDossierResponse,
+  type LocalCouncilResolveResponse,
+  type LocalCouncilRosterScreenData,
   sigunguResponseSchema,
   assemblyMemberListResponseSchema,
+  assemblyMemberMetaCardSchema,
+  assemblyPledgeListResponseSchema,
+  assemblyPledgeSummaryResponseSchema,
   type AssemblyMemberListResponse,
+  type AssemblyMemberMetaCard,
+  type AssemblyPledgeListResponse,
+  type AssemblyPledgeSummaryResponse,
   type BallotsSearchParams,
   type LocalElectionChatConversationCreateRequest,
   type LocalElectionChatMessageCreateRequest,
@@ -57,29 +78,67 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function parseResponseWithSchema<T>(payload: unknown, schema: ZodType<T>): T {
+  try {
+    return schema.parse(payload);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("[requestJson] schema parse error", error);
+      throw new ApiError(
+        502,
+        "응답 형식이 예상과 다릅니다. 잠시 후 다시 시도해주세요.",
+      );
+    }
+    throw error;
+  }
+}
+
 async function requestJson<T>(
   input: string,
   schema: ZodType<T>,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...(init?.headers || {}),
-    },
-  });
+  const { headers, correlationId } = createBrowserCorrelationHeaders(init?.headers);
+  headers.set("Accept", "application/json");
+  if (init?.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(input, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      void reportClientApiFailure({
+        route: input,
+        httpMethod: init?.method ?? "GET",
+        errorMessage: error.message,
+        correlationId,
+      });
+    }
+    throw error;
+  }
+
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
+    void reportClientApiFailure({
+      route: input,
+      httpMethod: init?.method ?? "GET",
+      httpStatus: response.status,
+      errorMessage: getErrorMessage(payload, "요청을 처리하지 못했습니다."),
+      correlationId,
+    });
     throw new ApiError(
       response.status,
       getErrorMessage(payload, "요청을 처리하지 못했습니다."),
     );
   }
 
-  return schema.parse(payload);
+  return parseResponseWithSchema(payload, schema);
 }
 
 async function fetchJson<T>(input: string, schema: ZodType<T>): Promise<T> {
@@ -98,7 +157,13 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       items: payload[key],
     } satisfies RegionQueryResult;
   } catch (error) {
-    console.error(error);
+    if (error instanceof Error) {
+      void reportBrowserError(error, {
+        route: input,
+        fallbackMessage,
+      });
+    }
+    console.warn("[regions] 기본 목록으로 대체합니다.", error);
     return {
       items: [],
       fallbackMessage: error instanceof Error ? error.message : fallbackMessage,
@@ -206,12 +271,330 @@ export function assemblyMembersQueryOptions(region: string, district: string) {
   return queryOptions({
     queryKey: ["assembly", "members", region, trimmedDistrict],
     queryFn: () => fetchAssemblyMembers(region, trimmedDistrict),
-    enabled: trimmedDistrict.length > 0, 
+    enabled: trimmedDistrict.length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 0,
-  })
+  });
 }
 
+/**
+ * 국회 의원 메타 카드 (GET …/members/{mona_cd}/card) — assembly_member 한 행.
+ */
+export async function fetchAssemblyMemberMetaCard(
+  monaCd: string,
+): Promise<AssemblyMemberMetaCard> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/card`,
+    assemblyMemberMetaCardSchema,
+  );
+}
+
+export function assemblyMemberMetaCardQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "card", trimmed],
+    queryFn: () => fetchAssemblyMemberMetaCard(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyPledgeSummary(
+  monaCd: string,
+): Promise<AssemblyPledgeSummaryResponse> {
+  const trimmed = monaCd.trim();
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(trimmed)}/pledge-summary`,
+    assemblyPledgeSummaryResponseSchema,
+  );
+}
+
+export function assemblyPledgeSummaryQueryOptions(monaCd: string) {
+  const trimmed = monaCd.trim();
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledge-summary", trimmed],
+    queryFn: () => fetchAssemblyPledgeSummary(trimmed),
+    enabled: trimmed.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export async function fetchAssemblyMemberPledges(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}): Promise<AssemblyPledgeListResponse> {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const query = new URLSearchParams({ category });
+  if (params.limit !== undefined) {
+    query.set("limit", String(params.limit));
+  }
+  return fetchJson(
+    `/api/assembly/v1/members/${encodeURIComponent(monaCd)}/pledges?${query.toString()}`,
+    assemblyPledgeListResponseSchema,
+  );
+}
+
+export function assemblyMemberPledgesQueryOptions(params: {
+  monaCd: string;
+  category: string;
+  limit?: number;
+}) {
+  const monaCd = params.monaCd.trim();
+  const category = params.category.trim();
+  const limit = params.limit ?? null;
+  return queryOptions({
+    queryKey: ["assembly", "member", "pledges", monaCd, category, limit],
+    queryFn: () =>
+      fetchAssemblyMemberPledges({
+        monaCd,
+        category,
+        ...(limit !== null ? { limit } : {}),
+      }),
+    enabled: monaCd.length > 0 && category.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export type LocalCouncilResult<T> = {
+  data: T;
+  dataSource: LocalCouncilDataSource;
+};
+
+export function mergeLocalCouncilDataSources(
+  ...sources: Array<LocalCouncilDataSource | null | undefined>
+): LocalCouncilDataSource {
+  return sources.length > 0 && sources.every((source) => source === "backend")
+    ? "backend"
+    : "local_sample";
+}
+
+export function buildLocalCouncilRosterScreenResult(params: {
+  resolved: LocalCouncilResult<LocalCouncilResolveResponse>;
+  roster?: LocalCouncilResult<LocalCouncilDistrictRosterResponse> | null;
+}): LocalCouncilResult<LocalCouncilRosterScreenData> {
+  const rosterResult = params.roster ?? {
+    data: params.resolved.data.roster,
+    dataSource: params.resolved.dataSource,
+  };
+
+  return {
+    data: {
+      district: params.resolved.data.district,
+      roster: rosterResult.data,
+    },
+    dataSource: mergeLocalCouncilDataSources(
+      params.resolved.dataSource,
+      rosterResult.dataSource,
+    ),
+  };
+}
+
+type LocalCouncilAddressSelection = {
+  city: string;
+  district: string;
+  dong?: string;
+};
+
+function buildLocalCouncilSamplePersonDossierAlias(
+  dossier: LocalCouncilPersonDossierResponse,
+  personKey: string,
+): LocalCouncilPersonDossierResponse {
+  return {
+    ...dossier,
+    overlay: dossier.overlay
+      ? {
+          ...dossier.overlay,
+          basis: dossier.overlay.basis
+            ? {
+                ...dossier.overlay.basis,
+                target_member_id: personKey,
+              }
+            : dossier.overlay.basis,
+        }
+      : dossier.overlay,
+    diagnostics: dossier.diagnostics
+      ? {
+          ...dossier.diagnostics,
+          spot_check: dossier.diagnostics.spot_check
+            ? {
+                ...dossier.diagnostics.spot_check,
+                person_key: personKey,
+              }
+            : dossier.diagnostics.spot_check,
+        }
+      : dossier.diagnostics,
+    spot_check: dossier.spot_check
+      ? {
+          ...dossier.spot_check,
+          person_key: personKey,
+        }
+      : dossier.spot_check,
+  };
+}
+
+function buildLocalCouncilSamplePersonDossierIndex(
+  payload: unknown,
+): Record<string, LocalCouncilPersonDossierResponse> {
+  const parsed = z
+    .record(z.string(), localCouncilPersonDossierResponseSchema)
+    .parse(payload);
+  const index: Record<string, LocalCouncilPersonDossierResponse> = { ...parsed };
+
+  for (const [sampleKey, dossier] of Object.entries(parsed)) {
+    const spotCheck = dossier.diagnostics?.spot_check ?? dossier.spot_check;
+    const huboid = spotCheck?.huboid?.trim();
+    if (!huboid || !sampleKey.includes(":council-member:")) {
+      continue;
+    }
+
+    const prefix = sampleKey.split(":").slice(0, 2).join(":");
+    const aliasKey = `${prefix}:${huboid}`;
+    if (aliasKey in index) {
+      continue;
+    }
+    index[aliasKey] = buildLocalCouncilSamplePersonDossierAlias(dossier, aliasKey);
+  }
+
+  return index;
+}
+
+const sampleLocalCouncilPersonDossierIndex =
+  buildLocalCouncilSamplePersonDossierIndex(sampleLocalCouncilGangdongPersonDossiers);
+const sampleLocalCouncilGangdongRoster =
+  localCouncilDistrictRosterResponseSchema.parse(sampleLocalCouncilGangdongResolve.roster);
+
+export function buildLocalCouncilAddress({
+  city,
+  district,
+  dong,
+}: LocalCouncilAddressSelection) {
+  return [city, district, dong].map((part) => part?.trim()).filter(Boolean).join(" ");
+}
+
+function isGangdongSelection({ city, district }: LocalCouncilAddressSelection) {
+  return city.trim() === "서울특별시" && district.trim() === "강동구";
+}
+
+function isGangdongGuCode(guCode: string) {
+  return guCode.trim() === "11740";
+}
+
+function isBackendUnavailableError(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.status === 503;
+  }
+  return error instanceof TypeError;
+}
+
+export async function fetchLocalCouncilResolve(
+  selection: LocalCouncilAddressSelection,
+): Promise<LocalCouncilResult<LocalCouncilResolveResponse>> {
+  const address = buildLocalCouncilAddress(selection);
+  const query = new URLSearchParams({ address });
+
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/resolve?${query.toString()}`,
+      localCouncilResolveResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    if (isBackendUnavailableError(error) && isGangdongSelection(selection)) {
+      return {
+        data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+        dataSource: "local_sample",
+      };
+    }
+
+    if (isBackendUnavailableError(error)) {
+      throw new ApiError(
+        503,
+        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function fetchLocalCouncilRoster(
+  guCode: string,
+): Promise<LocalCouncilResult<LocalCouncilDistrictRosterResponse>> {
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/districts/${encodeURIComponent(guCode)}/roster`,
+      localCouncilDistrictRosterResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    if (isBackendUnavailableError(error) && isGangdongGuCode(guCode)) {
+      return {
+        data: sampleLocalCouncilGangdongRoster,
+        dataSource: "local_sample",
+      };
+    }
+
+    if (isBackendUnavailableError(error)) {
+      throw new ApiError(
+        503,
+        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function fetchLocalCouncilPerson(
+  personKey: string,
+): Promise<LocalCouncilResult<LocalCouncilPersonDossierResponse>> {
+  try {
+    const data = await fetchJson(
+      `/api/local-council/v1/persons/${encodeURIComponent(personKey)}`,
+      localCouncilPersonDossierResponseSchema,
+    );
+    return { data, dataSource: "backend" };
+  } catch (error) {
+    const sample = sampleLocalCouncilPersonDossierIndex[personKey];
+    if (isBackendUnavailableError(error) && sample) {
+      return {
+        data: sample,
+        dataSource: "local_sample",
+      };
+    }
+    throw error;
+  }
+}
+
+export function localCouncilResolveQueryOptions(selection: LocalCouncilAddressSelection) {
+  return queryOptions({
+    queryKey: [
+      "local-council",
+      "resolve",
+      selection.city,
+      selection.district,
+      selection.dong ?? "",
+    ],
+    queryFn: () => fetchLocalCouncilResolve(selection),
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
+
+export function localCouncilPersonQueryOptions(personKey: string) {
+  return queryOptions({
+    queryKey: ["local-council", "person", personKey],
+    queryFn: () => fetchLocalCouncilPerson(personKey),
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+}
 
 export async function createLocalElectionChatConversation(
   request: LocalElectionChatConversationCreateRequest,

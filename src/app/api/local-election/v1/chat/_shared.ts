@@ -1,9 +1,17 @@
 import { relayToBackend } from "@/lib/local-election-backend";
 
 export async function proxyToBackend(
-  path: string,
-  init?: RequestInit,
+  requestOrPath: Request | string,
+  pathOrInit?: string | RequestInit,
+  maybeInit?: RequestInit,
 ): Promise<Response> {
+  const path =
+    typeof requestOrPath === "string" ? requestOrPath : (pathOrInit as string);
+  const init =
+    typeof requestOrPath === "string"
+      ? (pathOrInit as RequestInit | undefined)
+      : maybeInit;
+
   return relayToBackend({
     path,
     init,
