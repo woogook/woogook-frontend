@@ -11,6 +11,7 @@ import {
   getBackendConfig,
   getDatabaseConfig,
   getHealthRetryConfig,
+  getIntegrationPlaywrightCommandArgs,
   getIntegrationPlaywrightEnv,
 } from "./local-council-harness.mjs";
 
@@ -373,12 +374,32 @@ async function seedIntegrationFixture(databaseConfig) {
       source_kind: "gangdong_district_head_official_profile",
       role: "official_profile",
       source_title: "강동구청장실",
-      source_url: "https://www.gangdong.go.kr",
+      source_url: "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010",
+      source_links: [
+        {
+          key: "profile",
+          label: "프로필",
+          url: "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010",
+        },
+        {
+          key: "activity",
+          label: "활동",
+          url: "https://www.gangdong.go.kr/web/mayor/mayorCalendar/list",
+        },
+        {
+          key: "manifesto",
+          label: "공약",
+          url: "https://www.gangdong.go.kr/web/mayor/contents/gdo020_130",
+        },
+      ],
     },
     {
       source_kind: "local_finance_365",
       role: "finance_activity",
       source_title: "지방재정365",
+      source_url: "https://www.localfinance.go.kr/finance/gangdong/budget-execution",
+      download_url:
+        "https://www.localfinance.go.kr/finance/gangdong/budget-execution/download.csv",
     },
   ];
 
@@ -387,11 +408,13 @@ async function seedIntegrationFixture(databaseConfig) {
       source_kind: "local_council_portal_members",
       role: "official_profile",
       source_title: "지방의정포털",
+      source_url: "https://clik.nanet.go.kr/potal/search/member/integration-profile",
     },
     {
       source_kind: "gangdong_council_official_activity",
       role: "official_activity",
       source_title: "강동구의회 의안검색",
+      source_url: "https://council.gangdong.go.kr/bills/integration",
     },
     {
       source_kind: "nec_council_elected_basis",
@@ -408,6 +431,16 @@ async function seedIntegrationFixture(databaseConfig) {
     summaryPayload: districtHeadSummaryPayload,
     officialProfilePayload: {
       office_label: "강동구청장",
+      links: [
+        {
+          label: "공식 프로필",
+          url: "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010",
+        },
+        {
+          label: "구청장실",
+          url: "https://www.gangdong.go.kr/web/mayor",
+        },
+      ],
       official_profile_sections: [
         {
           section_title: "소개",
@@ -451,6 +484,12 @@ async function seedIntegrationFixture(databaseConfig) {
     summaryPayload: councilMemberSummaryPayload,
     officialProfilePayload: {
       office_label: "강동구의원",
+      links: [
+        {
+          label: "지방의정포털",
+          url: "https://clik.nanet.go.kr/potal/search/member/integration-profile",
+        },
+      ],
       official_profile_sections: [
         {
           section_title: "프로필",
@@ -791,6 +830,7 @@ async function terminateProcess(child, label) {
 }
 
 async function main() {
+  const forwardedPlaywrightArgs = process.argv.slice(2);
   const backendRoot = resolveBackendRoot();
   const backendConfig = getBackendConfig();
   const databaseConfig = getDatabaseConfig();
@@ -886,8 +926,16 @@ async function main() {
       throw backendProcessFailure;
     }
 
-    log("Playwright integration spec 실행");
-    await runCommand(getNpmCommand(), ["run", "e2e:integration:spec"], {
+    const integrationCommandArgs = getIntegrationPlaywrightCommandArgs(
+      forwardedPlaywrightArgs,
+    );
+
+    log(
+      forwardedPlaywrightArgs.length > 0
+        ? `Playwright integration spec 실행 (${forwardedPlaywrightArgs.join(" ")})`
+        : "Playwright integration spec 실행",
+    );
+    await runCommand(getNpmCommand(), integrationCommandArgs, {
       cwd: process.cwd(),
       env: getIntegrationPlaywrightEnv(createEnv({}), {
         backendConfig,
