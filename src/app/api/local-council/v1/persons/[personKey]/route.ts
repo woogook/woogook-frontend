@@ -1,15 +1,26 @@
 import { proxyLocalCouncilToBackend } from "../../_shared";
+import { observeRoute } from "@/lib/observability/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ personKey: string }> },
 ) {
-  const { personKey } = await context.params;
+  return observeRoute(
+    request,
+    "local-council/v1/persons/[personKey]",
+    async () => {
+      const { personKey } = await context.params;
 
-  return proxyLocalCouncilToBackend(
-    `/api/local-council/v1/persons/${encodeURIComponent(personKey)}`,
+      return proxyLocalCouncilToBackend(
+        request,
+        `/api/local-council/v1/persons/${encodeURIComponent(personKey)}`,
+        {
+          observableRoute: "local-council/v1/persons/[personKey]",
+        },
+      );
+    },
   );
 }

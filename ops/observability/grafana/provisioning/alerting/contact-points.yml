@@ -12,3 +12,13 @@ contactPoints:
           use_discord_username: false
           message: |
             {{ template "default.message" . }}
+  - orgId: 1
+    name: frontend-analyzer
+    receivers:
+      - uid: frontend_analyzer
+        type: webhook
+        disableResolveMessage: true
+        settings:
+          url: $GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL
+          httpMethod: POST
+          maxAlerts: "10"

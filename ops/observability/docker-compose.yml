@@ -49,6 +49,7 @@ services:
       GF_UNIFIED_ALERTING_ENABLED: "true"
       GF_FEATURE_TOGGLES_ENABLE: alertingSimplifiedRouting
       GRAFANA_ALERTS_DISCORD_WEBHOOK_URL: ${GRAFANA_ALERTS_DISCORD_WEBHOOK_URL}
+      GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL: ${GRAFANA_ALERTS_ANALYZER_WEBHOOK_URL}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

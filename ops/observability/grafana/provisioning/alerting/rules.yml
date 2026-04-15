@@ -65,6 +65,7 @@ groups:
           route: /synthetic/browser-error
           component: browser
           team: frontend-observability
+          severity: error
       - uid: frontend_api_5xx_detected
         title: FrontendApi5xxDetected
         condition: B
@@ -124,3 +125,4 @@ groups:
           route: observability/dev/fail
           component: next-api
           team: frontend-observability
+          severity: error
