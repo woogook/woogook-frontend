@@ -291,4 +291,212 @@ describe("POST /api/observability/analyzer", () => {
     });
     expect(sendDiscordMessageMock).toHaveBeenCalledOnce();
   });
+
+  it("isolates per-alert failures during batched analysis and keeps successful siblings", async () => {
+    buildIncidentKeyMock.mockImplementation((alert) =>
+      alert.title === "FrontendApi5xxDetected"
+        ? "incident-key-success"
+        : "incident-key-failure",
+    );
+    fetchRecentIncidentEventsMock.mockImplementation(async ({ alert }) => {
+      if (alert.title === "FrontendApiTimeoutDetected") {
+        throw new Error("Loki analysis_result query failed with status 500");
+      }
+
+      return [
+        {
+          timestamp: "2026-04-15T06:00:00.000Z",
+          level: "error",
+          signalType: "server_error",
+          component: "next-api",
+          route: "observability/dev/fail",
+        },
+      ];
+    });
+
+    const request = {
+      json: vi.fn().mockResolvedValue({
+        title: "[FIRING:2] frontend-observability",
+        status: "firing",
+        commonLabels: {
+          team: "frontend-observability",
+          severity: "error",
+          environment: "local",
+        },
+        alerts: [
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApi5xxDetected",
+              route: "observability/dev/fail",
+              component: "next-api",
+            },
+          },
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApiTimeoutDetected",
+              route: "observability/dev/timeout",
+              component: "next-api",
+            },
+          },
+        ],
+      }),
+    } as unknown as Request;
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      results: [
+        expect.objectContaining({
+          incident_key: "incident-key-success",
+        }),
+        expect.objectContaining({
+          skipped: true,
+          reason: "analysis_failed",
+          incident_key: "incident-key-failure",
+        }),
+      ],
+    });
+    expect(sendDiscordMessageMock).toHaveBeenCalledOnce();
+    expect(logServerEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signalType: "pipeline_event",
+        errorMessage: "Loki analysis_result query failed with status 500",
+        context: expect.objectContaining({
+          incidentKey: "incident-key-failure",
+        }),
+      }),
+    );
+  });
+
+  it("keeps batch isolation even when failure logging also fails", async () => {
+    buildIncidentKeyMock.mockImplementation((alert) =>
+      alert.title === "FrontendApi5xxDetected"
+        ? "incident-key-success"
+        : "incident-key-failure",
+    );
+    fetchRecentIncidentEventsMock.mockImplementation(async ({ alert }) => {
+      if (alert.title === "FrontendApiTimeoutDetected") {
+        throw new Error("Loki analysis_result query failed with status 500");
+      }
+
+      return [
+        {
+          timestamp: "2026-04-15T06:00:00.000Z",
+          level: "error",
+          signalType: "server_error",
+          component: "next-api",
+          route: "observability/dev/fail",
+        },
+      ];
+    });
+    logServerEventMock.mockImplementation(async (event) => {
+      if (event.signalType === "pipeline_event") {
+        throw new Error("local log write failed");
+      }
+
+      return event;
+    });
+
+    const request = {
+      json: vi.fn().mockResolvedValue({
+        title: "[FIRING:2] frontend-observability",
+        status: "firing",
+        commonLabels: {
+          team: "frontend-observability",
+          severity: "error",
+          environment: "local",
+        },
+        alerts: [
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApi5xxDetected",
+              route: "observability/dev/fail",
+              component: "next-api",
+            },
+          },
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApiTimeoutDetected",
+              route: "observability/dev/timeout",
+              component: "next-api",
+            },
+          },
+        ],
+      }),
+    } as unknown as Request;
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      results: [
+        expect.objectContaining({
+          incident_key: "incident-key-success",
+        }),
+        expect.objectContaining({
+          skipped: true,
+          reason: "analysis_failed",
+          incident_key: "incident-key-failure",
+        }),
+      ],
+    });
+    expect(sendDiscordMessageMock).toHaveBeenCalledOnce();
+  });
+
+  it("deduplicates identical incident keys within a Grafana batch", async () => {
+    buildIncidentKeyMock.mockReturnValue("duplicate-incident-key");
+
+    const request = {
+      json: vi.fn().mockResolvedValue({
+        title: "[FIRING:2] frontend-observability",
+        status: "firing",
+        commonLabels: {
+          team: "frontend-observability",
+          severity: "error",
+          environment: "local",
+        },
+        alerts: [
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApi5xxDetected",
+              route: "observability/dev/fail",
+              component: "next-api",
+            },
+          },
+          {
+            status: "firing",
+            labels: {
+              alertname: "FrontendApi5xxDetectedReplica",
+              route: "observability/dev/fail",
+              component: "next-api",
+            },
+          },
+        ],
+      }),
+    } as unknown as Request;
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      results: [
+        expect.objectContaining({
+          incident_key: "duplicate-incident-key",
+        }),
+        expect.objectContaining({
+          skipped: true,
+          reason: "duplicate_in_batch",
+          incident_key: "duplicate-incident-key",
+        }),
+      ],
+    });
+    expect(fetchRecentIncidentEventsMock).toHaveBeenCalledOnce();
+    expect(sendDiscordMessageMock).toHaveBeenCalledOnce();
+  });
 });

@@ -28,10 +28,16 @@ function getActionableEvents(recentEvents: Awaited<ReturnType<typeof fetchRecent
   return filtered.length > 0 ? filtered : recentEvents;
 }
 
+type AnalyzerSkipReason =
+  | "filtered"
+  | "cooldown"
+  | "duplicate_in_batch"
+  | "analysis_failed";
+
 type AnalyzerResult =
   | {
       skipped: true;
-      reason: "filtered" | "cooldown";
+      reason: AnalyzerSkipReason;
       correlation_id: string;
       incident_key?: string;
       last_analyzed_at?: string;
@@ -43,6 +49,8 @@ type AnalyzerResult =
       correlation_id: string;
     };
 
+type AnalyzerResponse = { status: 200 | 202; body: AnalyzerResult };
+
 type AnalyzerContext = {
   config: ObservabilityConfig;
   requestId: string;
@@ -50,42 +58,102 @@ type AnalyzerContext = {
   routeName: string;
 };
 
+function isSkippedResult(result: AnalyzerResult): result is Extract<AnalyzerResult, { skipped: true }> {
+  return "skipped" in result;
+}
+
+function buildSkippedResult({
+  reason,
+  context,
+  incidentKey,
+  lastAnalyzedAt,
+}: {
+  reason: AnalyzerSkipReason;
+  context: AnalyzerContext;
+  incidentKey?: string;
+  lastAnalyzedAt?: string;
+}): AnalyzerResponse {
+  return {
+    status: 202,
+    body: {
+      skipped: true,
+      reason,
+      incident_key: incidentKey,
+      last_analyzed_at: lastAnalyzedAt,
+      correlation_id: context.correlationId,
+    } satisfies AnalyzerResult,
+  };
+}
+
+async function logAnalyzerFailure(params: {
+  alert: GrafanaAlertPayload;
+  context: AnalyzerContext;
+  incidentKey: string;
+  error: unknown;
+}) {
+  const { alert, context, incidentKey, error } = params;
+  try {
+    await logServerEvent({
+      config: context.config,
+      channel: "analyzer",
+      level: "error",
+      signalType: "pipeline_event",
+      component: "llm-analyzer",
+      route: context.routeName,
+      requestId: context.requestId,
+      correlationId: context.correlationId,
+      errorName: error instanceof Error ? error.name : "AnalyzerBatchError",
+      errorMessage:
+        error instanceof Error
+          ? error.message
+          : "Unexpected batched analyzer failure",
+      context: {
+        incidentKey,
+        alertTitle: alert.title,
+        route: alert.labels.route,
+        component: alert.labels.component,
+      },
+    });
+  } catch (loggingError) {
+    console.error(
+      "[observability/analyzer] failed to log isolated batch failure",
+      loggingError,
+    );
+  }
+}
+
 async function analyzeAlert({
   alert,
   context,
+  incidentKey,
+  skipPolicyCheck = false,
 }: {
   alert: GrafanaAlertPayload;
   context: AnalyzerContext;
-}): Promise<{ status: 200 | 202; body: AnalyzerResult }> {
+  incidentKey?: string;
+  skipPolicyCheck?: boolean;
+}): Promise<AnalyzerResponse> {
   const config = context.config;
-  if (!shouldAnalyzeAlert(alert)) {
-    return {
-      status: 202,
-      body: {
-        skipped: true,
-        reason: "filtered",
-        correlation_id: context.correlationId,
-      } satisfies AnalyzerResult,
-    };
+  if (!skipPolicyCheck && !shouldAnalyzeAlert(alert)) {
+    return buildSkippedResult({
+      reason: "filtered",
+      context,
+    });
   }
 
-  const incidentKey = buildIncidentKey(alert);
+  const resolvedIncidentKey = incidentKey ?? buildIncidentKey(alert);
   const cooldown = await findRecentIncidentCooldown({
     config,
-    incidentKey,
+    incidentKey: resolvedIncidentKey,
   });
 
   if (cooldown.skip) {
-    return {
-      status: 202,
-      body: {
-        skipped: true,
-        reason: "cooldown",
-        incident_key: incidentKey,
-        last_analyzed_at: cooldown.lastAnalyzedAt,
-        correlation_id: context.correlationId,
-      } satisfies AnalyzerResult,
-    };
+    return buildSkippedResult({
+      reason: "cooldown",
+      context,
+      incidentKey: resolvedIncidentKey,
+      lastAnalyzedAt: cooldown.lastAnalyzedAt,
+    });
   }
 
   const recentEvents = await fetchRecentIncidentEvents({
@@ -118,7 +186,7 @@ async function analyzeAlert({
       errorMessage:
         error instanceof Error ? error.message : "LLM provider invocation failed",
       context: {
-        incidentKey,
+        incidentKey: resolvedIncidentKey,
         llmMode: config.llmMode ?? "direct",
         llmProvider: config.llmProvider ?? "upstage",
       },
@@ -128,7 +196,7 @@ async function analyzeAlert({
   try {
     const formatted = formatDiscordIncidentMessage({
       alert,
-      incidentKey,
+      incidentKey: resolvedIncidentKey,
       recentEventCount: actionableEvents.length,
       summary,
     });
@@ -151,7 +219,7 @@ async function analyzeAlert({
       errorMessage:
         error instanceof Error ? error.message : "Discord webhook notification failed",
       context: {
-        incidentKey,
+        incidentKey: resolvedIncidentKey,
         alert,
         summary,
         recentEventCount: actionableEvents.length,
@@ -169,7 +237,7 @@ async function analyzeAlert({
     requestId: context.requestId,
     correlationId: context.correlationId,
     context: {
-      incidentKey,
+      incidentKey: resolvedIncidentKey,
       alertTitle: alert.title,
       summary,
       recentEventCount: actionableEvents.length,
@@ -183,24 +251,91 @@ async function analyzeAlert({
     body: {
       summary,
       recent_event_count: actionableEvents.length,
-      incident_key: incidentKey,
+      incident_key: resolvedIncidentKey,
       correlation_id: context.correlationId,
     } satisfies AnalyzerResult,
   };
 }
 
+async function analyzeAlertSafely(params: {
+  alert: GrafanaAlertPayload;
+  context: AnalyzerContext;
+  incidentKey: string;
+}) {
+  try {
+    return await analyzeAlert({
+      ...params,
+      skipPolicyCheck: true,
+    });
+  } catch (error) {
+    await logAnalyzerFailure({
+      ...params,
+      error,
+    });
+
+    return buildSkippedResult({
+      reason: "analysis_failed",
+      context: params.context,
+      incidentKey: params.incidentKey,
+    });
+  }
+}
+
+async function analyzeAlertBatch(params: {
+  alerts: GrafanaAlertPayload[];
+  context: AnalyzerContext;
+}) {
+  const incidentTasks = new Map<string, Promise<AnalyzerResponse>>();
+
+  return Promise.all(
+    params.alerts.map(async (alert) => {
+      if (!shouldAnalyzeAlert(alert)) {
+        return buildSkippedResult({
+          reason: "filtered",
+          context: params.context,
+        });
+      }
+
+      const incidentKey = buildIncidentKey(alert);
+      const existingTask = incidentTasks.get(incidentKey);
+      if (existingTask) {
+        const existingResult = await existingTask;
+        if (
+          isSkippedResult(existingResult.body) &&
+          existingResult.body.reason === "analysis_failed"
+        ) {
+          return existingResult;
+        }
+
+        return buildSkippedResult({
+          reason: "duplicate_in_batch",
+          context: params.context,
+          incidentKey,
+        });
+      }
+
+      const task = analyzeAlertSafely({
+        alert,
+        context: params.context,
+        incidentKey,
+      });
+      incidentTasks.set(incidentKey, task);
+      return task;
+    }),
+  );
+}
+
 export async function POST(request: Request) {
   return observeRoute(request, "observability/analyzer", async (context) => {
     const alerts = parseGrafanaAlertPayloads(await request.json()) as GrafanaAlertPayload[];
-    const results = await Promise.all(
-      alerts.map((alert) => analyzeAlert({ alert, context })),
-    );
 
-    if (results.length === 1) {
-      const [result] = results;
+    if (alerts.length === 1) {
+      const [alert] = alerts;
+      const result = alert ? await analyzeAlert({ alert, context }) : undefined;
       return NextResponse.json(result?.body, { status: result?.status });
     }
 
+    const results = await analyzeAlertBatch({ alerts, context });
     const hasProcessed = results.some((result) => result.status === 200);
     return NextResponse.json(
       {
