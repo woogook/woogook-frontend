@@ -9,7 +9,7 @@ import {
 } from "@/lib/observability/analyzer";
 
 describe("buildIncidentSummary", () => {
-  it("builds a readable summary from alert labels and recent events", () => {
+  it("builds a concise note-style summary from alert labels and recent events", () => {
     const summary = buildIncidentSummary(
       {
         title: "production next-api error spike",
@@ -39,7 +39,13 @@ describe("buildIncidentSummary", () => {
     );
 
     expect(summary.headline).toContain("production");
-    expect(summary.rootCauseCandidates[0]).toContain("DatabaseUnavailableError");
+    expect(summary.headline).toContain("incident");
+    expect(summary.impactSummary).toContain("오류 감지됨");
+    expect(summary.rootCauseCandidates[0]).toContain("가능성 있음");
+    expect(summary.rootCauseCandidates[1]).toContain("영향 가능성 있음");
+    expect(summary.rootCauseCandidates[1]).not.toContain("합니다");
+    expect(summary.nextActions[0]).toContain("correlation id 확인");
+    expect(summary.nextActions[0]).not.toContain("합니다");
     expect(summary.nextActions).toHaveLength(3);
   });
 

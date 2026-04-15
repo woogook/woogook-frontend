@@ -65,7 +65,7 @@ export async function invokeUpstageIncidentSummary({
           {
             role: "system",
             content:
-              "You are an incident analysis assistant. Return JSON only with headline, impactSummary, rootCauseCandidates, nextActions, confidence.",
+              "You are an incident analysis assistant. Prefer Korean, but mix in English technical terms naturally when they are more precise or conventional. Do not force parenthetical bilingual pairs. Avoid repetitive polite endings and prefer concise note-style phrasing. Wrap important technical terms in backticks. Return JSON only with headline, impactSummary, rootCauseCandidates, nextActions, confidence.",
           },
           {
             role: "user",

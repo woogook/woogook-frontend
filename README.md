@@ -62,6 +62,7 @@ local observability stack:
 로컬 개발에서는 기본적으로 full-fidelity 파일 로그만 남기고, `WOOGOOK_OBSERVABILITY_LOCAL_MIRROR_TO_CLOUD=true`일 때만 cloud 전송을 시도한다.
 `WOOGOOK_OBSERVABILITY_LOKI_QUERY_URL`을 비우면 `.../loki/api/v1/push`에서 `.../loki/api/v1/query_range`를 자동 유도한다.
 `WOOGOOK_OBSERVABILITY_LLM_MODE=direct`이면 analyzer가 저장소 내부에서 provider API를 직접 호출하고, `relay`이면 기존 webhook 경로를 사용한다.
+실제 로컬 실행 기준 env file은 root `/.env` 하나만 사용하고, `.env.local`은 남기지 않는다.
 
 ### 로컬 Grafana 스택
 

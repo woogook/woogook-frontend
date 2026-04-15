@@ -37,9 +37,14 @@ describe("invokeUpstageIncidentSummary", () => {
     const requestBody = JSON.parse(
       String(fetchSpy.mock.calls[0]?.[1]?.body ?? "{}"),
     ) as {
+      messages?: Array<{ role?: string; content?: string }>;
       response_format?: { type?: string };
     };
     expect(requestBody.response_format).toEqual({ type: "json_object" });
+    expect(requestBody.messages?.[0]?.content).toContain("Prefer Korean");
+    expect(requestBody.messages?.[0]?.content).toContain("Do not force parenthetical bilingual pairs");
+    expect(requestBody.messages?.[0]?.content).toContain("Avoid repetitive polite endings");
+    expect(requestBody.messages?.[0]?.content).toContain("Wrap important technical terms in backticks");
     expect(summary.headline).toContain("incident");
     expect(summary.confidence).toBe("high");
 

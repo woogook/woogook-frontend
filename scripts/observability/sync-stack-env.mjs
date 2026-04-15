@@ -25,6 +25,13 @@ export function resolveSourceEnvPath({
   cwd = DEFAULT_CWD,
   existsSync = fs.existsSync,
 } = {}) {
+  const localEnvPath = path.join(cwd, ".env.local");
+  if (existsSync(localEnvPath)) {
+    throw new Error(
+      "root .env.local is no longer supported. Move its values into root .env and remove .env.local.",
+    );
+  }
+
   const envPath = path.join(cwd, ".env");
   if (existsSync(envPath)) {
     return envPath;
