@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z, type ZodType } from "zod";
 
-import { CITIES, DISTRICTS, DONGS } from "@/app/data";
 import sampleLocalCouncilGangdongResolve from "@/data/samples/sample_local_council_gangdong_resolve.json";
 import sampleLocalCouncilGangdongPersonDossiers from "@/data/samples/sample_local_council_gangdong_person_dossiers.json";
 import {
@@ -150,7 +149,6 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
   input: string,
   schema: ZodType<T>,
   key: K,
-  fallback: string[],
   fallbackMessage: string,
 ) {
   try {
@@ -167,7 +165,7 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
     }
     console.warn("[regions] 기본 목록으로 대체합니다.", error);
     return {
-      items: [...fallback],
+      items: [],
       fallbackMessage: error instanceof Error ? error.message : fallbackMessage,
     } satisfies RegionQueryResult;
   }
@@ -180,8 +178,7 @@ export const citiesQueryOptions = queryOptions({
       "/api/regions/cities",
       citiesResponseSchema,
       "cities",
-      [...CITIES],
-      "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
+      "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
     ),
   staleTime: 24 * 60 * 60 * 1000,
 });
@@ -196,8 +193,7 @@ export function sigunguQueryOptions(city: string) {
           `/api/regions/sigungu?city=${encodeURIComponent(parsed.city)}`,
           sigunguResponseSchema,
           "sigungu",
-          DISTRICTS[parsed.city] || [],
-          "구/군 목록을 불러오지 못해 기본 목록을 사용합니다.",
+          "구/군 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
         )
       );
     },
@@ -215,8 +211,7 @@ export function emdQueryOptions(city: string, sigungu: string) {
           `/api/regions/emd?city=${encodeURIComponent(parsed.city)}&sigungu=${encodeURIComponent(parsed.sigungu)}`,
           emdResponseSchema,
           "emd",
-          DONGS[parsed.sigungu] || [],
-          "동 목록을 불러오지 못해 기본 목록을 사용합니다.",
+          "읍/면/동 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
         )
       );
     },

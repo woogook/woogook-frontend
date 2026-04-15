@@ -32,7 +32,7 @@ function CandidatePhoto({
   alt,
   size,
 }: {
-  src: string;
+  src: string | null | undefined;
   alt: string;
   size: "sm" | "lg";
 }) {
