@@ -12,6 +12,7 @@ import {
   buildLocalCouncilOverlayViewModel,
   getLocalCouncilDataGapFlagLabel,
   getLocalCouncilDataSourceLabel,
+  getLocalCouncilDownloadActionLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeExplanation,
@@ -392,7 +393,7 @@ function ExpandableRecordList({
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
-                            {item.actions.downloadLabel ?? "원문 다운로드"}
+                            {getLocalCouncilDownloadActionLabel(item.actions.downloadLabel)}
                           </a>
                         ) : null}
                       </div>

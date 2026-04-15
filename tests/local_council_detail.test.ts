@@ -25,6 +25,7 @@ import {
   getLocalCouncilBillStageLabel,
   getLocalCouncilContentGroundingStatusLabel,
   getLocalCouncilDataGapFlagLabel,
+  getLocalCouncilDownloadActionLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
   getLocalCouncilOrdinanceStatusLabel,
@@ -585,6 +586,7 @@ test("local council activity grounding helpers translate labels conservatively",
     ),
     "구청장 개인 회의 활동 linkage는 아직 수집/검토 전입니다.",
   );
+  assert.equal(getLocalCouncilDownloadActionLabel(null), "원문 다운로드");
 });
 
 test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloads", () => {
@@ -792,6 +794,32 @@ test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative"
   );
   assert.equal(card.actions.viewLabel, "회의록 위치 확인");
   assert.equal(card.actions.viewUrl, "https://example.com/minutes");
+});
+
+test("buildMeetingActivityCardViewModel falls back to section source when locator url is missing", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_type: "district_question",
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.invalid/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-minutes",
+      },
+    ],
+  });
+
+  assert.equal(card.actions.viewUrl, "https://example.com/fallback-minutes");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-minutes");
 });
 
 test("buildSectionCardViewModel resolves a source label from the matched section source", () => {

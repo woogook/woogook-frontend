@@ -202,6 +202,14 @@ export function getLocalCouncilDataGapFlagLabel(flag: string) {
   return labels[flag] || flag;
 }
 
+export function getLocalCouncilDownloadActionLabel(label: string | null | undefined) {
+  if (typeof label === "string" && label.trim()) {
+    return label.trim();
+  }
+
+  return "원문 다운로드";
+}
+
 export function getLocalCouncilFreshnessLabel(freshness: Record<string, unknown>) {
   const timestamp = freshness.basis_timestamp;
   if (typeof timestamp !== "string" || !timestamp.trim()) {

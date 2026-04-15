@@ -2,6 +2,7 @@ import {
   getLocalCouncilActivityTypeLabel,
   getLocalCouncilBillStageLabel,
   getLocalCouncilContentGroundingStatusLabel,
+  getLocalCouncilDownloadActionLabel,
   getLocalCouncilOrdinanceStatusLabel,
   getLocalCouncilParticipationTypeLabel,
   getLocalCouncilRecordGroundingLevelLabel,
@@ -744,10 +745,9 @@ export function buildBillActivityCardViewModel(args: {
       viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
       viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
       downloadUrl: fallbackActions.downloadUrl,
-      downloadLabel:
-        fallbackActions.downloadUrl && fallbackActions.downloadLabel === null
-          ? "파일 다운로드"
-          : fallbackActions.downloadLabel,
+      downloadLabel: fallbackActions.downloadUrl
+        ? getLocalCouncilDownloadActionLabel(fallbackActions.downloadLabel)
+        : fallbackActions.downloadLabel,
     },
     sourceLabel: resolveSectionSourceLabel({
       item: args.item,
@@ -766,6 +766,12 @@ export function buildMeetingActivityCardViewModel(args: {
 }): SectionCardViewModel {
   const locator = asRecord(args.item.official_record_locator);
   const locatorAction = getLocatorAction(locator);
+  const fallbackActions = resolveSectionActionLink({
+    item: args.item,
+    sectionSourceRefs: args.sectionSourceRefs,
+    preferredSourceKinds: [],
+    preferredSourceRoles: ["official_activity"],
+  });
   const sourcePayload = resolveSectionSourcePayload({
     item: args.item,
     sectionSourceRefs: args.sectionSourceRefs,
@@ -810,8 +816,8 @@ export function buildMeetingActivityCardViewModel(args: {
       { label: "회의명", keys: ["meeting_name"] },
     ]),
     actions: {
-      viewUrl: locatorAction.viewUrl,
-      viewLabel: locatorAction.viewLabel,
+      viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
+      viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
       downloadUrl: null,
       downloadLabel: null,
     },
@@ -821,7 +827,7 @@ export function buildMeetingActivityCardViewModel(args: {
       preferredSourceKinds: [],
       preferredSourceRoles: ["official_activity"],
     }),
-    sourceUrl: locatorAction.viewUrl,
+    sourceUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
     sourceLinks: sourcePayload.sourceLinks,
   };
 }
