@@ -69,14 +69,17 @@ function findRecentIncidentCooldownFromEvents(params: {
   return { skip: false as const, lastAnalyzedAt: latest.timestamp };
 }
 
-function buildRecentAnalysisResultsQuery(config: ObservabilityConfig) {
+function buildRecentAnalysisResultsQuery(
+  config: ObservabilityConfig,
+  incidentKey: string,
+) {
   const streamFilters = ['service="woogook-frontend"'];
 
   if (config.environment) {
     streamFilters.push(`environment=${JSON.stringify(config.environment)}`);
   }
 
-  return `{${streamFilters.join(",")}} | json | component="llm-analyzer" | signalType="analysis_result"`;
+  return `{${streamFilters.join(",")}} | json | component="llm-analyzer" | signalType="analysis_result" | context_incidentKey=${JSON.stringify(incidentKey)}`;
 }
 
 function getRecentAnalysisLookbackMs(params: {
@@ -91,11 +94,12 @@ function getRecentAnalysisLookbackMs(params: {
 
 async function readRecentAnalysisEventsFromLoki(params: {
   config: ObservabilityConfig;
+  incidentKey: string;
   cooldownSeconds: number;
   maxEvents: number;
   now: Date;
 }) {
-  const { config, cooldownSeconds, maxEvents, now } = params;
+  const { config, incidentKey, cooldownSeconds, maxEvents, now } = params;
   if (!config.lokiQueryUrl) {
     return [];
   }
@@ -108,7 +112,7 @@ async function readRecentAnalysisEventsFromLoki(params: {
         cooldownSeconds,
       }),
   );
-  url.searchParams.set("query", buildRecentAnalysisResultsQuery(config));
+  url.searchParams.set("query", buildRecentAnalysisResultsQuery(config, incidentKey));
   url.searchParams.set("limit", String(maxEvents));
   url.searchParams.set("direction", "backward");
   url.searchParams.set("start", `${start.getTime() * 1_000_000}`);
@@ -157,6 +161,7 @@ export async function findRecentIncidentCooldown({
     if (events.length === 0 && config.lokiQueryUrl) {
       events = await readRecentAnalysisEventsFromLoki({
         config,
+        incidentKey,
         cooldownSeconds: effectiveCooldownSeconds,
         maxEvents: 200,
         now,

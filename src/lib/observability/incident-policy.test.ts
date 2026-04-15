@@ -211,4 +211,47 @@ describe("findRecentIncidentCooldown", () => {
 
     fetchSpy.mockRestore();
   });
+
+  it("filters Loki cooldown lookup by incident key before applying the query limit", async () => {
+    const incidentKey =
+      "FrontendApi5xxDetected|/api/assembly/v1/members|next-api|production";
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: {
+              result: [],
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await findRecentIncidentCooldown({
+      config: {
+        environment: "production",
+        release: "release-1",
+        localRootDir: "/tmp/non-existent-observability-dir",
+        writeLocalFiles: false,
+        rotateBytes: 1024,
+        retentionDays: 14,
+        mirrorToCloudInLocal: false,
+        lokiQueryUrl: "https://logs-prod.grafana.net/loki/api/v1/query_range",
+        outboundTimeoutMs: 5_000,
+        analyzerLookbackMinutes: 10,
+        llmCooldownSeconds: 900,
+      },
+      incidentKey,
+      now: new Date("2026-04-15T06:00:00.000Z"),
+    });
+
+    const requestUrl = fetchSpy.mock.calls[0]?.[0];
+    expect(requestUrl).toBeInstanceOf(URL);
+    expect((requestUrl as URL).searchParams.get("query")).toContain(
+      `| context_incidentKey=${JSON.stringify(incidentKey)}`,
+    );
+
+    fetchSpy.mockRestore();
+  });
 });
