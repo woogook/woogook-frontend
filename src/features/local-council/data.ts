@@ -122,6 +122,63 @@ export function getLocalCouncilSourceLabel(sourceKind: string) {
   return labels[sourceKind] || sourceKind;
 }
 
+export function getLocalCouncilParticipationTypeLabel(participationType: string) {
+  const labels: Record<string, string> = {
+    primary_sponsor: "대표발의",
+    co_sponsor: "공동발의",
+    submitted_by_district_head: "구청장 제출",
+    listed_activity: "의안 참여 기록",
+  };
+  return labels[participationType] || participationType;
+}
+
+export function getLocalCouncilRecordGroundingLevelLabel(level: string) {
+  const labels: Record<string, string> = {
+    record_listed: "공식 기록 목록 확인",
+    record_located: "공식 기록 위치 확인",
+  };
+  return labels[level] || level;
+}
+
+export function getLocalCouncilContentGroundingStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    not_eligible: "내용 검토 대상 아님",
+    queued: "내용 검토 대기",
+    supported: "내용 검토 완료",
+    mention_only: "직접 활동 확인 전",
+    unclear: "판단 유보",
+    human_review_required: "사람 검토 필요",
+    unavailable: "내용 검토 전",
+  };
+  return labels[status] || status;
+}
+
+export function getLocalCouncilActivityTypeLabel(activityType: string) {
+  const labels: Record<string, string> = {
+    plenary: "본회의",
+    standing_committee: "상임위 회의",
+    special_committee: "특위 회의",
+    district_question: "구정질문",
+    five_minute_speech: "5분자유발언",
+    administrative_audit: "행정사무감사",
+    budget_review: "예산심사",
+    general_meeting: "회의 활동",
+  };
+  return labels[activityType] || activityType;
+}
+
+export function getLocalCouncilDataGapFlagLabel(flag: string) {
+  const labels: Record<string, string> = {
+    "uncollected:district_head_minutes_person_linkage":
+      "구청장 개인 회의 활동 linkage는 아직 수집/검토 전입니다.",
+    "uncollected:meeting_content_grounding":
+      "회의 내용 grounding은 아직 수행되지 않았습니다.",
+    "uncollected:bill_detail_summary":
+      "의안 상세 원문 기반 요약은 아직 준비되지 않았습니다.",
+  };
+  return labels[flag] || flag;
+}
+
 export function getLocalCouncilFreshnessLabel(freshness: Record<string, unknown>) {
   const timestamp = freshness.basis_timestamp;
   if (typeof timestamp !== "string" || !timestamp.trim()) {

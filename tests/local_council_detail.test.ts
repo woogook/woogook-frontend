@@ -19,8 +19,13 @@ import {
   buildLocalCouncilSourceContractSummaryViewModel,
   buildLocalCouncilOverlayViewModel,
   buildLocalCouncilDiagnosticsViewModel,
+  getLocalCouncilActivityTypeLabel,
+  getLocalCouncilContentGroundingStatusLabel,
+  getLocalCouncilDataGapFlagLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
+  getLocalCouncilParticipationTypeLabel,
+  getLocalCouncilRecordGroundingLevelLabel,
   getLocalCouncilSummaryBasisLabels,
   getLocalCouncilSummaryEvidenceDigest,
 } from "../src/features/local-council/data";
@@ -538,6 +543,26 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
   assert.equal(
     getLocalCouncilOfficeExplanation("basic_head"),
     "구청장은 구 행정을 총괄하는 단체장입니다.",
+  );
+});
+
+test("local council activity grounding helpers translate labels conservatively", () => {
+  assert.equal(getLocalCouncilParticipationTypeLabel("primary_sponsor"), "대표발의");
+  assert.equal(getLocalCouncilParticipationTypeLabel("listed_activity"), "의안 참여 기록");
+  assert.equal(
+    getLocalCouncilRecordGroundingLevelLabel("record_located"),
+    "공식 기록 위치 확인",
+  );
+  assert.equal(
+    getLocalCouncilContentGroundingStatusLabel("unavailable"),
+    "내용 검토 전",
+  );
+  assert.equal(getLocalCouncilActivityTypeLabel("district_question"), "구정질문");
+  assert.equal(
+    getLocalCouncilDataGapFlagLabel(
+      "uncollected:district_head_minutes_person_linkage",
+    ),
+    "구청장 개인 회의 활동 linkage는 아직 수집/검토 전입니다.",
   );
 });
 
