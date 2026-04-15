@@ -93,6 +93,16 @@ export function getIntegrationPlaywrightEnv(
   };
 }
 
+export function getIntegrationPlaywrightCommandArgs(forwardedArgs = []) {
+  const npmArgs = ["run", "e2e:integration:spec"];
+
+  if (forwardedArgs.length > 0) {
+    npmArgs.push("--", ...forwardedArgs);
+  }
+
+  return npmArgs;
+}
+
 export async function assertPortAvailable({ host, port, label }) {
   await new Promise((resolve, reject) => {
     const server = createServer();

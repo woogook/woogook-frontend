@@ -47,9 +47,9 @@ npm run e2e:integration
 ### 3.2 성공 기준
 
 - `npm run e2e:smoke`
-  - `2 passed`가 보이면 정상이다.
+  - `4 passed`가 보이면 정상이다.
 - `npm run e2e:integration`
-  - `1 passed`가 보이면 정상이다.
+  - `2 passed`가 보이면 정상이다.
   - 실행 중 backend를 자동으로 띄웠다면 마지막에 backend 종료 로그가 보인다.
 
 ## 4. 사전 준비
@@ -103,10 +103,16 @@ export PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO=/abs/path/to/woogook-backend
   - backend 없이도 브라우저 주요 동선이 깨지지 않았는지 빠르게 확인한다.
 - 검증 범위
   - `/local-council` 진입
+  - 상단 global navigation(global navigation) 링크 확인
   - sample button 클릭
   - roster 표시
-  - detail 진입
+  - 구청장 detail(상세) 진입
+  - 구의원 detail(상세) 진입
+  - 근거 요약 / 발행·진단 / 설명 가능한 진단 / 당선 근거 패널 확인
+  - sparse branch(빈 섹션 분기) 표시 확인
+  - explicit back button(명시적 뒤로가기 버튼) 확인
   - browser back navigation(브라우저 뒤로가기) 확인
+  - external/source link(외부·출처 링크) wiring 확인
   - accessible label(접근 가능한 label) 기반 locator 확인
 - 실행 명령
 
@@ -122,7 +128,10 @@ npm run e2e:smoke
   - `지역 select`가 Postgres 기반 API로 채워지는지 확인
   - `local-council resolve API`가 backend proxy를 통해 응답하는지 확인
   - `공식 근거 데이터` 배지가 보이는지 확인
-  - roster와 person detail이 backend fixture 기준으로 렌더링되는지 확인
+  - 구청장과 구의원 roster/detail이 backend fixture 기준으로 렌더링되는지 확인
+  - explicit back button(명시적 뒤로가기 버튼) 확인
+  - summary/elected basis panel(요약/당선 근거 패널)과 source badge(출처 배지) 렌더링 확인
+  - deterministic source action(결정론적 출처 액션) 링크가 올바른 `href`로 렌더링되는지 확인
 - 실행 명령
 
 ```bash
@@ -226,6 +235,31 @@ npm run build
 - 즉
   - CLI는 조사 도구
   - spec은 회귀 방지 장치
+
+### 8.3 사람이 브라우저를 보면서 실행하고 싶을 때
+
+- integration harness는 Playwright CLI arg(명령행 인자)를 내부 spec 실행으로 전달한다.
+- 즉, 아래처럼 실행하면 backend/Postgres bootstrap은 그대로 자동 수행하고, 브라우저 실행 방식만 바꿀 수 있다.
+
+```bash
+npm run e2e:integration -- --headed
+```
+
+- 자주 쓰는 alias(별칭)도 제공한다.
+
+```bash
+npm run e2e:integration:headed
+npm run e2e:integration:debug
+```
+
+- 용도 구분
+  - `--headed`
+    - 사람이 실제 브라우저 창을 보면서 자동 테스트가 진행되는 모습을 확인할 때 적합하다.
+  - `--debug`
+    - Playwright Inspector(inspector)와 함께 한 단계씩 멈춰 보며 조사할 때 적합하다.
+  - `PWDEBUG=1`
+    - 환경 변수 기반 디버깅 방식이다.
+    - 기존 Playwright 습관에 익숙한 사람이 선호할 수 있다.
 
 ## 9. 디버깅 가이드
 

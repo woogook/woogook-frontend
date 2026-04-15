@@ -7,6 +7,7 @@ import {
   assertPortAvailable,
   getIntegrationPlaywrightEnv,
   getDatabaseConfig,
+  getIntegrationPlaywrightCommandArgs,
 } from "./local-council-harness.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -197,5 +198,31 @@ describe("local-council integration Playwright env", () => {
       PGPASSWORD: "woogook",
       SOME_OTHER_ENV: "keep-me",
     });
+  });
+});
+
+describe("local-council integration Playwright command args", () => {
+  it("forwarded CLI arg가 없으면 raw integration spec만 실행한다", () => {
+    expect(getIntegrationPlaywrightCommandArgs()).toEqual([
+      "run",
+      "e2e:integration:spec",
+    ]);
+  });
+
+  it("forwarded CLI arg가 있으면 npm run 뒤에 -- 와 함께 그대로 전달한다", () => {
+    expect(
+      getIntegrationPlaywrightCommandArgs([
+        "--headed",
+        "--grep",
+        "강동구",
+      ]),
+    ).toEqual([
+      "run",
+      "e2e:integration:spec",
+      "--",
+      "--headed",
+      "--grep",
+      "강동구",
+    ]);
   });
 });
