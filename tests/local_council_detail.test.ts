@@ -9,11 +9,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import dossiers from "../src/data/samples/sample_local_council_gangdong_person_dossiers.json";
 import type { LocalCouncilPersonDossierResponse } from "../src/lib/schemas";
 import {
+  buildBillActivityCardViewModel,
   buildPersonHeroMeta,
   resolveSectionActionLink,
   buildSectionDetailRows,
   buildSectionCardViewModel,
   buildExpandableSectionContentId,
+  buildMeetingActivityCardViewModel,
 } from "../src/features/local-council/detail";
 import {
   buildLocalCouncilSourceContractSummaryViewModel,
@@ -212,7 +214,9 @@ test("resolveSectionActionLink prefers preferred source kinds in list order", ()
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/primary-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/primary-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -240,7 +244,9 @@ test("resolveSectionActionLink prefers direct item URLs over nested source_ref a
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/direct-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/direct-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -264,7 +270,9 @@ test("resolveSectionActionLink falls back to section refs when item URLs are mis
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/fallback-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/fallback-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -289,7 +297,9 @@ test("resolveSectionActionLink falls back by preferred section role when source 
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/mapo-activity",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -318,7 +328,9 @@ test("resolveSectionActionLink matches item source_kind before generic preferred
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/songpa-activity",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -347,7 +359,9 @@ test("resolveSectionActionLink matches item role before generic preferred kind f
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/finance-archive",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -683,6 +697,83 @@ test("buildSectionCardViewModel adds symmetric actions for bills, meetings, and 
 
   assert.equal(bill.actions.viewUrl, "https://example.com/bills");
   assert.equal(finance.actions.viewUrl, "https://example.com/finance");
+});
+
+test("buildBillActivityCardViewModel prefers official record locators over generic source refs", () => {
+  const card = buildBillActivityCardViewModel({
+    item: {
+      bill_title: "서울특별시 강동구 청년 지원 조례안",
+      participation_type: "primary_sponsor",
+      bill_stage: "approved",
+      ordinance_status: "approved_not_confirmed",
+      result_label: "원안가결",
+      bill_summary: {
+        status: "title_only",
+        summary_line: "강동구 청년 지원에 관한 조례를 정하는 의안이다.",
+      },
+      official_record_locator: {
+        kind: "bill_detail",
+        source_url: "https://example.com/bills/0463",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-bills",
+      },
+    ],
+  });
+
+  assert.deepEqual(card.badges?.map((badge) => badge.label), [
+    "대표발의",
+    "원안가결",
+  ]);
+  assert.equal(card.summaryLine, "강동구 청년 지원에 관한 조례를 정하는 의안이다.");
+  assert.equal(card.actions.viewLabel, "의안 상세 열기");
+  assert.equal(card.actions.viewUrl, "https://example.com/bills/0463");
+});
+
+test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_label: "구정질문",
+      record_grounding_level: "record_located",
+      content_grounding: {
+        status: "unavailable",
+      },
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.com/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-minutes",
+      },
+    ],
+  });
+
+  assert.equal(card.headline, "제322회 임시회 · 구정질문");
+  assert.deepEqual(card.badges?.map((badge) => badge.label), [
+    "공식 기록 위치 확인",
+    "내용 검토 전",
+  ]);
+  assert.equal(
+    card.summaryLine,
+    "공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음",
+  );
+  assert.equal(card.actions.viewLabel, "회의록 위치 확인");
+  assert.equal(card.actions.viewUrl, "https://example.com/minutes");
 });
 
 test("buildSectionCardViewModel resolves a source label from the matched section source", () => {
