@@ -1,8 +1,5 @@
 import seoulData from "@/data/samples/sample_ballot_response_resolved_seoul.json";
 import jejuData from "@/data/samples/sample_ballot_response_partially_ambiguous_jeju.json";
-import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
-import type { CandidateRecordWithPromiseOverlay } from "@/app/api/ballots/promise-overlay";
-import type { CandidateRecordWithNewsOverlay } from "@/app/api/ballots/news-overlay";
 import type {
   BallotItem,
   BallotResponse,
@@ -11,7 +8,6 @@ import type {
   CandidateIssueMatch,
   CandidateRecord,
   DataPhase,
-  ElectionMeta,
   EvidenceStatus,
   IssueKey,
   IssueMatchLevel,
@@ -40,6 +36,28 @@ export type {
 } from "@/lib/schemas";
 
 export type ResolutionStatus = BallotResponse["resolution_status"];
+
+type CandidatePromiseOverlay = {
+  promise_item_count: number;
+  representative_title: string | null;
+  issue_keys: IssueKey[];
+  source_label: string | null;
+  source_url: string | null;
+  promise_source_status: PromiseSourceStatus;
+  issue_matches: CandidateIssueMatch[];
+};
+
+type CandidateNewsOverlay = {
+  evidence_status: EvidenceStatus;
+  summary_text: string | null;
+  info_gap_flags: string[];
+  issue_matches: CandidateIssueMatch[];
+};
+
+type CandidateRecordWithLocalArtifacts = CandidateRecord & {
+  promise_overlay?: CandidatePromiseOverlay | null;
+  news_overlay?: CandidateNewsOverlay | null;
+};
 
 export interface IssueDefinition {
   key: IssueKey;
@@ -559,39 +577,8 @@ export function formatKoreanDateTime(input: string | Date | null | undefined): s
   }).format(date);
 }
 
-export function buildElectionMeta(
-  electionId: string = "0020260603",
-  electionName?: string,
-  now: Date = new Date(),
-): ElectionMeta {
-  const preset = getLocalElectionPresetByElectionId(electionId);
-  const electionDay = new Date(preset.electionDay);
-  const registrationStart = new Date(preset.registrationStart);
-  const registrationEnd = new Date(preset.registrationEnd);
-  const campaignStart = new Date(preset.campaignStart);
-
-  let dataPhase: DataPhase = "completed";
-  if (now < registrationStart) {
-    dataPhase = "pre_registration";
-  } else if (now <= registrationEnd) {
-    dataPhase = "registered";
-  } else if (now < campaignStart) {
-    dataPhase = "registered";
-  } else if (now <= electionDay) {
-    dataPhase = "campaign";
-  }
-
-  return {
-    election_id: preset.electionId,
-    election_name: electionName || preset.electionName,
-    election_day: preset.electionDay,
-    data_phase: dataPhase,
-    as_of: now.toISOString(),
-  };
-}
-
 export function buildCandidateIssueMatches(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
 ): CandidateIssueMatch[] {
   const promiseOverlay = candidate.promise_overlay;
   if (promiseOverlay && promiseOverlay.issue_matches.length > 0) {
@@ -663,7 +650,7 @@ export function buildCandidateIssueMatches(
 }
 
 export function buildCandidateBrief(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
 ): CandidateBrief {
   const promiseOverlay = candidate.promise_overlay;
   const newsOverlay = candidate.news_overlay;
@@ -747,7 +734,7 @@ export function buildCandidateBrief(
 }
 
 export function buildCandidateCompareEntry(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
 ): CandidateCompareEntry {
   const promiseOverlay = candidate.promise_overlay;
   const newsOverlay = candidate.news_overlay;
@@ -853,7 +840,7 @@ export function buildCandidateCompareEntry(
 }
 
 export function buildCandidateArtifacts(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
 ): CandidateRecord {
   const issueMatches = buildCandidateIssueMatches(candidate);
   const brief = buildCandidateBrief(candidate);
@@ -870,7 +857,7 @@ export function buildCandidateArtifacts(
 }
 
 export function getRelevantIssueMatches(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
   issueProfile: UserIssueProfile | null | undefined,
 ): CandidateIssueMatch[] {
   if (!issueProfile || issueProfile.normalized_issue_keys.length === 0) {
@@ -886,7 +873,7 @@ export function getRelevantIssueMatches(
 }
 
 export function getCandidateIssueSortScore(
-  candidate: CandidateRecordWithPromiseOverlay & CandidateRecordWithNewsOverlay,
+  candidate: CandidateRecordWithLocalArtifacts,
   issueProfile: UserIssueProfile | null | undefined,
 ): number {
   const matches = getRelevantIssueMatches(candidate, issueProfile);
