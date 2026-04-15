@@ -33,8 +33,48 @@ const SHARED_IMPORTANT_TERMS = [
   "WOOGOOK_BACKEND_BASE_URL",
 ];
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function isWordChar(value: string | undefined) {
+  return value != null && /[A-Za-z0-9_]/.test(value);
+}
+
+function hasTokenBoundary(text: string, start: number, token: string) {
+  const end = start + token.length;
+  const before = text[start - 1];
+  const after = text[end];
+  const startsWithWord = isWordChar(token[0]);
+  const endsWithWord = isWordChar(token[token.length - 1]);
+
+  if (startsWithWord && isWordChar(before)) {
+    return false;
+  }
+
+  if (endsWithWord && isWordChar(after)) {
+    return false;
+  }
+
+  return true;
+}
+
+function wrapImportantTermsInSegment(text: string, tokens: string[]) {
+  let cursor = 0;
+  let formatted = "";
+
+  while (cursor < text.length) {
+    const matchedToken = tokens.find(
+      (token) => text.startsWith(token, cursor) && hasTokenBoundary(text, cursor, token),
+    );
+
+    if (matchedToken) {
+      formatted += `\`${matchedToken}\``;
+      cursor += matchedToken.length;
+      continue;
+    }
+
+    formatted += text[cursor];
+    cursor += 1;
+  }
+
+  return formatted;
 }
 
 function wrapImportantTerms(
@@ -53,13 +93,18 @@ function wrapImportantTerms(
     ...SHARED_IMPORTANT_TERMS,
   ].filter((value): value is string => Boolean(value && value.trim()));
 
-  let formatted = text;
-  for (const token of [...new Set(tokens)].sort((left, right) => right.length - left.length)) {
-    const pattern = new RegExp(`(?<!\`)${escapeRegExp(token)}(?!\`)`, "g");
-    formatted = formatted.replace(pattern, `\`${token}\``);
-  }
+  const uniqueTokens = [...new Set(tokens)].sort((left, right) => right.length - left.length);
+  const segments = text.split(/(`[^`]*`)/g);
 
-  return formatted;
+  return segments
+    .map((segment, index) => {
+      if (index % 2 === 1) {
+        return segment;
+      }
+
+      return wrapImportantTermsInSegment(segment, uniqueTokens);
+    })
+    .join("");
 }
 
 function appendCodeReference(

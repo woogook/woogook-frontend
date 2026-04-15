@@ -42,4 +42,34 @@ describe("formatDiscordIncidentMessage", () => {
     expect(message).toContain("- 다음 액션");
     expect(message).toContain("  - `assembly/v1/members` 최근 `error log`와 `correlation id` 확인");
   });
+
+  it("does not double-wrap tokens already inside backticks or match partial words", () => {
+    const message = formatDiscordIncidentMessage({
+      alert: {
+        title: "ApiAlert",
+        status: "firing",
+        labels: {
+          route: "observability/dev/fail",
+          component: "api",
+          error_name: "ProxyError",
+        },
+      },
+      incidentKey: "ApiAlert|observability/dev/fail|api|local",
+      recentEventCount: 1,
+      summary: {
+        headline: "[local] api incident on observability/dev/fail",
+        impactSummary:
+          "이미 `ApiAlert|observability/dev/fail|api|local` 로 표시된 incident key와 rapid fallback을 함께 본다.",
+        rootCauseCandidates: ["api upstream 또는 external dependency 이슈 가능성 있음"],
+        nextActions: ["rapid fallback 중 api metric과 error log를 함께 확인"],
+        confidence: "low",
+      },
+    });
+
+    expect(message).toContain("이미 `ApiAlert|observability/dev/fail|api|local` 로 표시된");
+    expect(message).not.toContain("``ApiAlert|observability/dev/fail|api|local``");
+    expect(message).toContain("rapid fallback");
+    expect(message).not.toContain("r`api`d");
+    expect(message).toContain("`api` `metric`과 `error log`");
+  });
 });
