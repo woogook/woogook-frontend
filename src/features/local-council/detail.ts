@@ -781,24 +781,34 @@ export function buildMeetingActivityCardViewModel(args: {
   const contentGrounding = asRecord(args.item.content_grounding);
   const groundingStatus = asText(contentGrounding.status) ?? "unavailable";
   const activityType = asText(args.item.activity_type);
+  const recordGroundingLevel = asText(args.item.record_grounding_level);
   const supportedSummary =
     groundingStatus === "supported" ? asText(args.item.activity_summary_line) : null;
+  const headline =
+    [
+      asText(args.item.session_label),
+      asText(args.item.activity_label) ??
+        (activityType ? getLocalCouncilActivityTypeLabel(activityType) : null),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" · ") ||
+    firstValue(args.item, ["meeting_name", "title"]) ||
+    "회의 활동";
+  const unsupportedSummary =
+    recordGroundingLevel === "record_located" || locatorAction.viewUrl
+      ? "공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음"
+      : recordGroundingLevel === "record_listed"
+        ? "공식 기록 목록은 확인됐지만 발언 요약은 아직 승격하지 않음"
+        : "공식 기록 대조 전이라 발언 요약은 아직 승격하지 않음";
 
   return {
-    headline:
-      [
-        asText(args.item.session_label),
-        asText(args.item.activity_label) ??
-          (activityType ? getLocalCouncilActivityTypeLabel(activityType) : null),
-      ]
-        .filter((value): value is string => Boolean(value))
-        .join(" · ") || "회의 활동",
+    headline,
     meta: asText(args.item.meeting_date) ?? null,
     badges: [
-      asText(args.item.record_grounding_level)
+      recordGroundingLevel
         ? {
             label: getLocalCouncilRecordGroundingLevelLabel(
-              asText(args.item.record_grounding_level)!,
+              recordGroundingLevel,
             ),
             tone: "subtle",
           }
@@ -808,9 +818,7 @@ export function buildMeetingActivityCardViewModel(args: {
         tone: groundingStatus === "supported" ? "accent" : "subtle",
       },
     ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
-    summaryLine:
-      supportedSummary ??
-      "공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음",
+    summaryLine: supportedSummary ?? unsupportedSummary,
     detailRows: buildSectionDetailRows(args.item, [
       { label: "회의일", keys: ["meeting_date"] },
       { label: "회의명", keys: ["meeting_name"] },

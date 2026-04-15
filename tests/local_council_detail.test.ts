@@ -822,6 +822,63 @@ test("buildMeetingActivityCardViewModel falls back to section source when locato
   assert.equal(card.sourceUrl, "https://example.com/fallback-minutes");
 });
 
+test("buildMeetingActivityCardViewModel falls back to legacy meeting title fields", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      meeting_date: "2026-04-03",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.headline, "제320회 임시회 본회의");
+});
+
+test("buildMeetingActivityCardViewModel falls back to title when meeting_name is absent", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      title: "제321회 정례회 행정사무감사",
+      meeting_date: "2026-04-04",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.headline, "제321회 정례회 행정사무감사");
+});
+
+test("buildMeetingActivityCardViewModel softens summary copy when only the record list is confirmed", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      record_grounding_level: "record_listed",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(
+    card.summaryLine,
+    "공식 기록 목록은 확인됐지만 발언 요약은 아직 승격하지 않음",
+  );
+});
+
 test("buildSectionCardViewModel resolves a source label from the matched section source", () => {
   const section = buildSectionCardViewModel({
     item: { headline: "인사말", source_ref: { role: "official_profile" } },
