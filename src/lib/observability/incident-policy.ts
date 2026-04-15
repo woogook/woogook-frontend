@@ -79,19 +79,34 @@ function buildRecentAnalysisResultsQuery(config: ObservabilityConfig) {
   return `{${streamFilters.join(",")}} | json | component="llm-analyzer" | signalType="analysis_result"`;
 }
 
+function getRecentAnalysisLookbackMs(params: {
+  analyzerLookbackMinutes: number;
+  cooldownSeconds: number;
+}) {
+  return Math.max(
+    params.analyzerLookbackMinutes * 60 * 1000,
+    params.cooldownSeconds * 1000,
+  );
+}
+
 async function readRecentAnalysisEventsFromLoki(params: {
   config: ObservabilityConfig;
+  cooldownSeconds: number;
   maxEvents: number;
   now: Date;
 }) {
-  const { config, maxEvents, now } = params;
+  const { config, cooldownSeconds, maxEvents, now } = params;
   if (!config.lokiQueryUrl) {
     return [];
   }
 
   const url = new URL(config.lokiQueryUrl);
   const start = new Date(
-    now.getTime() - config.analyzerLookbackMinutes * 60 * 1000,
+    now.getTime() -
+      getRecentAnalysisLookbackMs({
+        analyzerLookbackMinutes: config.analyzerLookbackMinutes,
+        cooldownSeconds,
+      }),
   );
   url.searchParams.set("query", buildRecentAnalysisResultsQuery(config));
   url.searchParams.set("limit", String(maxEvents));
@@ -142,6 +157,7 @@ export async function findRecentIncidentCooldown({
     if (events.length === 0 && config.lokiQueryUrl) {
       events = await readRecentAnalysisEventsFromLoki({
         config,
+        cooldownSeconds: effectiveCooldownSeconds,
         maxEvents: 200,
         now,
       });

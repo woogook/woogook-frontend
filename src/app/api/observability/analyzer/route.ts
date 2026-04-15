@@ -225,6 +225,12 @@ async function analyzeAlert({
         recentEventCount: actionableEvents.length,
       },
     });
+
+    return buildSkippedResult({
+      reason: "analysis_failed",
+      context,
+      incidentKey: resolvedIncidentKey,
+    });
   }
 
   await logServerEvent({

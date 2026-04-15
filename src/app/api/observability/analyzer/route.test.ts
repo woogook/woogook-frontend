@@ -239,6 +239,46 @@ describe("POST /api/observability/analyzer", () => {
     );
   });
 
+  it("does not record analysis_result when Discord delivery fails", async () => {
+    sendDiscordMessageMock.mockRejectedValueOnce(new Error("Discord webhook failed"));
+
+    const request = {
+      json: vi.fn().mockResolvedValue({
+        title: "FrontendApi5xxDetected",
+        status: "firing",
+        labels: {
+          team: "frontend-observability",
+          severity: "error",
+          route: "observability/dev/fail",
+          component: "next-api",
+        },
+      }),
+    } as unknown as Request;
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      skipped: true,
+      reason: "analysis_failed",
+      incident_key: "incident-key",
+    });
+    expect(logServerEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signalType: "pipeline_event",
+        errorMessage: "Discord webhook failed",
+        context: expect.objectContaining({
+          incidentKey: "incident-key",
+        }),
+      }),
+    );
+    expect(logServerEventMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        signalType: "analysis_result",
+      }),
+    );
+  });
+
   it("returns aggregated results when Grafana batches multiple alerts", async () => {
     shouldAnalyzeAlertMock.mockImplementation(
       (alert) => alert.title === "FrontendApi5xxDetected",
