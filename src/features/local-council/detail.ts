@@ -755,7 +755,7 @@ export function buildBillActivityCardViewModel(args: {
       preferredSourceKinds: [],
       preferredSourceRoles: ["official_activity"],
     }),
-    sourceUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
+    sourceUrl: sourcePayload.sourceUrl,
     sourceLinks: sourcePayload.sourceLinks,
   };
 }
@@ -782,6 +782,7 @@ export function buildMeetingActivityCardViewModel(args: {
   const groundingStatus = asText(contentGrounding.status) ?? "unavailable";
   const activityType = asText(args.item.activity_type);
   const recordGroundingLevel = asText(args.item.record_grounding_level);
+  const meetingDate = firstValue(args.item, ["meeting_date", "date"]);
   const supportedSummary =
     groundingStatus === "supported" ? asText(args.item.activity_summary_line) : null;
   const headline =
@@ -803,7 +804,7 @@ export function buildMeetingActivityCardViewModel(args: {
 
   return {
     headline,
-    meta: asText(args.item.meeting_date) ?? null,
+    meta: meetingDate,
     badges: [
       recordGroundingLevel
         ? {
@@ -821,7 +822,7 @@ export function buildMeetingActivityCardViewModel(args: {
     summaryLine:
       groundingStatus === "supported" ? supportedSummary : unsupportedSummary,
     detailRows: buildSectionDetailRows(args.item, [
-      { label: "회의일", keys: ["meeting_date"] },
+      { label: "회의일", keys: ["meeting_date", "date"] },
       { label: "회의명", keys: ["meeting_name"] },
     ]),
     actions: {
@@ -836,7 +837,7 @@ export function buildMeetingActivityCardViewModel(args: {
       preferredSourceKinds: [],
       preferredSourceRoles: ["official_activity"],
     }),
-    sourceUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
+    sourceUrl: sourcePayload.sourceUrl,
     sourceLinks: sourcePayload.sourceLinks,
   };
 }

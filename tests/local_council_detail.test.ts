@@ -755,6 +755,7 @@ test("buildBillActivityCardViewModel prefers official record locators over gener
   ]);
   assert.equal(card.actions.viewLabel, "의안 상세 열기");
   assert.equal(card.actions.viewUrl, "https://example.com/bills/0463");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-bills");
 });
 
 test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative", () => {
@@ -794,6 +795,7 @@ test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative"
   );
   assert.equal(card.actions.viewLabel, "회의록 위치 확인");
   assert.equal(card.actions.viewUrl, "https://example.com/minutes");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-minutes");
 });
 
 test("buildMeetingActivityCardViewModel falls back to section source when locator url is missing", () => {
@@ -838,6 +840,34 @@ test("buildMeetingActivityCardViewModel falls back to legacy meeting title field
   });
 
   assert.equal(card.headline, "제320회 임시회 본회의");
+});
+
+test("buildMeetingActivityCardViewModel falls back to legacy date field", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      date: "2026-04-03",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.meta, "2026-04-03");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "회의일",
+      value: "2026-04-03",
+    },
+    {
+      label: "회의명",
+      value: "제320회 임시회 본회의",
+    },
+  ]);
 });
 
 test("buildMeetingActivityCardViewModel falls back to title when meeting_name is absent", () => {
