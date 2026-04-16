@@ -1821,7 +1821,7 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
           explanation: "최근 발행 묶음 기준이다.",
           lineage: [
             {
-              label: "published_batch_finished_at",
+              field: "published_batch_finished_at",
               timestamp: "2026-04-08T10:05:00+09:00",
             },
           ],
@@ -1845,6 +1845,8 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
   assert.match(html, /신선도 계보/);
   assert.match(html, /staleness_bucket/);
   assert.match(html, /fresh/);
+  assert.match(html, /published_batch_finished_at/);
+  assert.doesNotMatch(html, /계보 1/);
   assert.match(html, /최근 발행 묶음 기준이다\./);
   assert.match(html, /huboid/);
   assert.match(html, /600000001/);

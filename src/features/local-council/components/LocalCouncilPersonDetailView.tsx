@@ -168,6 +168,7 @@ function buildFreshnessLineageRows(freshness: Record<string, unknown>) {
       }
       const label =
         getTextValue(record.label) ??
+        getTextValue(record.field) ??
         getTextValue(record.kind) ??
         `계보 ${index + 1}`;
       const timestamp = getTextValue(record.timestamp);

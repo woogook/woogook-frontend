@@ -75,6 +75,15 @@ function getErrorMessage(payload: unknown, fallback: string) {
     return payload.error;
   }
 
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "detail" in payload &&
+    typeof payload.detail === "string"
+  ) {
+    return payload.detail;
+  }
+
   return fallback;
 }
 
@@ -517,6 +526,10 @@ export async function fetchLocalCouncilResolve(
         503,
         "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
       );
+    }
+
+    if (error instanceof ApiError && error.status === 404 && !isGangdongSelection(selection)) {
+      throw new ApiError(404, "현재는 서울특별시 강동구만 준비되어 있습니다.");
     }
 
     throw error;

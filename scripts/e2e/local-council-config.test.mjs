@@ -98,6 +98,22 @@ describe("local-council integration harness database config", () => {
       "postgresql+psycopg://user%3Aname%40example.com:pa%3Ass%23word%2Fwith%3Fchars@127.0.0.1:5433/woogook_local_council_e2e",
     );
   });
+
+  it("dangerous live database names are rejected before destructive integration setup runs", () => {
+    expect(() =>
+      getDatabaseConfig({
+        PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE: "woogook",
+      }),
+    ).toThrow(/격리 integration database 이름/);
+  });
+
+  it("database name identical to the admin database is rejected", () => {
+    expect(() =>
+      getDatabaseConfig({
+        PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE: "postgres",
+      }),
+    ).toThrow(/admin database/);
+  });
 });
 
 describe("local-council harness backend port preflight", () => {

@@ -11,9 +11,42 @@ const DEFAULT_POSTGRES_PASSWORD = "woogook";
 const DEFAULT_HEALTH_ATTEMPTS = 60;
 const DEFAULT_HEALTH_DELAY_MS = 1000;
 const DEFAULT_FRONTEND_PORT = 3000;
+const SAFE_DATABASE_NAME_MARKERS = ["e2e", "integration", "test"];
+const RESERVED_DATABASE_NAMES = new Set(["postgres", "template0", "template1", "woogook"]);
 
 function encodeUrlComponent(value) {
   return encodeURIComponent(value);
+}
+
+function normalizeDatabaseName(value) {
+  return value.trim().toLowerCase();
+}
+
+function assertSafeIsolatedDatabaseName(database, adminDatabase) {
+  const normalizedDatabase = normalizeDatabaseName(database);
+  const normalizedAdminDatabase = normalizeDatabaseName(adminDatabase);
+
+  if (!normalizedDatabase) {
+    throw new Error("격리 integration database 이름이 비어 있습니다.");
+  }
+
+  if (normalizedDatabase === normalizedAdminDatabase) {
+    throw new Error(
+      `integration target database must not match admin database: ${database}`,
+    );
+  }
+
+  if (
+    RESERVED_DATABASE_NAMES.has(normalizedDatabase) ||
+    !SAFE_DATABASE_NAME_MARKERS.some((marker) => normalizedDatabase.includes(marker))
+  ) {
+    throw new Error(
+      [
+        `격리 integration database 이름이어야 합니다: ${database}`,
+        "예: *_e2e, *_integration, *_test",
+      ].join(" "),
+    );
+  }
 }
 
 export function getDatabaseConfig(env = process.env) {
@@ -31,6 +64,9 @@ export function getDatabaseConfig(env = process.env) {
     env.PLAYWRIGHT_LOCAL_COUNCIL_PGPASSWORD || DEFAULT_POSTGRES_PASSWORD;
   const preserveDatabase =
     env.PLAYWRIGHT_LOCAL_COUNCIL_PRESERVE_DATABASE === "1";
+
+  assertSafeIsolatedDatabaseName(database, adminDatabase);
+
   const encodedUser = encodeUrlComponent(user);
   const encodedPassword = encodeUrlComponent(password);
   const databaseUrl = `postgresql+psycopg://${encodedUser}:${encodedPassword}@${host}:${port}/${database}`;
