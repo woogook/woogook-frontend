@@ -727,7 +727,7 @@ export function buildBillActivityCardViewModel(args: {
       firstValue(args.item, ["bill_title", "bill_name", "title"]) ??
       "의안 제목 확인 필요",
     meta:
-      [asText(args.item.proposed_at), resultLabel]
+      [proposedAt, resultLabel]
         .filter((value): value is string => Boolean(value))
         .join(" · ") || null,
     badges: [

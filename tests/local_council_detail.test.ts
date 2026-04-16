@@ -758,6 +758,27 @@ test("buildBillActivityCardViewModel prefers official record locators over gener
   assert.equal(card.sourceUrl, "https://example.com/fallback-bills");
 });
 
+test("buildBillActivityCardViewModel falls back to legacy bill_date in meta", () => {
+  const card = buildBillActivityCardViewModel({
+    item: {
+      bill_title: "서울특별시 강동구 청년 지원 조례안",
+      bill_date: "2026-04-07",
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.meta, "2026-04-07");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "제안일",
+      value: "2026-04-07",
+    },
+  ]);
+});
+
 test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative", () => {
   const card = buildMeetingActivityCardViewModel({
     item: {
