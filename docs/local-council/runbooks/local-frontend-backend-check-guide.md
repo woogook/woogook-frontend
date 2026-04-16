@@ -43,7 +43,12 @@
 - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
 - roster에 `구청장`, `구의원` 카드가 모두 보이고, detail까지 이동된다.
 - sample detail에서 `요약 설명`, `근거 현황`, `품질 신호`, `출처 계약 점검`, `신선도 계보`, `spot-check`가 함께 보인다.
+- sample detail의 `의안` 카드에 `대표발의` 또는 동등 participation badge가 보인다.
+- sample detail에서 `bill_summary`가 있으면 카드 본문에 `의안 내용` 1문장 요약이 보인다.
+- sample detail의 bill locator가 있으면 액션 버튼이 `의안 상세 열기`처럼 locator-aware 문구로 보인다.
+- sample detail의 `meeting_activity`가 `supported`가 아니면 `직접 발언 확인`처럼 읽히지 않고 `공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음` 같은 보수적 문구가 보인다.
 - 구청장 sample detail에서는 `보강 정보` 구역이 보이고 `준비 완료` 상태와 1건 이상의 overlay item을 확인할 수 있다.
+- 구청장 sample detail에서는 개인 `meeting_activity` 카드가 비어 있고 `district_head_official_minutes` 한계를 설명하는 진단 문구가 보인다.
 - 구의원 sample detail에서는 `보강 정보`가 `준비 중` 또는 비어 있는 상태라도 공식 결정적 결과 구역은 그대로 동작해야 한다.
 - 구의원 sample detail의 `person_key`는 opaque key 예시를 따른다.
 - sample에는 fallback형 opaque `person_key` 패턴(`seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640`)을 사용하고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
@@ -60,6 +65,9 @@
 - live detail의 diagnostics에 `publishable_degraded / unavailable / skipped`가 보일 수 있는데, model env가 없는 local smoke에서는 이를 UI failure로 보지 않는다.
 - live detail에서는 `evidence`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `freshness.lineage/staleness_bucket/explanation`, `spot_check.huboid/member_source_docid`가 사람이 읽는 문장으로 보여야 한다.
 - live detail에서는 `overlay.status/support_tier/generated_at/basis/sections/disclaimers`가 내려오면 `보강 정보` 구역으로 렌더링되고, `overlay.status == "unavailable"`여도 공식 상세 카드가 깨지면 안 된다.
+- live detail의 `의안` 카드에서는 `participation_type`, `bill_stage`, `ordinance_status`, `bill_summary`, `official_record_locator`가 badge/상태/요약/액션 라벨로 읽히게 보여야 한다.
+- live detail의 `meeting_activity` 카드에서는 `record_grounding_level`과 `content_grounding.status`가 분리된 badge로 보이고 `activity_summary_line`은 `supported`일 때만 본문처럼 노출돼야 한다.
+- live detail의 구청장 상세에서는 `district_head_official_minutes`가 개인 활동으로 승격되지 않고 diagnostics copy로 한계가 설명돼야 한다.
 
 ## 1. frontend만 먼저 확인
 

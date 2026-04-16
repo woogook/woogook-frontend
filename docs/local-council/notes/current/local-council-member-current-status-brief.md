@@ -44,8 +44,8 @@
   - `spot_check`: 수동 검증용 식별자와 빠른 확인 포인트를 담는다.
   - `official_profile`: 공식 프로필에서 읽은 기본 인적 정보다.
   - `committees`: 현재 위원회 소속과 직책을 담는다.
-  - `bills`: 의안 발의·제안 등 입법 활동 기록을 담는다.
-  - `meeting_activity`: 회의록 기반 출석·발언 등 회의 활동을 담는다.
+  - `bills`: 의안 발의·제안 등 입법 활동 기록을 담고 `participation_type`, `bill_stage`, `ordinance_status`, `bill_summary`, `official_record_locator`를 카드 정보로 풀어 보여 준다.
+  - `meeting_activity`: 회의록 기반 출석·발언 등 회의 활동을 담고 `record_grounding_level`과 `content_grounding.status`를 분리된 badge로 보여 준다.
   - `finance_activity`: 예산·결산 등 재정 관련 공식 활동을 담는다.
   - `elected_basis`: 당선 근거와 선거 이력을 요약한다.
   - `source_refs`: 응답 전체나 섹션이 참조한 공식 출처 목록이다.
@@ -200,16 +200,24 @@ detail 화면은 아래 묶음으로 나뉜다.
   - `freshness.explanation_lines`: 최신성 판단을 풀어쓴 문장 목록
   - `diagnostics.explanation_lines`: 발행·품질 진단을 풀어쓴 문장 목록
   - top-level `source_contract_summary`: legacy compat로만 허용하는 출처 계약 상태 요약
-  - `data_gap_flags`: 비어 있거나 약한 데이터 영역을 표시하는 플래그
+  - `data_gap_flags`: 비어 있거나 약한 데이터 영역을 표시하는 플래그이며 raw token이 아니라 설명형 문구로 번역해 보여 준다.
   - `needs_human_review`: 사람이 다시 확인해야 하는지 여부
   - `spot_check`: 수동 검증용 식별자와 확인 포인트
 - 세부 섹션
   - `official_profile`: 공식 프로필 기반 인적 정보와 경력
   - `elected_basis`: 당선 근거와 선거 이력
   - `committees`: 위원회 소속과 역할
-  - `공식 활동`
+  - `공식 활동` 또는 `의안`
+    - `basic_head`는 구청장 공식 활동으로, `basic_council`은 의안 카드로 읽는다.
+    - bill locator가 있으면 `의안 상세 열기`처럼 locator-aware 액션 라벨을 노출한다.
   - `meeting_activity`: 회의록 기반 출석·발언 등 회의 활동
+    - `activity_summary_line`은 `content_grounding.status == "supported"`일 때만 본문처럼 노출한다.
+    - `supported`가 아니면 `공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음` 같은 보수적 문구를 유지한다.
   - `finance_activity`: 예산·결산 등 재정 관련 공식 활동
+
+- 구청장 meeting policy:
+  - `district_head_official_minutes`는 개인 활동 근거가 아니라 `council-level minutes index`로 다룬다.
+  - 따라서 구청장 detail에서는 개인 `meeting_activity`를 비워 두고 diagnostics copy로 그 한계를 설명한다.
 
 비어 있는 섹션은 숨기지 않고 empty state 또는 정적 카드로 둔다.
 

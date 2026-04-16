@@ -1,4 +1,13 @@
-import { getLocalCouncilSourceLabel } from "./data";
+import {
+  getLocalCouncilActivityTypeLabel,
+  getLocalCouncilBillStageLabel,
+  getLocalCouncilContentGroundingStatusLabel,
+  getLocalCouncilDownloadActionLabel,
+  getLocalCouncilOrdinanceStatusLabel,
+  getLocalCouncilParticipationTypeLabel,
+  getLocalCouncilRecordGroundingLevelLabel,
+  getLocalCouncilSourceLabel,
+} from "./data";
 
 const heroImageKeys = ["profile_image_url", "photo_url", "image_url"] as const;
 
@@ -328,9 +337,16 @@ export interface SectionCardDetailRow {
   value: string;
 }
 
+export interface SectionCardBadge {
+  label: string;
+  tone: "accent" | "subtle";
+}
+
 export interface SectionCardActions {
   viewUrl: string | null;
+  viewLabel: string | null;
   downloadUrl: string | null;
+  downloadLabel: string | null;
 }
 
 export interface SectionCardViewModel {
@@ -341,6 +357,8 @@ export interface SectionCardViewModel {
   sourceLabel: string | null;
   sourceUrl: string | null;
   sourceLinks: SectionCardSourceLink[];
+  badges?: SectionCardBadge[];
+  summaryLine?: string | null;
 }
 
 const sectionIdTokenMap: Record<string, string> = {
@@ -536,6 +554,7 @@ export function resolveSectionActionLink({
 
   return {
     viewUrl: sourcePayload.sourceUrl,
+    viewLabel: null,
     downloadUrl:
       directDownloadUrl ??
       sanitizeExternalUrl(asRecord(item.source_ref).download_url) ??
@@ -552,6 +571,27 @@ export function resolveSectionActionLink({
           preferredSourceRoles,
         )?.download_url,
       ),
+    downloadLabel: null,
+  };
+}
+
+function getLocatorAction(record: Record<string, unknown>) {
+  const kind = asText(record.kind);
+  const viewUrl = sanitizeExternalUrl(record.source_url);
+  if (!viewUrl) {
+    return { viewUrl: null, viewLabel: null };
+  }
+
+  const labels: Record<string, string> = {
+    bill_detail: "의안 상세 열기",
+    ordinance_registry: "자치법규 원문 보기",
+    video_url: "영상 회의록 보기",
+    council_minutes_popup: "회의록 위치 확인",
+  };
+
+  return {
+    viewUrl,
+    viewLabel: kind ? labels[kind] || "원문 보기" : "원문 보기",
   };
 }
 
@@ -632,6 +672,172 @@ export function buildSectionCardViewModel(args: {
       preferredSourceRoles: args.preferredSourceRoles,
     }),
     sourceUrl: actions.viewUrl,
+    sourceLinks: sourcePayload.sourceLinks,
+  };
+}
+
+export function buildBillActivityCardViewModel(args: {
+  item: Record<string, unknown>;
+  sectionSourceRefs: Record<string, unknown>[];
+}): SectionCardViewModel {
+  const locator = asRecord(args.item.official_record_locator);
+  const locatorAction = getLocatorAction(locator);
+  const fallbackActions = resolveSectionActionLink({
+    item: args.item,
+    sectionSourceRefs: args.sectionSourceRefs,
+    preferredSourceKinds: [],
+    preferredSourceRoles: ["official_activity"],
+  });
+  const sourcePayload = resolveSectionSourcePayload({
+    item: args.item,
+    sectionSourceRefs: args.sectionSourceRefs,
+    preferredSourceKinds: [],
+    preferredSourceRoles: ["official_activity"],
+  });
+  const participationType = asText(args.item.participation_type);
+  const billStage = asText(args.item.bill_stage);
+  const ordinanceStatus = asText(args.item.ordinance_status);
+  const resultLabel = asText(args.item.result_label);
+  const billSummary = asRecord(args.item.bill_summary);
+  const statusParts = [
+    billStage ? `의안 단계 ${getLocalCouncilBillStageLabel(billStage)}` : null,
+    ordinanceStatus
+      ? `조례 상태 ${getLocalCouncilOrdinanceStatusLabel(ordinanceStatus)}`
+      : null,
+    resultLabel ? `의결 결과 ${resultLabel}` : null,
+  ].filter((value): value is string => Boolean(value));
+  const detailRows: SectionCardDetailRow[] = [];
+  if (statusParts.length > 0) {
+    detailRows.push({
+      label: "상태",
+      value: statusParts.join(" · "),
+    });
+  }
+
+  const proposedAt = asText(args.item.proposed_at) ?? asText(args.item.bill_date);
+  if (proposedAt) {
+    detailRows.push({
+      label: "제안일",
+      value: proposedAt,
+    });
+  }
+
+  return {
+    headline:
+      firstValue(args.item, ["bill_title", "bill_name", "title"]) ??
+      "의안 제목 확인 필요",
+    meta:
+      [proposedAt, resultLabel]
+        .filter((value): value is string => Boolean(value))
+        .join(" · ") || null,
+    badges: [
+      participationType
+        ? {
+            label: getLocalCouncilParticipationTypeLabel(participationType),
+            tone: participationType === "primary_sponsor" ? "accent" : "subtle",
+          }
+        : null,
+      resultLabel ? { label: resultLabel, tone: "subtle" } : null,
+    ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
+    summaryLine: asText(billSummary.summary_line) ?? null,
+    detailRows,
+    actions: {
+      viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
+      viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
+      downloadUrl: fallbackActions.downloadUrl,
+      downloadLabel: fallbackActions.downloadUrl
+        ? getLocalCouncilDownloadActionLabel(fallbackActions.downloadLabel)
+        : fallbackActions.downloadLabel,
+    },
+    sourceLabel: resolveSectionSourceLabel({
+      item: args.item,
+      sectionSourceRefs: args.sectionSourceRefs,
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["official_activity"],
+    }),
+    sourceUrl: sourcePayload.sourceUrl,
+    sourceLinks: sourcePayload.sourceLinks,
+  };
+}
+
+export function buildMeetingActivityCardViewModel(args: {
+  item: Record<string, unknown>;
+  sectionSourceRefs: Record<string, unknown>[];
+}): SectionCardViewModel {
+  const locator = asRecord(args.item.official_record_locator);
+  const locatorAction = getLocatorAction(locator);
+  const fallbackActions = resolveSectionActionLink({
+    item: args.item,
+    sectionSourceRefs: args.sectionSourceRefs,
+    preferredSourceKinds: [],
+    preferredSourceRoles: ["official_activity"],
+  });
+  const sourcePayload = resolveSectionSourcePayload({
+    item: args.item,
+    sectionSourceRefs: args.sectionSourceRefs,
+    preferredSourceKinds: [],
+    preferredSourceRoles: ["official_activity"],
+  });
+  const contentGrounding = asRecord(args.item.content_grounding);
+  const groundingStatus = asText(contentGrounding.status) ?? "unavailable";
+  const activityType = asText(args.item.activity_type);
+  const recordGroundingLevel = asText(args.item.record_grounding_level);
+  const meetingDate = firstValue(args.item, ["meeting_date", "date"]);
+  const supportedSummary =
+    groundingStatus === "supported" ? asText(args.item.activity_summary_line) : null;
+  const headline =
+    [
+      asText(args.item.session_label),
+      asText(args.item.activity_label) ??
+        (activityType ? getLocalCouncilActivityTypeLabel(activityType) : null),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" · ") ||
+    firstValue(args.item, ["meeting_name", "title"]) ||
+    "회의 활동";
+  const unsupportedSummary =
+    recordGroundingLevel === "record_located" || locatorAction.viewUrl
+      ? "공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음"
+      : recordGroundingLevel === "record_listed"
+        ? "공식 기록 목록은 확인됐지만 발언 요약은 아직 승격하지 않음"
+        : "공식 기록 대조 전이라 발언 요약은 아직 승격하지 않음";
+
+  return {
+    headline,
+    meta: meetingDate,
+    badges: [
+      recordGroundingLevel
+        ? {
+            label: getLocalCouncilRecordGroundingLevelLabel(
+              recordGroundingLevel,
+            ),
+            tone: "subtle",
+          }
+        : null,
+      {
+        label: getLocalCouncilContentGroundingStatusLabel(groundingStatus),
+        tone: groundingStatus === "supported" ? "accent" : "subtle",
+      },
+    ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
+    summaryLine:
+      groundingStatus === "supported" ? supportedSummary : unsupportedSummary,
+    detailRows: buildSectionDetailRows(args.item, [
+      { label: "회의일", keys: ["meeting_date", "date"] },
+      { label: "회의명", keys: ["meeting_name"] },
+    ]),
+    actions: {
+      viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
+      viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
+      downloadUrl: null,
+      downloadLabel: null,
+    },
+    sourceLabel: resolveSectionSourceLabel({
+      item: args.item,
+      sectionSourceRefs: args.sectionSourceRefs,
+      preferredSourceKinds: [],
+      preferredSourceRoles: ["official_activity"],
+    }),
+    sourceUrl: sourcePayload.sourceUrl,
     sourceLinks: sourcePayload.sourceLinks,
   };
 }

@@ -9,18 +9,28 @@ import { renderToStaticMarkup } from "react-dom/server";
 import dossiers from "../src/data/samples/sample_local_council_gangdong_person_dossiers.json";
 import type { LocalCouncilPersonDossierResponse } from "../src/lib/schemas";
 import {
+  buildBillActivityCardViewModel,
   buildPersonHeroMeta,
   resolveSectionActionLink,
   buildSectionDetailRows,
   buildSectionCardViewModel,
   buildExpandableSectionContentId,
+  buildMeetingActivityCardViewModel,
 } from "../src/features/local-council/detail";
 import {
   buildLocalCouncilSourceContractSummaryViewModel,
   buildLocalCouncilOverlayViewModel,
   buildLocalCouncilDiagnosticsViewModel,
+  getLocalCouncilActivityTypeLabel,
+  getLocalCouncilBillStageLabel,
+  getLocalCouncilContentGroundingStatusLabel,
+  getLocalCouncilDataGapFlagLabel,
+  getLocalCouncilDownloadActionLabel,
   getLocalCouncilFreshnessDetailRows,
   getLocalCouncilOfficeExplanation,
+  getLocalCouncilOrdinanceStatusLabel,
+  getLocalCouncilParticipationTypeLabel,
+  getLocalCouncilRecordGroundingLevelLabel,
   getLocalCouncilSummaryBasisLabels,
   getLocalCouncilSummaryEvidenceDigest,
 } from "../src/features/local-council/data";
@@ -207,7 +217,9 @@ test("resolveSectionActionLink prefers preferred source kinds in list order", ()
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/primary-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/primary-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -235,7 +247,9 @@ test("resolveSectionActionLink prefers direct item URLs over nested source_ref a
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/direct-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/direct-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -259,7 +273,9 @@ test("resolveSectionActionLink falls back to section refs when item URLs are mis
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/fallback-view",
+    viewLabel: null,
     downloadUrl: "https://example.com/fallback-file.pdf",
+    downloadLabel: null,
   });
 });
 
@@ -284,7 +300,9 @@ test("resolveSectionActionLink falls back by preferred section role when source 
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/mapo-activity",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -313,7 +331,9 @@ test("resolveSectionActionLink matches item source_kind before generic preferred
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/songpa-activity",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -342,7 +362,9 @@ test("resolveSectionActionLink matches item role before generic preferred kind f
 
   assert.deepEqual(result, {
     viewUrl: "https://example.com/finance-archive",
+    viewLabel: null,
     downloadUrl: null,
+    downloadLabel: null,
   });
 });
 
@@ -541,6 +563,32 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
   );
 });
 
+test("local council activity grounding helpers translate labels conservatively", () => {
+  assert.equal(getLocalCouncilParticipationTypeLabel("primary_sponsor"), "대표발의");
+  assert.equal(getLocalCouncilParticipationTypeLabel("listed_activity"), "의안 참여 기록");
+  assert.equal(getLocalCouncilBillStageLabel("approved"), "가결");
+  assert.equal(
+    getLocalCouncilOrdinanceStatusLabel("approved_not_confirmed"),
+    "가결 후 공포 전",
+  );
+  assert.equal(
+    getLocalCouncilRecordGroundingLevelLabel("record_located"),
+    "공식 기록 위치 확인",
+  );
+  assert.equal(
+    getLocalCouncilContentGroundingStatusLabel("unavailable"),
+    "내용 검토 전",
+  );
+  assert.equal(getLocalCouncilActivityTypeLabel("district_question"), "구정질문");
+  assert.equal(
+    getLocalCouncilDataGapFlagLabel(
+      "uncollected:district_head_minutes_person_linkage",
+    ),
+    "구청장 개인 회의 활동 linkage는 아직 수집/검토 전입니다.",
+  );
+  assert.equal(getLocalCouncilDownloadActionLabel(null), "원문 다운로드");
+});
+
 test("buildLocalCouncilSourceContractSummaryViewModel merges richer later payloads", () => {
   const summary = buildLocalCouncilSourceContractSummaryViewModel([
     {
@@ -658,6 +706,251 @@ test("buildSectionCardViewModel adds symmetric actions for bills, meetings, and 
 
   assert.equal(bill.actions.viewUrl, "https://example.com/bills");
   assert.equal(finance.actions.viewUrl, "https://example.com/finance");
+});
+
+test("buildBillActivityCardViewModel prefers official record locators over generic source refs", () => {
+  const card = buildBillActivityCardViewModel({
+    item: {
+      bill_title: "서울특별시 강동구 청년 지원 조례안",
+      proposed_at: "2026-04-07",
+      participation_type: "primary_sponsor",
+      bill_stage: "approved",
+      ordinance_status: "approved_not_confirmed",
+      result_label: "원안가결",
+      bill_summary: {
+        status: "title_only",
+        summary_line: "강동구 청년 지원에 관한 조례를 정하는 의안이다.",
+      },
+      official_record_locator: {
+        kind: "bill_detail",
+        source_url: "https://example.com/bills/0463",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-bills",
+      },
+    ],
+  });
+
+  assert.deepEqual(card.badges?.map((badge) => badge.label), [
+    "대표발의",
+    "원안가결",
+  ]);
+  assert.equal(card.summaryLine, "강동구 청년 지원에 관한 조례를 정하는 의안이다.");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "상태",
+      value: "의안 단계 가결 · 조례 상태 가결 후 공포 전 · 의결 결과 원안가결",
+    },
+    {
+      label: "제안일",
+      value: "2026-04-07",
+    },
+  ]);
+  assert.equal(card.actions.viewLabel, "의안 상세 열기");
+  assert.equal(card.actions.viewUrl, "https://example.com/bills/0463");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-bills");
+});
+
+test("buildBillActivityCardViewModel falls back to legacy bill_date in meta", () => {
+  const card = buildBillActivityCardViewModel({
+    item: {
+      bill_title: "서울특별시 강동구 청년 지원 조례안",
+      bill_date: "2026-04-07",
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.meta, "2026-04-07");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "제안일",
+      value: "2026-04-07",
+    },
+  ]);
+});
+
+test("buildMeetingActivityCardViewModel keeps unsupported meetings conservative", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_label: "구정질문",
+      record_grounding_level: "record_located",
+      content_grounding: {
+        status: "unavailable",
+      },
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.com/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-minutes",
+      },
+    ],
+  });
+
+  assert.equal(card.headline, "제322회 임시회 · 구정질문");
+  assert.deepEqual(card.badges?.map((badge) => badge.label), [
+    "공식 기록 위치 확인",
+    "내용 검토 전",
+  ]);
+  assert.equal(
+    card.summaryLine,
+    "공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음",
+  );
+  assert.equal(card.actions.viewLabel, "회의록 위치 확인");
+  assert.equal(card.actions.viewUrl, "https://example.com/minutes");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-minutes");
+});
+
+test("buildMeetingActivityCardViewModel falls back to section source when locator url is missing", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_type: "district_question",
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.invalid/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "gangdong_council_official_activity",
+        role: "official_activity",
+        source_url: "https://example.com/fallback-minutes",
+      },
+    ],
+  });
+
+  assert.equal(card.actions.viewUrl, "https://example.com/fallback-minutes");
+  assert.equal(card.sourceUrl, "https://example.com/fallback-minutes");
+});
+
+test("buildMeetingActivityCardViewModel falls back to legacy meeting title fields", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      meeting_date: "2026-04-03",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.headline, "제320회 임시회 본회의");
+});
+
+test("buildMeetingActivityCardViewModel falls back to legacy date field", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      date: "2026-04-03",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.meta, "2026-04-03");
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "회의일",
+      value: "2026-04-03",
+    },
+    {
+      label: "회의명",
+      value: "제320회 임시회 본회의",
+    },
+  ]);
+});
+
+test("buildMeetingActivityCardViewModel falls back to title when meeting_name is absent", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      title: "제321회 정례회 행정사무감사",
+      meeting_date: "2026-04-04",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.headline, "제321회 정례회 행정사무감사");
+});
+
+test("buildMeetingActivityCardViewModel softens summary copy when only the record list is confirmed", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      meeting_name: "제320회 임시회 본회의",
+      record_grounding_level: "record_listed",
+      content_grounding: {
+        status: "unavailable",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(
+    card.summaryLine,
+    "공식 기록 목록은 확인됐지만 발언 요약은 아직 승격하지 않음",
+  );
+});
+
+test("buildMeetingActivityCardViewModel omits unsupported fallback copy when supported summary is missing", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_label: "구정질문",
+      record_grounding_level: "record_located",
+      content_grounding: {
+        status: "supported",
+      },
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.com/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.summaryLine, null);
 });
 
 test("buildSectionCardViewModel resolves a source label from the matched section source", () => {
@@ -997,6 +1290,70 @@ test("LocalCouncilPersonDetailView renders related source links in expanded cont
   );
 });
 
+test("LocalCouncilPersonDetailView renders bill badges, summary, and locator-aware action labels", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "의안:0",
+  });
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.match(html, /대표발의/);
+  assert.match(html, /강동구 청년 지원에 관한 조례를 정하는 의안이다\./);
+  assert.match(html, /의안 상세 열기/);
+});
+
+test("LocalCouncilPersonDetailView keeps unsupported meeting copy conservative", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "회의:0",
+  });
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.match(html, /공식 기록 위치 확인/);
+  assert.match(html, /내용 검토 전/);
+  assert.match(
+    html,
+    /공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음/,
+  );
+  assert.match(html, /회의록 위치 확인/);
+});
+
+test("LocalCouncilPersonDetailView translates district head data gaps instead of showing raw flags", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
+  const person = dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse;
+
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person,
+      dataSource: "backend",
+      onBack: () => undefined,
+    }),
+  );
+
+  assert.doesNotMatch(html, /uncollected:district_head_minutes_person_linkage/);
+  assert.match(html, /구청장 개인 회의 활동 linkage는 아직 수집\/검토 전입니다\./);
+});
+
 test("LocalCouncilPersonDetailView keeps the source badge non-clickable when backend sends an invalid placeholder URL", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "재정 활동:0",
@@ -1151,7 +1508,9 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   assert.equal(councilMember.diagnostics?.spot_check?.huboid, "600000001");
   assert.equal(councilMember.diagnostics?.agentic_review_status, "pass");
   assert.equal(councilMember.diagnostics?.agentic_enrichment_status, "fallback");
-  assert.deepEqual(councilMember.diagnostics?.data_gap_flags, []);
+  assert.deepEqual(councilMember.diagnostics?.data_gap_flags, [
+    "uncollected:meeting_content_grounding",
+  ]);
   assert.deepEqual(councilMember.diagnostics?.needs_human_review, [
     "summary_fallback",
   ]);
@@ -1188,7 +1547,7 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
     "출처 계약 점검 결과 문제 없는 링크만 상세 카드에 노출됩니다.",
   ]);
   assert.deepEqual(districtHead.diagnostics?.explanation_lines, [
-    "발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다.",
+    "구청장 개인 회의 활동은 아직 회의록 inventory를 개인 활동으로 귀속하지 않습니다.",
   ]);
   assert.deepEqual(districtHead.freshness.explanation_lines, [
     "기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다.",
@@ -1491,7 +1850,7 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
   assert.match(html, /600000001/);
 });
 
-test("sample district head dossier exposes enough data for hero block and section actions", () => {
+test("sample district head dossier exposes enough data for hero block and non-meeting section actions", () => {
   const person = dossiers["seoul-gangdong:district-head"];
   const hero = buildPersonHeroMeta(person);
   const officialActivity = buildSectionCardViewModel({
@@ -1499,18 +1858,6 @@ test("sample district head dossier exposes enough data for hero block and sectio
     titleKeys: ["bill_title", "bill_name", "title"],
     metaKeys: ["proposed_at", "bill_date", "source_kind"],
     detailFields: [{ label: "제안일", keys: ["proposed_at", "bill_date"] }],
-    preferredSourceKinds: [],
-    preferredSourceRoles: ["official_activity"],
-    sectionSourceRefs: person.source_refs,
-  });
-  const meeting = buildSectionCardViewModel({
-    item: person.meeting_activity[0],
-    titleKeys: ["session_label", "meeting_name", "title"],
-    metaKeys: ["meeting_date", "date"],
-    detailFields: [
-      { label: "회의명", keys: ["meeting_name", "title"] },
-      { label: "회의일", keys: ["meeting_date", "date"] },
-    ],
     preferredSourceKinds: [],
     preferredSourceRoles: ["official_activity"],
     sectionSourceRefs: person.source_refs,
@@ -1530,9 +1877,43 @@ test("sample district head dossier exposes enough data for hero block and sectio
   assert.equal(hero.educationItems.length > 0, true);
   assert.equal(hero.careerItems.length > 0, true);
   assert.equal((hero.links?.length ?? 0) > 0, true);
+  assert.deepEqual(person.meeting_activity, []);
 
   assert.equal(officialActivity.actions.viewUrl?.includes("gangdong.go.kr"), true);
-  assert.equal(meeting.actions.viewUrl?.includes("gangdong.go.kr"), true);
   assert.equal(finance.actions.viewUrl?.includes("finance"), true);
   assert.equal(finance.actions.downloadUrl?.includes("download"), true);
+});
+
+test("sample council member dossier includes activity grounding fields for bills and meetings", () => {
+  const person =
+    dossiers[
+      "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+    ];
+
+  assert.equal(person.bills[0]?.participation_type, "primary_sponsor");
+  assert.equal(person.bills[0]?.bill_stage, "approved");
+  assert.equal(person.bills[0]?.ordinance_status, "approved_not_confirmed");
+  assert.equal(person.bills[0]?.bill_summary?.status, "title_only");
+  assert.equal(
+    person.bills[0]?.bill_summary?.summary_line,
+    "강동구 청년 지원에 관한 조례를 정하는 의안이다.",
+  );
+  assert.equal(person.bills[0]?.official_record_locator?.kind, "bill_detail");
+
+  assert.equal(person.meeting_activity[0]?.activity_type, "district_question");
+  assert.equal(person.meeting_activity[0]?.activity_label, "구정질문");
+  assert.equal(person.meeting_activity[0]?.record_grounding_level, "record_located");
+  assert.equal(person.meeting_activity[0]?.content_grounding?.status, "unavailable");
+});
+
+test("sample district head dossier reflects demoted meeting linkage policy", () => {
+  const person = dossiers["seoul-gangdong:district-head"];
+
+  assert.deepEqual(person.meeting_activity, []);
+  assert.equal(
+    person.diagnostics?.data_gap_flags?.includes(
+      "uncollected:district_head_minutes_person_linkage",
+    ),
+    true,
+  );
 });
