@@ -22,6 +22,16 @@ function normalizeDatabaseName(value) {
   return value.trim().toLowerCase();
 }
 
+function hasSafeDatabaseMarker(normalizedDatabase) {
+  const tokens = normalizedDatabase.split(/[^a-z0-9]+/).filter(Boolean);
+
+  if (tokens.some((token) => SAFE_DATABASE_NAME_MARKERS.includes(token))) {
+    return true;
+  }
+
+  return /(^|[^a-z0-9])(e2e|integration|test)$/.test(normalizedDatabase);
+}
+
 function assertSafeIsolatedDatabaseName(database, adminDatabase) {
   const normalizedDatabase = normalizeDatabaseName(database);
   const normalizedAdminDatabase = normalizeDatabaseName(adminDatabase);
@@ -38,7 +48,7 @@ function assertSafeIsolatedDatabaseName(database, adminDatabase) {
 
   if (
     RESERVED_DATABASE_NAMES.has(normalizedDatabase) ||
-    !SAFE_DATABASE_NAME_MARKERS.some((marker) => normalizedDatabase.includes(marker))
+    !hasSafeDatabaseMarker(normalizedDatabase)
   ) {
     throw new Error(
       [
@@ -69,7 +79,8 @@ export function getDatabaseConfig(env = process.env) {
 
   const encodedUser = encodeUrlComponent(user);
   const encodedPassword = encodeUrlComponent(password);
-  const databaseUrl = `postgresql+psycopg://${encodedUser}:${encodedPassword}@${host}:${port}/${database}`;
+  const encodedDatabase = encodeUrlComponent(database);
+  const databaseUrl = `postgresql+psycopg://${encodedUser}:${encodedPassword}@${host}:${port}/${encodedDatabase}`;
 
   return {
     host,

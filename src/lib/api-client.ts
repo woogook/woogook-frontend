@@ -501,6 +501,14 @@ function isBackendUnavailableError(error: unknown) {
   return error instanceof TypeError;
 }
 
+function isUnsupportedLocalCouncilAddressError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.status === 404 &&
+    /^unsupported local council address:/i.test(error.message)
+  );
+}
+
 export async function fetchLocalCouncilResolve(
   selection: LocalCouncilAddressSelection,
 ): Promise<LocalCouncilResult<LocalCouncilResolveResponse>> {
@@ -528,7 +536,10 @@ export async function fetchLocalCouncilResolve(
       );
     }
 
-    if (error instanceof ApiError && error.status === 404 && !isGangdongSelection(selection)) {
+    if (
+      !isGangdongSelection(selection) &&
+      isUnsupportedLocalCouncilAddressError(error)
+    ) {
       throw new ApiError(404, "현재는 서울특별시 강동구만 준비되어 있습니다.");
     }
 

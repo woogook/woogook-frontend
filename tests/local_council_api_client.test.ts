@@ -202,6 +202,36 @@ test("fetchLocalCouncilResolve maps backend 404 detail responses to the supporte
   }
 });
 
+test("fetchLocalCouncilResolve preserves unrelated backend 404 detail responses", async () => {
+  const { ApiError, fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "local council resolve route is temporarily unavailable",
+      },
+      404,
+    );
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilResolve({
+          city: "서울특별시",
+          district: "송파구",
+          dong: "잠실동",
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message === "local council resolve route is temporarily unavailable",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("fetchLocalCouncilRoster falls back to the Gangdong sample when backend is unavailable", async () => {
   const { fetchLocalCouncilRoster } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;

@@ -88,6 +88,16 @@ describe("local-council integration harness database config", () => {
     });
   });
 
+  it("databaseUrl은 reserved character가 포함된 database 이름도 percent-encode한다", () => {
+    const databaseConfig = getDatabaseConfig({
+      PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE: "custom/e2e?db",
+    });
+
+    expect(databaseConfig.databaseUrl).toBe(
+      "postgresql+psycopg://woogook:woogook@127.0.0.1:5433/custom%2Fe2e%3Fdb",
+    );
+  });
+
   it("databaseUrl은 reserved character가 포함된 credential을 percent-encode한다", () => {
     const databaseConfig = getDatabaseConfig({
       PLAYWRIGHT_LOCAL_COUNCIL_PGUSER: "user:name@example.com",
@@ -103,6 +113,14 @@ describe("local-council integration harness database config", () => {
     expect(() =>
       getDatabaseConfig({
         PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE: "woogook",
+      }),
+    ).toThrow(/격리 integration database 이름/);
+  });
+
+  it("substring으로만 test marker를 포함한 database 이름은 거부한다", () => {
+    expect(() =>
+      getDatabaseConfig({
+        PLAYWRIGHT_LOCAL_COUNCIL_PGDATABASE: "contest_data",
       }),
     ).toThrow(/격리 integration database 이름/);
   });
