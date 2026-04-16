@@ -1,5 +1,16 @@
 # 현직 지방의원 frontend/backend 로컬 확인 가이드
 
+## 주요 독자
+
+- `local-council` 화면을 브라우저에서 직접 확인해야 하는 개발자, QA, 리뷰어
+- backend seed부터 frontend proxy 확인까지 한 번에 따라가야 하는 팀원
+
+## 이 문서를 먼저 볼 상황
+
+- `frontend-only sample mode`와 `backend-connected live mode`를 둘 다 수동으로 검증해야 할 때
+- 주소 입력, roster, detail, proxy 응답까지 사람 기준으로 합격 여부를 판정해야 할 때
+- Playwright 자동 회귀만 실행하면 되는 상황이면 [Playwright E2E 실행 가이드](./playwright-e2e.md)를 먼저 본다.
+
 ## 목적
 
 - `woogook-frontend`의 `/local-council` 화면을 로컬에서 직접 확인한다.
@@ -10,7 +21,8 @@
 
 - 현재 제품 범위에서 주소 해석과 실제 backend read API는 `서울특별시 강동구`만 지원한다.
 - frontend는 backend가 없거나 `WOOGOOK_BACKEND_BASE_URL`이 비어 있으면 강동구 샘플로 fallback한다.
-- `npm run dev`로 화면을 직접 띄우려면 `Node.js 20.9 이상`이 필요하다.
+- `npm run dev`와 문서 예시는 `.nvmrc`와 같은 `Node.js 24.14.1` 기준으로 맞춘다.
+- Next.js 최소 요구사항은 `Node.js 20.9+`지만, 팀 작업 기준은 `.nvmrc`를 따른다.
 - backend 실연동까지 보려면 `local-election` seed, `local_council_member_profile` seed, `local_council` projection seed가 모두 필요하다.
 - 아래 예시는 `woogook-frontend`와 `woogook-backend`가 같은 부모 디렉터리 아래에 있다고 가정한다.
 
@@ -23,7 +35,7 @@
 
 ## 준비물
 
-- Node.js `20.9 이상` + npm
+- Node.js `.nvmrc` 기준 `24.14.1` + npm
 - Docker + `docker compose`
 - `uv`
 - 브라우저
@@ -38,36 +50,68 @@
 ### frontend-only sample mode
 
 - 이 경로는 backend 없이도 끝까지 확인되는지 보는 절차다.
-- `/local-council` 주소 화면이 열리고 `서울 강동구 천호동` sample 버튼이 보인다.
-- 결과 화면 상단 배지가 `로컬 미리보기 데이터`다.
-- 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
-- roster에 `구청장`, `구의원` 카드가 모두 보이고, detail까지 이동된다.
-- sample detail에서 `요약 설명`, `근거 현황`, `품질 신호`, `출처 계약 점검`, `신선도 계보`, `spot-check`가 함께 보인다.
-- sample detail의 `의안` 카드에 `대표발의` 또는 동등 participation badge가 보인다.
-- sample detail에서 `bill_summary`가 있으면 카드 본문에 `의안 내용` 1문장 요약이 보인다.
-- sample detail의 bill locator가 있으면 액션 버튼이 `의안 상세 열기`처럼 locator-aware 문구로 보인다.
-- sample detail의 `meeting_activity`가 `supported`가 아니면 `직접 발언 확인`처럼 읽히지 않고 `공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음` 같은 보수적 문구가 보인다.
-- 구청장 sample detail에서는 `보강 정보` 구역이 보이고 `준비 완료` 상태와 1건 이상의 overlay item을 확인할 수 있다.
-- 구청장 sample detail에서는 개인 `meeting_activity` 카드가 비어 있고 `district_head_official_minutes` 한계를 설명하는 진단 문구가 보인다.
-- 구의원 sample detail에서는 `보강 정보`가 `준비 중` 또는 비어 있는 상태라도 공식 결정적 결과 구역은 그대로 동작해야 한다.
-- 구의원 sample detail의 `person_key`는 opaque key 예시를 따른다.
+
+#### 주소 화면과 결과 화면
+
+- 주소 화면
+  - `/local-council` 주소 화면이 열리고 `서울 강동구 천호동` sample 버튼이 보인다.
+- 결과 화면
+  - 결과 화면 상단 배지가 `로컬 미리보기 데이터`다.
+  - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
+  - roster에 `구청장`, `구의원` 카드가 모두 보이고, detail까지 이동된다.
+
+#### sample detail 핵심 확인
+
+- 공통 detail
+  - `요약 설명`, `근거 현황`, `품질 신호`, `출처 계약 점검`, `신선도 계보`, `spot-check`가 함께 보인다.
+  - `의안` 카드에 `대표발의` 또는 동등 participation badge가 보인다.
+  - `bill_summary`가 있으면 카드 본문에 `의안 내용` 1문장 요약이 보인다.
+  - bill locator가 있으면 액션 버튼이 `의안 상세 열기`처럼 locator-aware 문구로 보인다.
+  - `meeting_activity`가 `supported`가 아니면 `직접 발언 확인`처럼 읽히지 않고 `공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음` 같은 보수적 문구가 보인다.
+- 구청장 detail
+  - `보강 정보` 구역이 보이고 `준비 완료` 상태와 1건 이상의 overlay item을 확인할 수 있다.
+  - 개인 `meeting_activity` 카드가 비어 있고 `district_head_official_minutes` 한계를 설명하는 진단 문구가 보인다.
+- 구의원 detail
+  - `보강 정보`가 `준비 중` 또는 비어 있는 상태라도 공식 결정적 결과 구역은 그대로 동작해야 한다.
+  - `person_key`는 opaque key 예시를 따른다.
+
+#### 식별자 역추적
+
 - sample에는 fallback형 opaque `person_key` 패턴(`seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640`)을 사용하고, live backend는 `huboid`형 opaque key도 내려줄 수 있다.
 - 필요하면 `spot_check.huboid`와 `member_source_docid`를 함께 보고 실제 대상 인물을 역추적한다.
 
 ### backend-connected live mode
 
 - 이 경로는 frontend가 실제 backend 응답을 받는지 보는 절차다.
-- `/api/local-council/v1/resolve`, `/districts/11740/roster`, `/persons/{person_key}`가 backend에서 200을 반환한다.
-- frontend Next proxy는 `/api/local-council/v1/resolve`, `/api/local-council/v1/districts/{gu_code}/roster`, `/api/local-council/v1/persons/{person_key}`를 relay한다.
-- `/local-council` 화면 상단 배지가 `공식 근거 데이터`다.
-- fallback 안내 문구가 사라지고, live roster/detail이 보인다.
-- non-Gangdong 입력은 계속 제한 안내 또는 backend 404 경계 안에 머문다.
-- live detail의 diagnostics에 `publishable_degraded / unavailable / skipped`가 보일 수 있는데, model env가 없는 local smoke에서는 이를 UI failure로 보지 않는다.
-- live detail에서는 `evidence`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `freshness.lineage/staleness_bucket/explanation`, `spot_check.huboid/member_source_docid`가 사람이 읽는 문장으로 보여야 한다.
-- live detail에서는 `overlay.status/support_tier/generated_at/basis/sections/disclaimers`가 내려오면 `보강 정보` 구역으로 렌더링되고, `overlay.status == "unavailable"`여도 공식 상세 카드가 깨지면 안 된다.
-- live detail의 `의안` 카드에서는 `participation_type`, `bill_stage`, `ordinance_status`, `bill_summary`, `official_record_locator`가 badge/상태/요약/액션 라벨로 읽히게 보여야 한다.
-- live detail의 `meeting_activity` 카드에서는 `record_grounding_level`과 `content_grounding.status`가 분리된 badge로 보이고 `activity_summary_line`은 `supported`일 때만 본문처럼 노출돼야 한다.
-- live detail의 구청장 상세에서는 `district_head_official_minutes`가 개인 활동으로 승격되지 않고 diagnostics copy로 한계가 설명돼야 한다.
+
+#### API와 proxy 확인
+
+- backend API
+  - `/api/local-council/v1/resolve`, `/districts/11740/roster`, `/persons/{person_key}`가 backend에서 200을 반환한다.
+- frontend Next proxy
+  - `/api/local-council/v1/resolve`
+  - `/api/local-council/v1/districts/{gu_code}/roster`
+  - `/api/local-council/v1/persons/{person_key}`
+  - 위 경로들이 backend 응답을 relay해야 한다.
+
+#### 화면 확인
+
+- 상단 상태
+  - `/local-council` 화면 상단 배지가 `공식 근거 데이터`다.
+  - fallback 안내 문구가 사라지고, live roster/detail이 보인다.
+- 범위 가드
+  - non-Gangdong 입력은 계속 제한 안내 또는 backend 404 경계 안에 머문다.
+
+#### live detail 핵심 확인
+
+- diagnostics와 freshness
+  - diagnostics에 `publishable_degraded / unavailable / skipped`가 보일 수 있는데, model env가 없는 local smoke에서는 이를 UI failure로 보지 않는다.
+  - `evidence`, `diagnostics.quality_signals`, `diagnostics.source_contract_summary`, `freshness.lineage/staleness_bucket/explanation`, `spot_check.huboid/member_source_docid`가 사람이 읽는 문장으로 보여야 한다.
+- overlay와 활동 카드
+  - `overlay.status/support_tier/generated_at/basis/sections/disclaimers`가 내려오면 `보강 정보` 구역으로 렌더링되고, `overlay.status == "unavailable"`여도 공식 상세 카드가 깨지면 안 된다.
+  - `의안` 카드에서는 `participation_type`, `bill_stage`, `ordinance_status`, `bill_summary`, `official_record_locator`가 badge/상태/요약/액션 라벨로 읽히게 보여야 한다.
+  - `meeting_activity` 카드에서는 `record_grounding_level`과 `content_grounding.status`가 분리된 badge로 보이고 `activity_summary_line`은 `supported`일 때만 본문처럼 노출돼야 한다.
+  - 구청장 상세에서는 `district_head_official_minutes`가 개인 활동으로 승격되지 않고 diagnostics copy로 한계가 설명돼야 한다.
 
 ## 1. frontend만 먼저 확인
 
@@ -83,7 +127,7 @@ npm install
 
 `WOOGOOK_BACKEND_BASE_URL`을 넣은 `.env`가 이미 있다면 잠시 비워 둔다. 이 값이 있으면 frontend가 backend 연결을 시도한다.
 `.env.local`이 남아 있다면 먼저 값을 `/.env`로 옮기고 `.env.local`은 지운다.
-기본 `node`가 20.9 미만이면 `npm run dev`가 뜨지 않는다. 이 환경에서는 예를 들어 `PATH=/opt/homebrew/opt/node@22/bin:$PATH npm run dev`처럼 실행한다.
+기본 `node`가 `.nvmrc`와 다르면 먼저 `nvm use`처럼 저장소 기준 버전으로 맞춘다. 최소 요구사항만 맞추는 우회 실행보다 저장소 기본 버전을 우선한다.
 
 ```bash
 npm run dev
@@ -95,24 +139,35 @@ npm run dev
 
 ### 1-2. 화면에서 확인할 것
 
-1. 주소 입력 화면 상단 문구가 아래와 같은지 본다.
-   - 배지: `지방의원`
-   - 제목: `우리동네 지방의원을 확인하세요`
-   - 버튼: `지방의원 확인하기`
-2. 샘플 버튼 `서울 강동구 천호동`을 누르거나 직접 같은 값을 선택한다.
-3. 결과 화면에서 아래를 확인한다.
-   - 상단 데이터 소스 배지가 `로컬 미리보기 데이터`
-   - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`
-   - `구청장`, `구의원` 카드가 모두 보임
-4. 인물을 클릭해 dossier 상세로 이동한다.
-5. 상세에서 아래를 확인한다.
-   - `요약 설명`
-   - `근거 현황`
-   - `품질 신호`
-   - `출처 계약 점검`
-   - `신선도 계보`
-   - `spot-check`
-   - `보강 정보`
+#### 주소 입력 화면
+
+- 상단 문구
+  - 배지: `지방의원`
+  - 제목: `우리동네 지방의원을 확인하세요`
+  - 버튼: `지방의원 확인하기`
+- 샘플 주소
+  - 샘플 버튼 `서울 강동구 천호동`을 누르거나 직접 같은 값을 선택한다.
+
+#### 결과 화면
+
+- 상단 상태
+  - 상단 데이터 소스 배지가 `로컬 미리보기 데이터`다.
+  - 안내 문구에 `backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.`가 보인다.
+- roster
+  - `구청장`, `구의원` 카드가 모두 보인다.
+
+#### detail 화면
+
+- 이동
+  - 인물을 클릭해 dossier 상세로 이동한다.
+- 확인 항목
+  - `요약 설명`
+  - `근거 현황`
+  - `품질 신호`
+  - `출처 계약 점검`
+  - `신선도 계보`
+  - `spot-check`
+  - `보강 정보`
 
 ### 1-3. 여기서 막히면 먼저 볼 것
 
@@ -233,14 +288,14 @@ uv run python scripts/local_council_member/district_source_pipeline/collect/coll
 
 `local_council_portal_members`는 현재 fixture latest가 저장소에 커밋돼 있지 않다. 둘 중 하나를 선택한다.
 
-1. 처음 세팅이면 실데이터 수집:
+#### 선택지 A. 처음 세팅이면 실데이터 수집
 
 ```bash
 uv run python scripts/local_council_member/district_source_pipeline/collect/collect_local_council_portal_members.py \
   --district seoul-gangdong
 ```
 
-2. 이미 canonical latest가 있으면 재사용:
+#### 선택지 B. 이미 canonical latest가 있으면 재사용
 
 ```bash
 uv run python scripts/local_council_member/district_source_pipeline/collect/collect_local_council_portal_members.py \
@@ -336,13 +391,18 @@ npm run dev
 
 확인 순서:
 
-1. `서울 강동구 천호동` 샘플을 선택한다.
-2. resolve가 성공하면 상단 배지가 `공식 근거 데이터`인지 본다.
-3. `backend 없이 frontend만 실행 중이라 ...` 안내 문구가 더 이상 보이지 않는지 본다.
-4. 구청장 또는 구의원 카드를 눌러 상세로 들어간다.
-5. 상세에서 `근거 요약`, `설명 가능한 진단`, `당선 근거`, `출처`, `보강 정보`가 보이는지 확인한다.
-6. 구청장 상세에서 district-head payload에 overlay item이 있으면 `원문 보기`, `신뢰 높음`, `허용 소스`가 함께 보이는지 확인한다.
-7. 구의원 상세에서는 `보강 정보`가 `준비 중`이어도 기존 `근거 요약`, `설명 가능한 진단`, 세부 섹션이 그대로 보이는지 확인한다.
+#### roster 진입
+
+- `서울 강동구 천호동` 샘플을 선택한다.
+- resolve가 성공하면 상단 배지가 `공식 근거 데이터`인지 본다.
+- `backend 없이 frontend만 실행 중이라 ...` 안내 문구가 더 이상 보이지 않는지 본다.
+
+#### detail 진입 후 확인
+
+- 구청장 또는 구의원 카드를 눌러 상세로 들어간다.
+- 상세에서 `근거 요약`, `설명 가능한 진단`, `당선 근거`, `출처`, `보강 정보`가 보이는지 확인한다.
+- 구청장 상세에서 district-head payload에 overlay item이 있으면 `원문 보기`, `신뢰 높음`, `허용 소스`가 함께 보이는지 확인한다.
+- 구의원 상세에서는 `보강 정보`가 `준비 중`이어도 기존 `근거 요약`, `설명 가능한 진단`, 세부 섹션이 그대로 보이는지 확인한다.
 
 ## 2-9. frontend proxy 경로를 직접 확인한다
 
@@ -378,10 +438,18 @@ curl 'http://127.0.0.1:3000/api/local-council/v1/districts/11740/roster'
 
 ## 2-10. 최종 수동 확인 체크리스트
 
+#### mode별 확인
+
 - frontend-only sample mode에서 `로컬 미리보기 데이터` 배지와 fallback 안내 문구를 확인했다.
 - backend-connected live mode에서 `공식 근거 데이터` 배지와 live roster/detail을 확인했다.
+
+#### API와 범위 가드
+
 - backend API와 frontend proxy API가 모두 강동구 resolve/roster/person 요청에 200을 반환했다.
 - 강동구 외 입력은 제한 안내 또는 backend 404 경계 안에 머문다.
+
+#### detail 렌더링
+
 - detail 화면에서 `summary`, `evidence`, `diagnostics`, `freshness`, `diagnostics.source_contract_summary`, `source_refs`가 렌더링된다.
 - detail 화면에서 `overlay`가 있으면 `보강 정보` 구역이 렌더링되고, `overlay`가 비어 있거나 `unavailable`이어도 deterministic core는 그대로 렌더링된다.
 - model env가 없는 live backend라면 `publishable_degraded / unavailable / skipped` 조합을 UI failure로 보지 않는다.

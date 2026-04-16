@@ -1,15 +1,30 @@
-# 현직 지방의원 Playwright E2E Runbook
+# 현직 지방의원 Playwright E2E 실행 가이드
+
+## 주요 독자
+
+- `local-council` 자동 회귀를 처음 실행하는 개발자와 QA
+- smoke/integration E2E 실패를 재현하고 원인을 좁혀야 하는 리뷰어
+
+## 이 문서를 먼저 볼 상황
+
+- 수동 브라우저 확인보다 Playwright smoke/integration E2E를 먼저 돌려야 할 때
+- CI 또는 로컬에서 `local-council` 자동 테스트가 왜 깨졌는지 빠르게 따라가야 할 때
+- 사람이 직접 브라우저를 보며 합격 여부를 체크하려면 [frontend/backend 로컬 확인 가이드](./local-frontend-backend-check-guide.md)를 먼저 본다.
 
 ## 1. 목적
 
-- 이 문서는 `woogook-frontend`를 처음 보는 사람도 `local-council` 자동 테스트를 실행할 수 있도록 돕는 실행 가이드다.
-- 테스트 범위는 두 단계로 나뉜다.
-  - `Smoke E2E(빠른 회귀 테스트)`
-    - frontend 단독 실행 환경에서도 돌아가는 브라우저 레벨 회귀 테스트다.
-    - sample fallback(샘플 데이터 대체 경로)과 기본 사용자 흐름이 깨지지 않았는지 확인한다.
-  - `Integration E2E(백엔드 연동 통합 테스트)`
-    - 실제 backend, Postgres, Next API route, Playwright browser flow를 함께 검증한다.
-    - `지역 선택 -> 명단 조회 -> 상세 진입`이 실데이터 계약과 호환되는지 확인한다.
+### 이 문서가 돕는 것
+
+- `woogook-frontend`를 처음 보는 사람도 `local-council` 자동 테스트를 실행할 수 있도록 돕는 실행 가이드다.
+
+### 테스트 범위
+
+- `Smoke E2E(빠른 회귀 테스트)`
+  - frontend 단독 실행 환경에서도 돌아가는 브라우저 레벨 회귀 테스트다.
+  - sample fallback(샘플 데이터 대체 경로)과 기본 사용자 흐름이 깨지지 않았는지 확인한다.
+- `Integration E2E(백엔드 연동 통합 테스트)`
+  - 실제 backend, Postgres, Next API route, Playwright browser flow를 함께 검증한다.
+  - `지역 선택 -> 명단 조회 -> 상세 진입`이 실데이터 계약과 호환되는지 확인한다.
 
 ## 2. 이 문서가 전제하는 것
 
@@ -26,12 +41,14 @@
 
 ### 3.1 처음 보는 사람용 최소 절차
 
-- 1회만 준비하면 되는 것
-  - Node.js를 `.nvmrc`와 같은 `24.14.1`로 맞춘다.
-  - frontend 의존성을 설치한다.
-  - Playwright browser asset(브라우저 실행 자산)을 설치한다.
-  - Docker Desktop과 `uv`가 실행 가능해야 한다.
-- 가장 빠른 실행 순서
+#### 1회 준비
+
+- Node.js를 `.nvmrc`와 같은 `24.14.1`로 맞춘다.
+- frontend 의존성을 설치한다.
+- Playwright browser asset(브라우저 실행 자산)을 설치한다.
+- Docker Desktop과 `uv`가 실행 가능해야 한다.
+
+#### 가장 빠른 실행 순서
 
 ```bash
 cd /path/to/woogook-frontend
@@ -99,22 +116,29 @@ export PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO=/abs/path/to/woogook-backend
 
 ### 5.1 Smoke E2E
 
-- 목적
-  - backend 없이도 브라우저 주요 동선이 깨지지 않았는지 빠르게 확인한다.
-- 검증 범위
+#### 목적
+
+- backend 없이도 브라우저 주요 동선이 깨지지 않았는지 빠르게 확인한다.
+
+#### 검증 범위
+
+- 기본 흐름
   - `/local-council` 진입
-  - 상단 global navigation(global navigation) 링크 확인
   - sample button 클릭
   - roster 표시
   - 구청장 detail(상세) 진입
   - 구의원 detail(상세) 진입
-  - 근거 요약 / 발행·진단 / 설명 가능한 진단 / 당선 근거 패널 확인
-  - sparse branch(빈 섹션 분기) 표시 확인
+- 화면과 내비게이션
+  - 상단 글로벌 내비게이션(global navigation) 링크 확인
   - explicit back button(명시적 뒤로가기 버튼) 확인
   - browser back navigation(브라우저 뒤로가기) 확인
+- 상세 렌더링
+  - 근거 요약 / 발행·진단 / 설명 가능한 진단 / 당선 근거 패널 확인
+  - sparse branch(빈 섹션 분기) 표시 확인
   - external/source link(외부·출처 링크) wiring 확인
-  - accessible label(접근 가능한 label) 기반 locator 확인
-- 실행 명령
+  - 접근성 라벨(accessible label) 기반 locator 확인
+
+#### 실행 명령
 
 ```bash
 npm run e2e:smoke
@@ -122,17 +146,24 @@ npm run e2e:smoke
 
 ### 5.2 Integration E2E
 
-- 목적
-  - frontend, Next API route, backend, Postgres 사이의 실제 연결이 살아 있는지 확인한다.
-- 검증 범위
+#### 목적
+
+- frontend, Next API route, backend, Postgres 사이의 실제 연결이 살아 있는지 확인한다.
+
+#### 검증 범위
+
+- API와 데이터 연결
   - `지역 select`가 Postgres 기반 API로 채워지는지 확인
   - `local-council resolve API`가 backend proxy를 통해 응답하는지 확인
+- 화면 렌더링
   - `공식 근거 데이터` 배지가 보이는지 확인
   - 구청장과 구의원 roster/detail이 backend fixture 기준으로 렌더링되는지 확인
-  - explicit back button(명시적 뒤로가기 버튼) 확인
   - summary/elected basis panel(요약/당선 근거 패널)과 source badge(출처 배지) 렌더링 확인
+- 상호작용과 링크
+  - explicit back button(명시적 뒤로가기 버튼) 확인
   - deterministic source action(결정론적 출처 액션) 링크가 올바른 `href`로 렌더링되는지 확인
-- 실행 명령
+
+#### 실행 명령
 
 ```bash
 npm run e2e:integration
@@ -232,7 +263,7 @@ npm run build
 ### 8.2 언제 Playwright Test spec으로 남겨야 하는가
 
 - 최종 회귀 테스트는 반드시 `Playwright Test spec`으로 고정한다.
-- 즉
+- 역할 구분
   - CLI는 조사 도구
   - spec은 회귀 방지 장치
 
@@ -252,14 +283,15 @@ npm run e2e:integration:headed
 npm run e2e:integration:debug
 ```
 
-- 용도 구분
-  - `--headed`
-    - 사람이 실제 브라우저 창을 보면서 자동 테스트가 진행되는 모습을 확인할 때 적합하다.
-  - `--debug`
-    - Playwright Inspector(inspector)와 함께 한 단계씩 멈춰 보며 조사할 때 적합하다.
-  - `PWDEBUG=1`
-    - 환경 변수 기반 디버깅 방식이다.
-    - 기존 Playwright 습관에 익숙한 사람이 선호할 수 있다.
+#### 용도 구분
+
+- `--headed`
+  - 사람이 실제 브라우저 창을 보면서 자동 테스트가 진행되는 모습을 확인할 때 적합하다.
+- `--debug`
+  - Playwright Inspector를 통해 한 단계씩 멈춰 보며 조사할 때 적합하다.
+- `PWDEBUG=1`
+  - 환경 변수 기반 디버깅 방식이다.
+  - 기존 Playwright 습관에 익숙한 사람이 선호할 수 있다.
 
 ## 9. 디버깅 가이드
 
@@ -277,13 +309,14 @@ PLAYWRIGHT_LOCAL_COUNCIL_INTEGRATION=1 npm run e2e:integration:spec
 
 ### 9.2 Playwright artifact(결과 산출물) 확인
 
-- 실패 시 확인할 것
-  - `playwright-report/`
-    - HTML report(HTML 리포트)
-  - `test-results/`
-    - screenshot
-    - video
-    - error-context.md
+#### 실패 시 확인 경로
+
+- `playwright-report/`
+  - HTML report(HTML 리포트)
+- `test-results/`
+  - screenshot
+  - video
+  - error-context.md
 
 ### 9.3 backend 로그 확인
 
