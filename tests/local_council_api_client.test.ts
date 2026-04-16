@@ -90,8 +90,12 @@ function loadLocalCouncilApiClient(options?: {
 }
 
 function buildServiceUnavailableResponse(message: string) {
-  return new Response(JSON.stringify({ message }), {
-    status: 503,
+  return buildJsonResponse({ message }, 503);
+}
+
+function buildJsonResponse(payload: unknown, status: number) {
+  return new Response(JSON.stringify(payload), {
+    status,
     headers: {
       "Content-Type": "application/json",
     },
@@ -162,6 +166,66 @@ test("fetchLocalCouncilResolve returns the Gangdong-only limitation message for 
         error.status === 503 &&
         error.message ===
           "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchLocalCouncilResolve maps backend 404 detail responses to the supported-scope message", async () => {
+  const { ApiError, fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "unsupported local council address: 서울특별시 송파구 잠실동 123",
+      },
+      404,
+    );
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilResolve({
+          city: "서울특별시",
+          district: "송파구",
+          dong: "잠실동",
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message === "현재는 서울특별시 강동구만 준비되어 있습니다.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchLocalCouncilResolve preserves unrelated backend 404 detail responses", async () => {
+  const { ApiError, fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "local council resolve route is temporarily unavailable",
+      },
+      404,
+    );
+
+  try {
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilResolve({
+          city: "서울특별시",
+          district: "송파구",
+          dong: "잠실동",
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message === "local council resolve route is temporarily unavailable",
     );
   } finally {
     globalThis.fetch = originalFetch;
@@ -254,6 +318,31 @@ test("fetchLocalCouncilPerson falls back to the local sample for opaque fallback
 
     assert.equal(result.dataSource, "local_sample");
     assert.equal(result.data.overlay?.basis?.target_member_id, opaqueKey);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchLocalCouncilPerson surfaces backend detail payloads for missing people", async () => {
+  const { ApiError, fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "선택한 인물 정보를 찾지 못했습니다.",
+      },
+      404,
+    );
+
+  try {
+    await assert.rejects(
+      () => fetchLocalCouncilPerson("missing-person-key"),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 404 &&
+        error.message === "선택한 인물 정보를 찾지 못했습니다.",
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
