@@ -879,6 +879,29 @@ test("buildMeetingActivityCardViewModel softens summary copy when only the recor
   );
 });
 
+test("buildMeetingActivityCardViewModel omits unsupported fallback copy when supported summary is missing", () => {
+  const card = buildMeetingActivityCardViewModel({
+    item: {
+      session_label: "제322회 임시회",
+      activity_label: "구정질문",
+      record_grounding_level: "record_located",
+      content_grounding: {
+        status: "supported",
+      },
+      official_record_locator: {
+        kind: "council_minutes_popup",
+        source_url: "https://example.com/minutes",
+      },
+      source_ref: {
+        role: "official_activity",
+      },
+    },
+    sectionSourceRefs: [],
+  });
+
+  assert.equal(card.summaryLine, null);
+});
+
 test("buildSectionCardViewModel resolves a source label from the matched section source", () => {
   const section = buildSectionCardViewModel({
     item: { headline: "인사말", source_ref: { role: "official_profile" } },

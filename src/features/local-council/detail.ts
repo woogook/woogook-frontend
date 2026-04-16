@@ -818,7 +818,8 @@ export function buildMeetingActivityCardViewModel(args: {
         tone: groundingStatus === "supported" ? "accent" : "subtle",
       },
     ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
-    summaryLine: supportedSummary ?? unsupportedSummary,
+    summaryLine:
+      groundingStatus === "supported" ? supportedSummary : unsupportedSummary,
     detailRows: buildSectionDetailRows(args.item, [
       { label: "회의일", keys: ["meeting_date"] },
       { label: "회의명", keys: ["meeting_name"] },
