@@ -129,14 +129,14 @@ export PLAYWRIGHT_LOCAL_COUNCIL_BACKEND_REPO=/abs/path/to/woogook-backend
   - 구청장 detail(상세) 진입
   - 구의원 detail(상세) 진입
 - 화면과 내비게이션
-  - 상단 global navigation(global navigation) 링크 확인
+  - 상단 글로벌 내비게이션(global navigation) 링크 확인
   - explicit back button(명시적 뒤로가기 버튼) 확인
   - browser back navigation(브라우저 뒤로가기) 확인
 - 상세 렌더링
   - 근거 요약 / 발행·진단 / 설명 가능한 진단 / 당선 근거 패널 확인
   - sparse branch(빈 섹션 분기) 표시 확인
   - external/source link(외부·출처 링크) wiring 확인
-  - accessible label(접근 가능한 label) 기반 locator 확인
+  - 접근성 라벨(accessible label) 기반 locator 확인
 
 #### 실행 명령
 
@@ -288,7 +288,7 @@ npm run e2e:integration:debug
 - `--headed`
   - 사람이 실제 브라우저 창을 보면서 자동 테스트가 진행되는 모습을 확인할 때 적합하다.
 - `--debug`
-  - Playwright Inspector(inspector)와 함께 한 단계씩 멈춰 보며 조사할 때 적합하다.
+  - Playwright Inspector를 통해 한 단계씩 멈춰 보며 조사할 때 적합하다.
 - `PWDEBUG=1`
   - 환경 변수 기반 디버깅 방식이다.
   - 기존 Playwright 습관에 익숙한 사람이 선호할 수 있다.
