@@ -23,6 +23,31 @@ test("local-council address fields and global navigation are reachable", async (
   await expectLocalCouncilHeaderLinks(page);
 });
 
+test("local-council address step keeps shared region fallback options visible on regions API failure", async ({
+  page,
+}) => {
+  await page.route("**/api/regions/**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: "지역 선거 데이터를 불러오지 못했습니다.",
+      }),
+    });
+  });
+
+  await gotoLocalCouncilAddressStep(page);
+  await expect(
+    page.getByText("지역 선거 데이터를 불러오지 못했습니다. 일부 기본 지역 목록으로 계속 진행합니다."),
+  ).toBeVisible();
+
+  await page.getByLabel("시/도").selectOption("서울특별시");
+  await expect(page.getByLabel("구/군/시").locator("option")).toContainText(["강동구"]);
+
+  await page.getByLabel("구/군/시").selectOption("강동구");
+  await expect(page.getByLabel("읍/면/동").locator("option")).toContainText(["천호동"]);
+});
+
 test("local-council sample district-head detail covers official links, overlay, and explicit back buttons", async ({
   page,
 }) => {

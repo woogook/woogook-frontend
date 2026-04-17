@@ -81,9 +81,11 @@ function loadRegionQueryModules(options?: {
     delete runtimeRequire.cache[runtimeRequire.resolve("../src/app/data")];
     delete runtimeRequire.cache[runtimeRequire.resolve("../src/lib/api-client")];
 
-    const { citiesQueryOptions } = runtimeRequire("../src/lib/api-client") as typeof import("../src/lib/api-client");
+    const { citiesQueryOptions, sigunguQueryOptions, emdQueryOptions } = runtimeRequire(
+      "../src/lib/api-client",
+    ) as typeof import("../src/lib/api-client");
 
-    return { citiesQueryOptions };
+    return { citiesQueryOptions, sigunguQueryOptions, emdQueryOptions };
   } finally {
     moduleLoader._load = originalLoad;
     moduleLoader._resolveFilename = originalResolveFilename;
@@ -132,10 +134,13 @@ test("citiesQueryOptions falls back without console.error when backend is unavai
       } as Parameters<typeof queryFn>[0],
     );
 
-    assert.deepEqual(result.items, []);
+    assert.deepEqual(result.items, [
+      "서울특별시",
+      "제주특별자치도",
+    ]);
     assert.equal(
       result.fallbackMessage,
-      "로컬 Postgres가 실행 중이지 않습니다. Docker Desktop과 postgres 컨테이너를 먼저 실행해주세요.",
+      "로컬 Postgres가 실행 중이지 않습니다. Docker Desktop과 postgres 컨테이너를 먼저 실행해주세요. 일부 기본 지역 목록으로 계속 진행합니다.",
     );
     assert.equal(errorCalls.length, 0);
     assert.equal(warnCalls.length, 1);
@@ -198,11 +203,15 @@ test("citiesQueryOptions reports observability errors while keeping fallback war
       } as Parameters<typeof queryFn>[0],
     );
 
-    assert.deepEqual(result.items, []);
+    assert.ok(result.items.includes("서울특별시"));
     assert.equal(warnCalls.length, 1);
     assert.equal(errorCalls.length, 0);
     assert.equal(reportBrowserErrorCalls.length, 1);
     assert.equal(reportBrowserErrorCalls[0]?.error.message, "지역 목록 API가 일시적으로 응답하지 않습니다.");
+    assert.equal(
+      result.fallbackMessage,
+      "지역 목록 API가 일시적으로 응답하지 않습니다. 일부 기본 지역 목록으로 계속 진행합니다.",
+    );
     assert.deepEqual(reportBrowserErrorCalls[0]?.context, {
       route: "/api/regions/cities",
       fallbackMessage: "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
@@ -211,5 +220,83 @@ test("citiesQueryOptions reports observability errors while keeping fallback war
     globalThis.fetch = originalFetch;
     console.warn = originalConsoleWarn;
     console.error = originalConsoleError;
+  }
+});
+
+test("sigunguQueryOptions falls back to shared district catalog for supported city", async () => {
+  const { sigunguQueryOptions } = loadRegionQueryModules();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        message: "지역 선거 데이터를 불러오지 못했습니다.",
+      }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  try {
+    const options = sigunguQueryOptions("서울특별시");
+    const queryFn = options.queryFn as NonNullable<typeof options.queryFn>;
+    const result = await queryFn(
+      {
+        queryKey: ["regions", "sigungu", "서울특별시"] as const,
+        client: undefined as never,
+        signal: new AbortController().signal,
+        meta: undefined,
+      } as Parameters<typeof queryFn>[0],
+    );
+
+    assert.ok(result.items.includes("강동구"));
+    assert.equal(
+      result.fallbackMessage,
+      "지역 선거 데이터를 불러오지 못했습니다. 일부 기본 지역 목록으로 계속 진행합니다.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("emdQueryOptions falls back to shared dong catalog for supported district", async () => {
+  const { emdQueryOptions } = loadRegionQueryModules();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        message: "읍면동 데이터를 불러오지 못했습니다.",
+      }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  try {
+    const options = emdQueryOptions("서울특별시", "강동구");
+    const queryFn = options.queryFn as NonNullable<typeof options.queryFn>;
+    const result = await queryFn(
+      {
+        queryKey: ["regions", "emd", "서울특별시", "강동구"] as const,
+        client: undefined as never,
+        signal: new AbortController().signal,
+        meta: undefined,
+      } as Parameters<typeof queryFn>[0],
+    );
+
+    assert.deepEqual(result.items, ["천호동"]);
+    assert.equal(
+      result.fallbackMessage,
+      "읍면동 데이터를 불러오지 못했습니다. 일부 기본 지역 목록으로 계속 진행합니다.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

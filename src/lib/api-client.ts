@@ -9,6 +9,10 @@ import {
   reportClientApiFailure,
 } from "@/lib/observability/client";
 import {
+  buildRegionFallbackMessage,
+  getFallbackRegionItems,
+} from "@/lib/region-fallback";
+import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
   citiesResponseSchema,
@@ -159,6 +163,7 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
   schema: ZodType<T>,
   key: K,
   fallbackMessage: string,
+  fallbackItems: string[],
 ) {
   try {
     const payload = await fetchJson(input, schema);
@@ -173,9 +178,14 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       });
     }
     console.warn("[regions] 기본 목록으로 대체합니다.", error);
+    const message =
+      error instanceof Error ? error.message : fallbackMessage;
     return {
-      items: [],
-      fallbackMessage: error instanceof Error ? error.message : fallbackMessage,
+      items: fallbackItems,
+      fallbackMessage: buildRegionFallbackMessage(
+        message,
+        fallbackItems.length > 0,
+      ),
     } satisfies RegionQueryResult;
   }
 }
@@ -188,6 +198,7 @@ export const citiesQueryOptions = queryOptions({
       citiesResponseSchema,
       "cities",
       "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      getFallbackRegionItems("cities"),
     ),
   staleTime: 24 * 60 * 60 * 1000,
 });
@@ -203,6 +214,7 @@ export function sigunguQueryOptions(city: string) {
           sigunguResponseSchema,
           "sigungu",
           "구/군 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          getFallbackRegionItems("sigungu", { city: parsed.city }),
         )
       );
     },
@@ -221,6 +233,10 @@ export function emdQueryOptions(city: string, sigungu: string) {
           emdResponseSchema,
           "emd",
           "읍/면/동 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          getFallbackRegionItems("emd", {
+            city: parsed.city,
+            sigungu: parsed.sigungu,
+          }),
         )
       );
     },
