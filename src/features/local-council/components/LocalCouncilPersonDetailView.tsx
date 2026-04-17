@@ -928,7 +928,7 @@ export default function LocalCouncilPersonDetailView({
           className="mt-5 rounded-lg border px-4 py-3 text-sm"
           style={{ borderColor: "var(--border)", background: "var(--amber-bg)", color: "var(--navy)" }}
         >
-          이 상세 정보는 frontend 로컬 작업을 위한 샘플 데이터입니다.
+          이 상세 정보는 개발·로컬 미리보기용 샘플 데이터입니다.
         </p>
       )}
 

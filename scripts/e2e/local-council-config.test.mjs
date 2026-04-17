@@ -8,6 +8,8 @@ import {
   getIntegrationPlaywrightEnv,
   getDatabaseConfig,
   getIntegrationPlaywrightCommandArgs,
+  getSmokePlaywrightCommandArgs,
+  getSmokePlaywrightEnv,
 } from "./local-council-harness.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -235,6 +237,24 @@ describe("local-council integration Playwright env", () => {
   });
 });
 
+describe("local-council smoke Playwright env", () => {
+  it("ambient backend base URL을 비워 sample fallback 경로만 검증한다", () => {
+    const env = getSmokePlaywrightEnv({
+      WOOGOOK_BACKEND_BASE_URL: "https://api.woogook.kr",
+      PLAYWRIGHT_BASE_URL: "https://external.example.com",
+      PORT: "4123",
+      SOME_OTHER_ENV: "keep-me",
+    });
+
+    expect(env).toMatchObject({
+      PLAYWRIGHT_BASE_URL: "http://localhost:3000",
+      PORT: "3000",
+      WOOGOOK_BACKEND_BASE_URL: "",
+      SOME_OTHER_ENV: "keep-me",
+    });
+  });
+});
+
 describe("local-council integration Playwright command args", () => {
   it("forwarded CLI arg가 없으면 raw integration spec만 실행한다", () => {
     expect(getIntegrationPlaywrightCommandArgs()).toEqual([
@@ -253,6 +273,32 @@ describe("local-council integration Playwright command args", () => {
     ).toEqual([
       "run",
       "e2e:integration:spec",
+      "--",
+      "--headed",
+      "--grep",
+      "강동구",
+    ]);
+  });
+});
+
+describe("local-council smoke Playwright command args", () => {
+  it("forwarded CLI arg가 없으면 raw smoke spec만 실행한다", () => {
+    expect(getSmokePlaywrightCommandArgs()).toEqual([
+      "run",
+      "e2e:smoke:spec",
+    ]);
+  });
+
+  it("forwarded CLI arg가 있으면 npm run 뒤에 -- 와 함께 그대로 전달한다", () => {
+    expect(
+      getSmokePlaywrightCommandArgs([
+        "--headed",
+        "--grep",
+        "강동구",
+      ]),
+    ).toEqual([
+      "run",
+      "e2e:smoke:spec",
       "--",
       "--headed",
       "--grep",

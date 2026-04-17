@@ -105,11 +105,13 @@ function buildJsonResponse(payload: unknown, status: number) {
 test("fetchLocalCouncilResolve falls back to the Gangdong sample when backend is unavailable", async () => {
   const { fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   globalThis.fetch = async () =>
     buildServiceUnavailableResponse("현직자 조회 API가 잠시 응답하지 않습니다.");
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilResolve({
       city: "서울특별시",
       district: "강동구",
@@ -121,18 +123,21 @@ test("fetchLocalCouncilResolve falls back to the Gangdong sample when backend is
     assert.equal(result.data.roster.council_members.length > 0, true);
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
 test("fetchLocalCouncilResolve falls back to the Gangdong sample when fetch rejects before reaching backend", async () => {
   const { fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   globalThis.fetch = async () => {
     throw new TypeError("fetch failed");
   };
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilResolve({
       city: "서울특별시",
       district: "강동구",
@@ -143,6 +148,7 @@ test("fetchLocalCouncilResolve falls back to the Gangdong sample when fetch reje
     assert.equal(result.data.district.district_slug, "seoul-gangdong");
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -232,20 +238,202 @@ test("fetchLocalCouncilResolve preserves unrelated backend 404 detail responses"
   }
 });
 
+test("fetchLocalCouncilResolve falls back to the Gangdong sample when backend returns a Gangdong roster-missing 404", async () => {
+  const { fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "local council roster not found: 11740",
+      },
+      404,
+    );
+
+  try {
+    process.env.NODE_ENV = "development";
+    const result = await fetchLocalCouncilResolve({
+      city: "서울특별시",
+      district: "강동구",
+      dong: "천호동",
+    });
+
+    assert.equal(result.dataSource, "local_sample");
+    assert.deepEqual(
+      result.data,
+      localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
+test("fetchLocalCouncilResolve surfaces a production error when backend returns a Gangdong roster-missing 404", async () => {
+  const { ApiError, fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail: "local council roster not found: 11740",
+      },
+      404,
+    );
+
+  try {
+    process.env.NODE_ENV = "production";
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilResolve({
+          city: "서울특별시",
+          district: "강동구",
+          dong: "천호동",
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 503 &&
+        error.message ===
+          "현직 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
+test("fetchLocalCouncilResolve surfaces a production error when the Gangdong backend is unavailable", async () => {
+  const { ApiError, fetchLocalCouncilResolve } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 조회 API가 잠시 응답하지 않습니다.");
+
+  try {
+    process.env.NODE_ENV = "production";
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilResolve({
+          city: "서울특별시",
+          district: "강동구",
+          dong: "천호동",
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 503 &&
+        error.message ===
+          "현직 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
 test("fetchLocalCouncilRoster falls back to the Gangdong sample when backend is unavailable", async () => {
   const { fetchLocalCouncilRoster } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   globalThis.fetch = async () =>
     buildServiceUnavailableResponse("현직자 명단 API가 잠시 응답하지 않습니다.");
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilRoster("11740");
 
     assert.equal(result.dataSource, "local_sample");
     assert.equal(result.data.council_members.length > 0, true);
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
+test("fetchLocalCouncilRoster surfaces a production error when backend is unavailable", async () => {
+  const { ApiError, fetchLocalCouncilRoster } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 명단 API가 잠시 응답하지 않습니다.");
+
+  try {
+    process.env.NODE_ENV = "production";
+    await assert.rejects(
+      () => fetchLocalCouncilRoster("11740"),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 503 &&
+        error.message ===
+          "현직 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
+test("fetchLocalCouncilPerson surfaces a production error instead of sample fallback when backend is unavailable", async () => {
+  const { ApiError, fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
+
+  try {
+    process.env.NODE_ENV = "production";
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilPerson(
+          "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
+        ),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 503 &&
+        error.message ===
+          "선택한 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+});
+
+test("fetchLocalCouncilPerson surfaces a production error when backend returns projection-missing 404", async () => {
+  const { ApiError, fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
+  const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  globalThis.fetch = async () =>
+    buildJsonResponse(
+      {
+        detail:
+          "local council person not found: seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
+      },
+      404,
+    );
+
+  try {
+    process.env.NODE_ENV = "production";
+    await assert.rejects(
+      () =>
+        fetchLocalCouncilPerson(
+          "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
+        ),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.status === 503 &&
+        error.message ===
+          "선택한 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -284,11 +472,13 @@ test("buildLocalCouncilRosterScreenResult falls back to the resolve roster paylo
 test("fetchLocalCouncilPerson falls back to the local sample when backend is unavailable", async () => {
   const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   globalThis.fetch = async () =>
     buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilPerson(
       "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
@@ -301,12 +491,14 @@ test("fetchLocalCouncilPerson falls back to the local sample when backend is una
     );
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
 test("fetchLocalCouncilPerson falls back to the local sample for opaque fallback keys", async () => {
   const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
   const opaqueKey =
     "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022643";
 
@@ -314,12 +506,14 @@ test("fetchLocalCouncilPerson falls back to the local sample for opaque fallback
     buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilPerson(opaqueKey);
 
     assert.equal(result.dataSource, "local_sample");
     assert.equal(result.data.overlay?.basis?.target_member_id, opaqueKey);
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -351,12 +545,14 @@ test("fetchLocalCouncilPerson surfaces backend detail payloads for missing peopl
 test("fetchLocalCouncilPerson falls back to the local sample when fetch rejects before reaching backend", async () => {
   const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   globalThis.fetch = async () => {
     throw new TypeError("fetch failed");
   };
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilPerson(
       "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640",
     );
@@ -368,6 +564,7 @@ test("fetchLocalCouncilPerson falls back to the local sample when fetch rejects 
     );
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -425,12 +622,14 @@ test("fetchLocalCouncilPerson accepts older dossier responses missing overlay an
 test("fetchLocalCouncilPerson falls back to the local sample for huboid keys from live backend", async () => {
   const { fetchLocalCouncilPerson } = loadLocalCouncilApiClient();
   const originalFetch = globalThis.fetch;
+  const originalNodeEnv = process.env.NODE_ENV;
   const huboidKey = "seoul-gangdong:council-member:600000001";
 
   globalThis.fetch = async () =>
     buildServiceUnavailableResponse("현직자 상세 API가 잠시 응답하지 않습니다.");
 
   try {
+    process.env.NODE_ENV = "development";
     const result = await fetchLocalCouncilPerson(huboidKey);
 
     assert.equal(result.dataSource, "local_sample");
@@ -439,5 +638,6 @@ test("fetchLocalCouncilPerson falls back to the local sample for huboid keys fro
     assert.equal(result.data.diagnostics?.spot_check?.person_key, huboidKey);
   } finally {
     globalThis.fetch = originalFetch;
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });

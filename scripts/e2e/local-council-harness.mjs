@@ -140,8 +140,30 @@ export function getIntegrationPlaywrightEnv(
   };
 }
 
+export function getSmokePlaywrightEnv(env = process.env) {
+  const frontendPort = String(DEFAULT_FRONTEND_PORT);
+
+  return {
+    ...env,
+    PLAYWRIGHT_LOCAL_COUNCIL_INTEGRATION: "",
+    PLAYWRIGHT_BASE_URL: `http://localhost:${frontendPort}`,
+    PORT: frontendPort,
+    WOOGOOK_BACKEND_BASE_URL: "",
+  };
+}
+
 export function getIntegrationPlaywrightCommandArgs(forwardedArgs = []) {
   const npmArgs = ["run", "e2e:integration:spec"];
+
+  if (forwardedArgs.length > 0) {
+    npmArgs.push("--", ...forwardedArgs);
+  }
+
+  return npmArgs;
+}
+
+export function getSmokePlaywrightCommandArgs(forwardedArgs = []) {
+  const npmArgs = ["run", "e2e:smoke:spec"];
 
   if (forwardedArgs.length > 0) {
     npmArgs.push("--", ...forwardedArgs);

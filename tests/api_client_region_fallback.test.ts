@@ -81,10 +81,9 @@ function loadRegionQueryModules(options?: {
     delete runtimeRequire.cache[runtimeRequire.resolve("../src/app/data")];
     delete runtimeRequire.cache[runtimeRequire.resolve("../src/lib/api-client")];
 
-    const { CITIES } = runtimeRequire("../src/app/data") as typeof import("../src/app/data");
     const { citiesQueryOptions } = runtimeRequire("../src/lib/api-client") as typeof import("../src/lib/api-client");
 
-    return { CITIES, citiesQueryOptions };
+    return { citiesQueryOptions };
   } finally {
     moduleLoader._load = originalLoad;
     moduleLoader._resolveFilename = originalResolveFilename;
@@ -92,7 +91,7 @@ function loadRegionQueryModules(options?: {
 }
 
 test("citiesQueryOptions falls back without console.error when backend is unavailable", async () => {
-  const { CITIES, citiesQueryOptions } = loadRegionQueryModules();
+  const { citiesQueryOptions } = loadRegionQueryModules();
   const originalFetch = globalThis.fetch;
   const originalConsoleError = console.error;
   const originalConsoleWarn = console.warn;
@@ -133,7 +132,7 @@ test("citiesQueryOptions falls back without console.error when backend is unavai
       } as Parameters<typeof queryFn>[0],
     );
 
-    assert.deepEqual(result.items, CITIES);
+    assert.deepEqual(result.items, []);
     assert.equal(
       result.fallbackMessage,
       "로컬 Postgres가 실행 중이지 않습니다. Docker Desktop과 postgres 컨테이너를 먼저 실행해주세요.",
@@ -190,7 +189,7 @@ test("citiesQueryOptions reports observability errors while keeping fallback war
       typeof citiesQueryOptions.queryFn
     >;
 
-    await queryFn(
+    const result = await queryFn(
       {
         queryKey: ["regions", "cities"] as const,
         client: undefined as never,
@@ -199,13 +198,14 @@ test("citiesQueryOptions reports observability errors while keeping fallback war
       } as Parameters<typeof queryFn>[0],
     );
 
+    assert.deepEqual(result.items, []);
     assert.equal(warnCalls.length, 1);
     assert.equal(errorCalls.length, 0);
     assert.equal(reportBrowserErrorCalls.length, 1);
     assert.equal(reportBrowserErrorCalls[0]?.error.message, "지역 목록 API가 일시적으로 응답하지 않습니다.");
     assert.deepEqual(reportBrowserErrorCalls[0]?.context, {
       route: "/api/regions/cities",
-      fallbackMessage: "지역 목록을 불러오지 못해 기본 목록을 사용합니다.",
+      fallbackMessage: "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
     });
   } finally {
     globalThis.fetch = originalFetch;

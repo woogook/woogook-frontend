@@ -171,11 +171,11 @@ test("local-council sample council-member detail covers rich branches and browse
 
   const billsSection = getSectionByHeading(page, "의안");
   await expect(
-    billsSection.getByText("서울특별시 강동구 예시 조례안"),
+    billsSection.getByText("서울특별시 강동구 청년 지원 조례안").first(),
   ).toBeVisible();
 
   const meetingsSection = getSectionByHeading(page, "회의");
-  await expect(meetingsSection.getByText("제320회 임시회 본회의")).toBeVisible();
+  await expect(meetingsSection.getByText("제322회 임시회 · 구정질문")).toBeVisible();
 
   const financeSection = getSectionByHeading(page, "재정 활동");
   await expect(financeSection.getByText("공식 근거가 아직 준비되지 않았습니다.")).toBeVisible();
