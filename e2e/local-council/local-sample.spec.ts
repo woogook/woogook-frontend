@@ -23,6 +23,31 @@ test("local-council address fields and global navigation are reachable", async (
   await expectLocalCouncilHeaderLinks(page);
 });
 
+test("local-council address step keeps shared region fallback options visible on regions API failure", async ({
+  page,
+}) => {
+  await page.route("**/api/regions/**", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: "지역 선거 데이터를 불러오지 못했습니다.",
+      }),
+    });
+  });
+
+  await gotoLocalCouncilAddressStep(page);
+  await expect(
+    page.getByText("지역 선거 데이터를 불러오지 못했습니다. 일부 기본 지역 목록으로 계속 진행합니다."),
+  ).toBeVisible();
+
+  await page.getByLabel("시/도").selectOption("서울특별시");
+  await expect(page.getByLabel("구/군/시").locator("option")).toContainText(["강동구"]);
+
+  await page.getByLabel("구/군/시").selectOption("강동구");
+  await expect(page.getByLabel("읍/면/동").locator("option")).toContainText(["천호동"]);
+});
+
 test("local-council sample district-head detail covers official links, overlay, and explicit back buttons", async ({
   page,
 }) => {
@@ -171,11 +196,11 @@ test("local-council sample council-member detail covers rich branches and browse
 
   const billsSection = getSectionByHeading(page, "의안");
   await expect(
-    billsSection.getByText("서울특별시 강동구 예시 조례안"),
+    billsSection.getByText("서울특별시 강동구 청년 지원 조례안").first(),
   ).toBeVisible();
 
   const meetingsSection = getSectionByHeading(page, "회의");
-  await expect(meetingsSection.getByText("제320회 임시회 본회의")).toBeVisible();
+  await expect(meetingsSection.getByText("제322회 임시회 · 구정질문")).toBeVisible();
 
   const financeSection = getSectionByHeading(page, "재정 활동");
   await expect(financeSection.getByText("공식 근거가 아직 준비되지 않았습니다.")).toBeVisible();

@@ -162,7 +162,7 @@ export default function LocalCouncilRosterView({
             color: "var(--navy)",
           }}
         >
-          backend 없이 frontend만 실행 중이라 강동구 샘플 데이터로 미리보기합니다.
+          이 명단은 개발·로컬 미리보기용 강동구 샘플 데이터입니다.
         </p>
       )}
 

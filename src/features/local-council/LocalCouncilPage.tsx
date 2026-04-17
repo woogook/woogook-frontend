@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   buildLocalCouncilRosterScreenResult,
   fetchLocalCouncilPerson,
-  fetchLocalCouncilRoster,
   fetchLocalCouncilResolve,
   mergeLocalCouncilDataSources,
   type LocalCouncilResult,
@@ -247,21 +246,10 @@ export default function LocalCouncilPage() {
 
     try {
       const resolved = await fetchLocalCouncilResolve({ city, district, dong });
-      let roster = null;
-
-      try {
-        roster = await fetchLocalCouncilRoster(resolved.data.district.gu_code);
-      } catch (rosterError) {
-        console.warn(
-          "[local-council] falling back to resolve roster payload",
-          rosterError,
-        );
-      }
-
       if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
         return;
       }
-      const result = buildLocalCouncilRosterScreenResult({ resolved, roster });
+      const result = buildLocalCouncilRosterScreenResult({ resolved });
       setRosterScreenResult(result);
       rosterScreenResultRef.current = result;
       pushView("roster", createHistoryState("roster"));

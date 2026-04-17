@@ -9,6 +9,10 @@ import {
   reportClientApiFailure,
 } from "@/lib/observability/client";
 import {
+  buildRegionFallbackMessage,
+  getFallbackRegionItems,
+} from "@/lib/region-fallback";
+import {
   ballotResponseSchema,
   ballotsSearchParamsSchema,
   citiesResponseSchema,
@@ -159,6 +163,7 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
   schema: ZodType<T>,
   key: K,
   fallbackMessage: string,
+  fallbackItems: string[],
 ) {
   try {
     const payload = await fetchJson(input, schema);
@@ -173,9 +178,14 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
       });
     }
     console.warn("[regions] 기본 목록으로 대체합니다.", error);
+    const message =
+      error instanceof Error ? error.message : fallbackMessage;
     return {
-      items: [],
-      fallbackMessage: error instanceof Error ? error.message : fallbackMessage,
+      items: fallbackItems,
+      fallbackMessage: buildRegionFallbackMessage(
+        message,
+        fallbackItems.length > 0,
+      ),
     } satisfies RegionQueryResult;
   }
 }
@@ -188,6 +198,7 @@ export const citiesQueryOptions = queryOptions({
       citiesResponseSchema,
       "cities",
       "지역 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      getFallbackRegionItems("cities"),
     ),
   staleTime: 24 * 60 * 60 * 1000,
 });
@@ -203,6 +214,7 @@ export function sigunguQueryOptions(city: string) {
           sigunguResponseSchema,
           "sigungu",
           "구/군 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          getFallbackRegionItems("sigungu", { city: parsed.city }),
         )
       );
     },
@@ -221,6 +233,10 @@ export function emdQueryOptions(city: string, sigungu: string) {
           emdResponseSchema,
           "emd",
           "읍/면/동 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          getFallbackRegionItems("emd", {
+            city: parsed.city,
+            sigungu: parsed.sigungu,
+          }),
         )
       );
     },
@@ -494,6 +510,10 @@ function isGangdongGuCode(guCode: string) {
   return guCode.trim() === "11740";
 }
 
+function isLocalCouncilSampleFallbackEnabled() {
+  return process.env.NODE_ENV !== "production";
+}
+
 function isBackendUnavailableError(error: unknown) {
   if (error instanceof ApiError) {
     return error.status === 503;
@@ -509,6 +529,28 @@ function isUnsupportedLocalCouncilAddressError(error: unknown) {
   );
 }
 
+function isGangdongRosterMissingError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.status === 404 &&
+    /^local council roster not found:\s*11740$/i.test(error.message.trim())
+  );
+}
+
+function isLocalCouncilPersonMissingError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.status === 404 &&
+    /^local council person not found:/i.test(error.message.trim())
+  );
+}
+
+function buildLocalCouncilScopeMessage() {
+  return isLocalCouncilSampleFallbackEnabled()
+    ? "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다."
+    : "현재는 서울특별시 강동구만 준비되어 있습니다.";
+}
+
 export async function fetchLocalCouncilResolve(
   selection: LocalCouncilAddressSelection,
 ): Promise<LocalCouncilResult<LocalCouncilResolveResponse>> {
@@ -522,7 +564,17 @@ export async function fetchLocalCouncilResolve(
     );
     return { data, dataSource: "backend" };
   } catch (error) {
-    if (isBackendUnavailableError(error) && isGangdongSelection(selection)) {
+    if (
+      (isBackendUnavailableError(error) || isGangdongRosterMissingError(error)) &&
+      isGangdongSelection(selection)
+    ) {
+      if (!isLocalCouncilSampleFallbackEnabled()) {
+        throw new ApiError(
+          503,
+          "현직 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      }
+
       return {
         data: localCouncilResolveResponseSchema.parse(sampleLocalCouncilGangdongResolve),
         dataSource: "local_sample",
@@ -530,10 +582,7 @@ export async function fetchLocalCouncilResolve(
     }
 
     if (isBackendUnavailableError(error)) {
-      throw new ApiError(
-        503,
-        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
-      );
+      throw new ApiError(503, buildLocalCouncilScopeMessage());
     }
 
     if (
@@ -557,7 +606,17 @@ export async function fetchLocalCouncilRoster(
     );
     return { data, dataSource: "backend" };
   } catch (error) {
-    if (isBackendUnavailableError(error) && isGangdongGuCode(guCode)) {
+    if (
+      (isBackendUnavailableError(error) || isGangdongRosterMissingError(error)) &&
+      isGangdongGuCode(guCode)
+    ) {
+      if (!isLocalCouncilSampleFallbackEnabled()) {
+        throw new ApiError(
+          503,
+          "현직 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      }
+
       return {
         data: sampleLocalCouncilGangdongRoster,
         dataSource: "local_sample",
@@ -565,10 +624,7 @@ export async function fetchLocalCouncilRoster(
     }
 
     if (isBackendUnavailableError(error)) {
-      throw new ApiError(
-        503,
-        "현재 로컬 미리보기는 서울특별시 강동구만 준비되어 있습니다.",
-      );
+      throw new ApiError(503, buildLocalCouncilScopeMessage());
     }
 
     throw error;
@@ -586,7 +642,14 @@ export async function fetchLocalCouncilPerson(
     return { data, dataSource: "backend" };
   } catch (error) {
     const sample = sampleLocalCouncilPersonDossierIndex[personKey];
-    if (isBackendUnavailableError(error) && sample) {
+    if ((isBackendUnavailableError(error) || isLocalCouncilPersonMissingError(error)) && sample) {
+      if (!isLocalCouncilSampleFallbackEnabled()) {
+        throw new ApiError(
+          503,
+          "선택한 지방의원 공식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      }
+
       return {
         data: sample,
         dataSource: "local_sample",

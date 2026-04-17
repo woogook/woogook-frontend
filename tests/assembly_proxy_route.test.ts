@@ -17,12 +17,15 @@ function loadAssemblyRoute<T>(modulePath: string, proxyCalls: ProxyCall[]) {
   const originalLoad = moduleLoader._load;
 
   moduleLoader._load = (request, parent, isMain) => {
-    if (request === "@/app/api/local-election/v1/chat/_shared") {
+    if (request === "@/app/api/_shared/backend-proxy") {
       return {
-        proxyToBackend: (
-          requestArg: unknown,
-          path?: string,
-        ) => {
+        proxyToBackendWithObservability: ({
+          request: requestArg,
+          path,
+        }: {
+          request: unknown;
+          path?: string;
+        }) => {
           proxyCalls.push({ requestArg, path });
           return new Response(JSON.stringify({ ok: true }), {
             status: 200,
@@ -41,6 +44,7 @@ function loadAssemblyRoute<T>(modulePath: string, proxyCalls: ProxyCall[]) {
           _route: string,
           handler: () => Promise<Response>,
         ) => handler(),
+        logServerEvent: async () => undefined,
       };
     }
 
