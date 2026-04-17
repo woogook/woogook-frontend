@@ -10,6 +10,7 @@ type BackendRelayOptions = {
   missingBaseUrlBody?: BackendRelayErrorBody;
   unavailableBody: BackendRelayErrorBody;
   errorTag?: string;
+  timeoutMs?: number;
 };
 
 function buildJsonResponse(body: BackendRelayErrorBody, status: number): Response {
@@ -48,6 +49,7 @@ export async function relayToBackend({
   missingBaseUrlBody,
   unavailableBody,
   errorTag = "[backend-relay] error",
+  timeoutMs,
 }: BackendRelayOptions): Promise<Response> {
   const normalizedBaseUrl = normalizeBackendBaseUrl(baseUrl);
   if (!normalizedBaseUrl) {
@@ -60,10 +62,41 @@ export async function relayToBackend({
     );
   }
 
+  const upstreamSignal = init?.signal;
+  const timeoutController =
+    typeof timeoutMs === "number" && timeoutMs > 0 ? new AbortController() : null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let abortFromUpstream: (() => void) | null = null;
+
+  if (timeoutController) {
+    abortFromUpstream = () => {
+      timeoutController.abort(
+        upstreamSignal?.reason instanceof Error
+          ? upstreamSignal.reason
+          : new Error("upstream request aborted"),
+      );
+    };
+
+    if (upstreamSignal?.aborted) {
+      abortFromUpstream();
+    } else if (upstreamSignal) {
+      upstreamSignal.addEventListener("abort", abortFromUpstream, {
+        once: true,
+      });
+    }
+
+    timeoutId = setTimeout(() => {
+      timeoutController.abort(
+        new Error(`backend relay timed out after ${timeoutMs}ms`),
+      );
+    }, timeoutMs);
+  }
+
   try {
     const response = await fetch(`${normalizedBaseUrl}${path}`, {
       ...init,
       cache: "no-store",
+      signal: timeoutController?.signal ?? upstreamSignal,
       headers: {
         Accept: "application/json",
         ...(init?.body ? { "Content-Type": "application/json" } : {}),
@@ -75,6 +108,13 @@ export async function relayToBackend({
   } catch (error) {
     console.error(errorTag, error);
     return buildJsonResponse(unavailableBody, 503);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    if (upstreamSignal && abortFromUpstream) {
+      upstreamSignal.removeEventListener("abort", abortFromUpstream);
+    }
   }
 }
 

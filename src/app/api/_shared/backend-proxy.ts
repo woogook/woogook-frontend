@@ -21,6 +21,7 @@ type ProxyToBackendWithObservabilityParams = {
   path: string;
   observableRoute?: string;
   init?: RequestInit;
+  timeoutMs?: number;
   missingBackendMessage: string;
   unavailableMessage: string;
   unavailableError?: string;
@@ -72,6 +73,7 @@ export async function proxyToBackendWithObservability({
   path,
   observableRoute,
   init,
+  timeoutMs,
   missingBackendMessage,
   unavailableMessage,
   unavailableError = "Backend unavailable",
@@ -79,7 +81,7 @@ export async function proxyToBackendWithObservability({
   const baseUrl = getBackendBaseUrl();
   const correlationId = getOrCreateCorrelationId(new Headers(request.headers));
   const routeForLogs = observableRoute ?? path.split("?")[0] ?? path;
-  const timeoutMs = getProxyTimeoutMs();
+  const effectiveTimeoutMs = timeoutMs ?? getProxyTimeoutMs();
 
   if (!baseUrl) {
     await logServerEvent({
@@ -118,7 +120,7 @@ export async function proxyToBackendWithObservability({
         cache: "no-store",
         headers,
       },
-      timeoutMs,
+      effectiveTimeoutMs,
     );
 
     await logServerEvent({
