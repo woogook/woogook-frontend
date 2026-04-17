@@ -88,6 +88,47 @@ describe("local-election-backend", () => {
     });
   });
 
+  it("relayToBackend aborts slow upstream requests when timeoutMs is configured", async () => {
+    const originalFetch = globalThis.fetch;
+    let observedSignal: AbortSignal | undefined;
+
+    globalThis.fetch = ((_, init) => {
+      observedSignal = init?.signal;
+
+      return new Promise<Response>((_, reject) => {
+        observedSignal?.addEventListener(
+          "abort",
+          () => reject(observedSignal.reason ?? new Error("aborted")),
+          { once: true },
+        );
+      });
+    }) as typeof fetch;
+
+    try {
+      const startedAt = Date.now();
+      const response = await relayToBackend({
+        baseUrl: "https://api.woogook.kr",
+        path: "/api/local-election/v1/regions/cities",
+        timeoutMs: 10,
+        unavailableBody: {
+          error: "Local election backend unavailable",
+          message: "지역 데이터를 불러올 수 없습니다.",
+        },
+      });
+
+      const elapsedMs = Date.now() - startedAt;
+      expect(observedSignal).toBeInstanceOf(AbortSignal);
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({
+        error: "Local election backend unavailable",
+        message: "지역 데이터를 불러올 수 없습니다.",
+      });
+      expect(elapsedMs).toBeLessThan(500);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("ballotResponseSchema accepts live backend nullable candidate fields", () => {
     const candidate = {
       candidate_id: "cand-1",

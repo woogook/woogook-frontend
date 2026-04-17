@@ -139,4 +139,45 @@ describe("proxyToBackendWithObservability", () => {
     await expect(response.text()).resolves.toBe("streamed-body");
     expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
   });
+
+  it("uses a route-specific timeout override when provided", async () => {
+    process.env.WOOGOOK_BACKEND_BASE_URL = "https://backend.example.com";
+    process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS = "4321";
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_input, init) => {
+        await new Promise((resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        });
+        throw new Error("unreachable");
+      },
+    );
+
+    const startedAt = Date.now();
+
+    const response = await proxyToBackendWithObservability({
+      request: new Request("https://example.com/api/local-council/v1/resolve", {
+        method: "GET",
+      }),
+      path: "/api/local-council/v1/resolve?address=%EC%84%9C%EC%9A%B8",
+      observableRoute: "local-council/v1/resolve",
+      missingBackendMessage:
+        "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+      unavailableMessage:
+        "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+      timeoutMs: 10,
+    });
+
+    expect(Date.now() - startedAt).toBeLessThan(500);
+    expect(fetchSpy.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Backend unavailable",
+      message: "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+    });
+  });
 });

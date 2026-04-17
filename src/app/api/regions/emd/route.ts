@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { relayLocalElectionToBackend } from "@/app/api/_shared/local-election-relay";
+import { relayLocalElectionRegionToBackend } from "@/app/api/_shared/local-election-relay";
 import { buildBackendPath } from "@/lib/local-election-backend";
 import { citySigunguQuerySchema } from "@/lib/schemas";
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   const { city, sigungu } = parsed.data;
-  return relayLocalElectionToBackend(
+  return relayLocalElectionRegionToBackend(
     buildBackendPath("/api/local-election/v1/regions/emd", {
       city_name_canonical: city,
       sigungu_name: sigungu,

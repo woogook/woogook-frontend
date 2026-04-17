@@ -118,6 +118,59 @@ test("local council resolve route returns 503 when backend base URL is missing",
   });
 });
 
+test("local council resolve route aborts slow backend requests with a route-specific timeout", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;
+  const originalObservabilityTimeout =
+    process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS;
+  let observedSignal: AbortSignal | undefined;
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    if (originalBackendBaseUrl === undefined) {
+      delete process.env.WOOGOOK_BACKEND_BASE_URL;
+    } else {
+      process.env.WOOGOOK_BACKEND_BASE_URL = originalBackendBaseUrl;
+    }
+    if (originalObservabilityTimeout === undefined) {
+      delete process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS;
+    } else {
+      process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS =
+        originalObservabilityTimeout;
+    }
+  });
+
+  process.env.WOOGOOK_BACKEND_BASE_URL = "http://backend.test";
+  process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS = "4321";
+  globalThis.fetch = ((_, init) => {
+    observedSignal = init?.signal;
+
+    return new Promise<Response>((_, reject) => {
+      observedSignal?.addEventListener(
+        "abort",
+        () => reject(new DOMException("Aborted", "AbortError")),
+        { once: true },
+      );
+    });
+  }) as typeof fetch;
+
+  const { GET } = loadResolveRoute();
+  const startedAt = Date.now();
+  const response = await GET(
+    new Request(
+      "http://127.0.0.1:3000/api/local-council/v1/resolve?address=서울특별시%20강동구%20천호동%20123",
+    ),
+  );
+
+  assert.ok(observedSignal instanceof AbortSignal);
+  assert.ok(Date.now() - startedAt < 3000);
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    error: "Local council backend unavailable",
+    message: "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+  });
+});
+
 test("local council roster route relays gu_code-based backend requests", async (t) => {
   const originalFetch = globalThis.fetch;
   const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;

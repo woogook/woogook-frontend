@@ -1,11 +1,11 @@
-import { relayLocalElectionToBackend } from "@/app/api/_shared/local-election-relay";
+import { relayLocalElectionRegionToBackend } from "@/app/api/_shared/local-election-relay";
 import { buildBackendPath } from "@/lib/local-election-backend";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return relayLocalElectionToBackend(
+  return relayLocalElectionRegionToBackend(
     buildBackendPath("/api/local-election/v1/regions/cities"),
   );
 }
