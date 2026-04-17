@@ -300,3 +300,42 @@ test("emdQueryOptions falls back to shared dong catalog for supported district",
     globalThis.fetch = originalFetch;
   }
 });
+
+test("emdQueryOptions falls back when backend returns the parent district as dong data", async () => {
+  const { emdQueryOptions } = loadRegionQueryModules();
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        emd: ["강동구"],
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+  try {
+    const options = emdQueryOptions("서울특별시", "강동구");
+    const queryFn = options.queryFn as NonNullable<typeof options.queryFn>;
+    const result = await queryFn(
+      {
+        queryKey: ["regions", "emd", "서울특별시", "강동구"] as const,
+        client: undefined as never,
+        signal: new AbortController().signal,
+        meta: undefined,
+      } as Parameters<typeof queryFn>[0],
+    );
+
+    assert.deepEqual(result.items, ["천호동"]);
+    assert.equal(
+      result.fallbackMessage,
+      "읍/면/동 데이터에 이상이 있습니다. 일부 기본 지역 목록으로 계속 진행합니다.",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
