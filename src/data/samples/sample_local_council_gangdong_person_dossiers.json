@@ -89,7 +89,9 @@
     "source_refs": [
       {
         "source_kind": "nec_current_holder",
-        "role": "elected_basis"
+        "role": "elected_basis",
+        "source_label": "중앙선거관리위원회",
+        "source_url": "https://www.data.go.kr/data/15000864/openapi.do"
       },
       {
         "source_kind": "gangdong_district_head_official_profile",
@@ -353,16 +355,21 @@
         "role": "official_profile",
         "source_title": "국회도서관 지방의정포털 의원정보/의안정보/회의록",
         "source_label": "지방의정포털",
+        "source_url": "https://clik.nanet.go.kr/potal/search/searchView.do?DOCID=CLIKM20220000022640&collection=assemblyinfo",
         "council_slug": "서울_강동구의회_002003",
         "member_source_docid": "CLIKM20220000022640"
       },
       {
         "source_kind": "nec_council_elected_basis",
-        "role": "elected_basis"
+        "role": "elected_basis",
+        "source_label": "중앙선거관리위원회",
+        "source_url": "https://www.data.go.kr/data/15000864/openapi.do"
       },
       {
         "source_kind": "gangdong_council_official_activity",
-        "role": "official_activity"
+        "role": "official_activity",
+        "source_title": "강동구의회 의안검색",
+        "source_url": "https://council.gangdong.go.kr/meeting/bill/bill.do"
       },
       {
         "source_kind": "local_sample",
@@ -495,11 +502,15 @@
     "source_refs": [
       {
         "source_kind": "local_council_portal_members",
-        "role": "official_profile"
+        "role": "official_profile",
+        "source_label": "지방의정포털",
+        "source_url": "https://clik.nanet.go.kr/"
       },
       {
         "source_kind": "nec_council_elected_basis",
-        "role": "elected_basis"
+        "role": "elected_basis",
+        "source_label": "중앙선거관리위원회",
+        "source_url": "https://www.data.go.kr/data/15000864/openapi.do"
       },
       {
         "source_kind": "local_sample",

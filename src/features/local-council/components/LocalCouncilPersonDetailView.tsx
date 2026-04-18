@@ -1,28 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type {
   LocalCouncilDataSource,
   LocalCouncilPersonDossierResponse,
 } from "@/lib/schemas";
 import {
-  buildLocalCouncilSourceContractSummaryViewModel,
-  buildLocalCouncilDiagnosticsViewModel,
-  getLocalCouncilExplainabilityLines,
   buildLocalCouncilOverlayViewModel,
-  getLocalCouncilDataGapFlagLabel,
-  getLocalCouncilDataSourceLabel,
   getLocalCouncilDownloadActionLabel,
-  getLocalCouncilFreshnessDetailRows,
-  getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeExplanation,
   getLocalCouncilOfficeLabel,
-  getLocalCouncilSummaryModeLabel,
   getLocalCouncilSummaryBasisLabels,
   getLocalCouncilSummaryEvidenceDigest,
-  getLocalCouncilSummaryFallbackReason,
   getPayloadText,
-  type LocalCouncilLabelValue,
 } from "@/features/local-council/data";
 import {
   buildBillActivityCardViewModel,
@@ -32,6 +23,7 @@ import {
   buildSectionCardViewModel,
   type SectionCardViewModel,
 } from "@/features/local-council/detail";
+import { formatLocalCouncilDateTimeOrOriginal } from "@/features/local-council/time";
 import { getLocalElectionPresetByElectionId } from "@/lib/local-election-config";
 
 interface LocalCouncilPersonDetailViewProps {
@@ -49,22 +41,6 @@ function EmptyState() {
     >
       공식 근거가 아직 준비되지 않았습니다.
     </p>
-  );
-}
-
-function ValueRows({ rows }: { rows: LocalCouncilLabelValue[] }) {
-  return (
-    <div className="grid gap-2">
-      {rows.map((row) => (
-        <div
-          key={row.label}
-          className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 text-sm"
-        >
-          <span style={{ color: "var(--text-secondary)" }}>{row.label}</span>
-          <span style={{ color: "var(--foreground)" }}>{row.value}</span>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -88,104 +64,80 @@ function ChipGroup({ items }: { items: string[] }) {
   );
 }
 
+function DisclosureIndicator({ expanded }: { expanded: boolean }) {
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+    >
+      <ChevronDown
+        className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+        aria-hidden="true"
+      />
+    </span>
+  );
+}
+
 function getTextValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function getRecordValue(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function getEvidenceValue(record: Record<string, unknown>) {
-  const count = record.count;
-  const countLabel =
-    typeof count === "number" && Number.isFinite(count)
-      ? `${Math.max(0, Math.floor(count))}건`
-      : null;
-  const status = getTextValue(record.status);
-  const confidence = getTextValue(record.confidence);
-  const severity = getTextValue(record.severity);
-
-  return [countLabel, status, confidence, severity]
-    .filter((item): item is string => Boolean(item))
-    .join(" · ");
-}
-
-function buildEvidenceRows(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
+function formatCountDisplay(value: string | null) {
+  if (!value) {
+    return null;
   }
 
-  return value
-    .map((item) => getRecordValue(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item))
-    .map((record) => {
-      const label =
-        getTextValue(record.label) ??
-        getTextValue(record.kind) ??
-        "근거";
-      const valueText = getEvidenceValue(record);
-      if (!valueText) {
-        return null;
-      }
-      return {
-        label,
-        value: valueText,
-        explanation: getTextValue(record.explanation),
-      };
-    })
-    .filter(
-      (
-        row,
-      ): row is { label: string; value: string; explanation: string | null } =>
-        Boolean(row),
-    );
+  const digitsOnly = value.replace(/,/g, "");
+  if (!/^\d+$/.test(digitsOnly)) {
+    return value;
+  }
+
+  return Number(digitsOnly).toLocaleString("ko-KR");
 }
 
-function buildFreshnessLineageRows(freshness: Record<string, unknown>) {
-  const rows: LocalCouncilLabelValue[] = [];
-  const stalenessBucket = getTextValue(freshness.staleness_bucket);
-  if (stalenessBucket) {
-    rows.push({
-      label: "staleness_bucket",
-      value: stalenessBucket,
-    });
+function formatRateDisplay(value: string | null) {
+  if (!value) {
+    return null;
   }
 
-  const lineage = freshness.lineage;
-  if (!Array.isArray(lineage)) {
-    return rows;
+  return value.endsWith("%") ? value : `${value}%`;
+}
+
+function buildElectionDistrictDisplay(record: Record<string, unknown>) {
+  const parts = [
+    getPayloadText(record, ["sdName"]),
+    getPayloadText(record, ["sggName"]),
+    getPayloadText(record, ["district_name", "wiwName"]),
+  ].filter((value): value is string => Boolean(value));
+
+  if (parts.length === 0) {
+    return null;
   }
 
-  return rows.concat(
-    lineage
-      .map((item, index) => {
-      const record = getRecordValue(item);
-      if (!record) {
-        return null;
-      }
-      const label =
-        getTextValue(record.label) ??
-        getTextValue(record.field) ??
-        getTextValue(record.kind) ??
-        `계보 ${index + 1}`;
-      const timestamp = getTextValue(record.timestamp);
-      const sourceMode = getTextValue(record.source_mode);
-      const value = [timestamp, sourceMode]
-        .filter((part): part is string => Boolean(part))
-        .join(" · ");
-      if (!value) {
-        return null;
-      }
-      return {
-        label,
-        value,
-      };
-      })
-      .filter((row): row is LocalCouncilLabelValue => Boolean(row)),
+  return Array.from(new Set(parts)).join(" ");
+}
+
+function hasExpandableContent(item: SectionCardViewModel) {
+  return (
+    item.detailRows.length > 0 ||
+    Boolean(
+      item.actions.viewUrl &&
+        item.actions.viewLabel &&
+        item.actions.viewUrl !== item.sourceUrl,
+    ) ||
+    Boolean(item.actions.downloadUrl) ||
+    Boolean(item.sourceLabel || item.sourceUrl) ||
+    item.sourceLinks.length > 0
   );
+}
+
+function getInitialExpandedKey(title: string, items: SectionCardViewModel[]) {
+  const firstExpandableIndex = items.findIndex(hasExpandableContent);
+  if (firstExpandableIndex === -1) {
+    return null;
+  }
+
+  return `${title}:${firstExpandableIndex}`;
 }
 
 function ExpandableRecordList({
@@ -195,7 +147,10 @@ function ExpandableRecordList({
   title: string;
   items: SectionCardViewModel[];
 }) {
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const initialExpandedKey = getInitialExpandedKey(title, items);
+  const [expandedKeyState, setExpandedKey] = useState<string | null | undefined>(undefined);
+  const expandedKey =
+    expandedKeyState === undefined ? initialExpandedKey : expandedKeyState;
 
   return (
     <section
@@ -213,18 +168,15 @@ function ExpandableRecordList({
             const recordKey = `${title}:${index}`;
             const contentId = buildExpandableSectionContentId(title, index);
             const expanded = expandedKey === recordKey;
-            const hasViewAction = Boolean(item.actions.viewUrl && item.actions.viewLabel);
-            const hasSourceBadge = Boolean(item.sourceLabel || item.sourceUrl);
+            const hasViewAction = Boolean(
+              item.actions.viewUrl &&
+                item.actions.viewLabel &&
+                item.actions.viewUrl !== item.sourceUrl,
+            );
             const hasDownloadAction = Boolean(item.actions.downloadUrl);
-            const hasSourceLabel = Boolean(item.sourceLabel);
             const hasRelatedSourceLinks = item.sourceLinks.length > 0;
-            const hasExpandedContent =
-              item.detailRows.length > 0 ||
-              hasViewAction ||
-              hasDownloadAction ||
-              hasSourceBadge ||
-              hasSourceLabel ||
-              hasRelatedSourceLinks;
+            const hasExpandedContent = hasExpandableContent(item);
+            const toggleLabel = `${item.headline} 세부 ${expanded ? "닫기" : "열기"}`;
             const headerContent = (
               <div className="min-w-0 flex-1">
                 <p className="font-bold" style={{ color: "var(--navy)" }}>
@@ -279,17 +231,13 @@ function ExpandableRecordList({
                   <button
                     type="button"
                     onClick={() => setExpandedKey(expanded ? null : recordKey)}
+                    aria-label={toggleLabel}
                     aria-expanded={expanded}
                     aria-controls={contentId}
                     className="flex w-full items-start justify-between gap-3 p-3 text-left"
                   >
                     {headerContent}
-                    <span
-                      className="shrink-0 text-sm font-semibold"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {expanded ? "닫기" : "열기"}
-                    </span>
+                    <DisclosureIndicator expanded={expanded} />
                   </button>
                 ) : (
                   <div className="p-3">{headerContent}</div>
@@ -318,8 +266,6 @@ function ExpandableRecordList({
                         {item.sourceUrl ? (
                           <a
                             href={item.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
@@ -338,8 +284,6 @@ function ExpandableRecordList({
                       <div className="mt-3 flex flex-wrap gap-2">
                         <a
                           href={item.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                           style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                         >
@@ -351,8 +295,6 @@ function ExpandableRecordList({
                       <div className="mt-3 flex flex-wrap gap-2">
                         <a
                           href={item.actions.viewUrl ?? undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                           style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                         >
@@ -373,8 +315,6 @@ function ExpandableRecordList({
                             <a
                               key={`${recordKey}:${link.label}:${link.url}`}
                               href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                               style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                             >
@@ -389,8 +329,6 @@ function ExpandableRecordList({
                         {item.actions.downloadUrl ? (
                           <a
                             href={item.actions.downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                             style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                           >
@@ -438,7 +376,9 @@ function buildElectedBasisDisplayRecord(
 
   const metaParts: string[] = [];
   if (preset) {
-    metaParts.push(`선거일 ${preset.electionDay}`);
+    metaParts.push(
+      `선거일 ${formatLocalCouncilDateTimeOrOriginal(preset.electionDay) ?? preset.electionDay}`,
+    );
   }
   metaParts.push(`${officeElectionLabel} 기준`);
   if (huboid) {
@@ -450,12 +390,26 @@ function buildElectedBasisDisplayRecord(
   }
   const electedAt = getPayloadText(record, ["elected_at"]);
   if (electedAt) {
-    metaParts.push(`당선 ${electedAt}`);
+    metaParts.push(
+      `당선 ${formatLocalCouncilDateTimeOrOriginal(electedAt) ?? electedAt}`,
+    );
   }
 
+  const candidateNumber = getPayloadText(record, ["candidate_number", "giho"]);
+  const voteCount = formatCountDisplay(getPayloadText(record, ["vote_count", "dugsu"]));
+  const voteRate = formatRateDisplay(getPayloadText(record, ["vote_rate", "dugyul"]));
+  const partyName = getPayloadText(record, ["party_name", "jdName"]);
+  const electionDistrict = buildElectionDistrictDisplay(record);
+
   return {
+    ...record,
     headline: title,
     summary: metaParts.join(" · "),
+    candidate_number_display: candidateNumber,
+    vote_count_display: voteCount,
+    vote_rate_display: voteRate,
+    party_name_display: partyName,
+    election_district_display: electionDistrict,
   };
 }
 
@@ -505,16 +459,17 @@ function SupplementalOverlaySection({
   person: LocalCouncilPersonDossierResponse;
 }) {
   const overlay = buildLocalCouncilOverlayViewModel(person.overlay);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedKeyState, setExpandedKey] = useState<string | null | undefined>(
+    undefined,
+  );
+  const expandedKey =
+    expandedKeyState === undefined
+      ? (overlay.hasContent ? "overlay" : null)
+      : expandedKeyState;
   const expanded = expandedKey === "overlay";
   const canExpand = overlay.hasContent;
-  const metaRows: LocalCouncilLabelValue[] = [];
-
-  if (overlay.generatedAt) {
-    metaRows.push({ label: "생성 시각", value: overlay.generatedAt });
-  }
-  if (overlay.targetMemberId) {
-    metaRows.push({ label: "대상", value: overlay.targetMemberId });
+  if (!canExpand) {
+    return null;
   }
 
   return (
@@ -522,83 +477,24 @@ function SupplementalOverlaySection({
       className="mt-6 rounded-lg border p-4"
       style={{ borderColor: "var(--border)", background: "var(--surface)" }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <button
+        type="button"
+        onClick={() => setExpandedKey(expanded ? null : "overlay")}
+        aria-label={`보강 정보 ${expanded ? "닫기" : "열기"}`}
+        aria-expanded={expanded}
+        aria-controls="local-council-overlay-content"
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-              보강 정보
-            </h2>
-            <span
-              className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
-              style={{ borderColor: "var(--border)", color: "var(--navy)" }}
-            >
-              {overlay.statusLabel}
-            </span>
-            <span
-              className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
-              style={{ borderColor: "var(--border)", color: "var(--amber)" }}
-            >
-              {overlay.supportTierLabel}
-            </span>
-          </div>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            보강 정보는 공식 결정적 결과가 아니라 별도 표식이 있는 supplemental surface입니다.
-          </p>
-          <p className="mt-3 text-sm" style={{ color: "var(--foreground)" }}>
-            {overlay.summaryLine}
-          </p>
+          <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
+            보강 정보
+          </h2>
         </div>
-        {canExpand ? (
-          <button
-            type="button"
-            onClick={() => setExpandedKey(expanded ? null : "overlay")}
-            aria-expanded={expanded}
-            aria-controls="local-council-overlay-content"
-            className="rounded-lg border px-3 py-2 text-sm font-semibold"
-            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
-          >
-            {expanded ? "닫기" : "열기"}
-          </button>
-        ) : null}
-      </div>
-
-      {overlay.allowedSourceLabels.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-            허용 소스
-          </p>
-          <ChipGroup items={overlay.allowedSourceLabels} />
-        </div>
-      ) : null}
-
-      {metaRows.length > 0 ? (
-        <div className="mt-4">
-          <ValueRows rows={metaRows} />
-        </div>
-      ) : null}
-
-      {!canExpand && overlay.disclaimers.length > 0 ? (
-        <div className="mt-4 grid gap-2">
-          {overlay.disclaimers.map((line) => (
-            <p key={line} className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              {line}
-            </p>
-          ))}
-        </div>
-      ) : null}
+        <DisclosureIndicator expanded={expanded} />
+      </button>
 
       {expanded ? (
         <div id="local-council-overlay-content" className="mt-4 grid gap-4 border-t pt-4" style={{ borderColor: "var(--border)" }}>
-          {overlay.disclaimers.length > 0 ? (
-            <div className="grid gap-2">
-              {overlay.disclaimers.map((line) => (
-                <p key={line} className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-          ) : null}
-
           {overlay.sections.map((section) => (
             <div
               key={`${section.channel}:${section.title}`}
@@ -633,19 +529,8 @@ function SupplementalOverlaySection({
                         {item.title}
                       </p>
                       {item.confidenceLabel ? (
-                        <span
-                          className="rounded-full border px-2.5 py-1 text-[12px]"
-                          style={{ borderColor: "var(--border)", color: "var(--amber)" }}
-                        >
-                          {item.confidenceLabel}
-                        </span>
+                        null
                       ) : null}
-                      <span
-                        className="rounded-full border px-2.5 py-1 text-[12px]"
-                        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-                      >
-                        {item.supportTierLabel}
-                      </span>
                     </div>
                     {item.snippet ? (
                       <p className="mt-2 text-sm" style={{ color: "var(--foreground)" }}>
@@ -654,23 +539,11 @@ function SupplementalOverlaySection({
                     ) : null}
                     <div className="mt-3 grid gap-2 text-sm">
                       <p style={{ color: "var(--text-secondary)" }}>출처 · {item.sourceName}</p>
-                      {item.publishedAt ? (
-                        <p style={{ color: "var(--text-secondary)" }}>
-                          수집/발행 시각 · {item.publishedAt}
-                        </p>
-                      ) : null}
-                      {item.provenanceSummary ? (
-                        <p style={{ color: "var(--text-secondary)" }}>
-                          추적 값 · {item.provenanceSummary}
-                        </p>
-                      ) : null}
                     </div>
                     {item.sourceUrl ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         <a
                           href={item.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                           style={{ borderColor: "var(--border)", color: "var(--navy)" }}
                         >
@@ -695,45 +568,17 @@ export default function LocalCouncilPersonDetailView({
   partyName,
   onBack,
 }: LocalCouncilPersonDetailViewProps) {
+  void dataSource;
   const hero = buildPersonHeroMeta(person);
   const heroPartyName = hero.partyName ?? partyName ?? null;
   const officeExplanation = getLocalCouncilOfficeExplanation(person.office_type);
   const summaryEvidenceDigest = getLocalCouncilSummaryEvidenceDigest(person.summary);
   const summaryBasisLabels = getLocalCouncilSummaryBasisLabels(person.summary.summary_basis);
-  const summaryFallbackReason = getLocalCouncilSummaryFallbackReason(person.summary);
-  const freshnessRows = getLocalCouncilFreshnessDetailRows(person.freshness);
-  const diagnosticsSource =
-    person.spot_check && !person.diagnostics?.spot_check
-      ? { ...(person.diagnostics ?? {}), spot_check: person.spot_check }
-      : person.diagnostics;
-  const diagnostics = buildLocalCouncilDiagnosticsViewModel(diagnosticsSource);
-  const summaryExplanationLines = getLocalCouncilExplainabilityLines([
-    person.summary.explanation_lines,
-  ]);
-  const diagnosticsExplanationLines = getLocalCouncilExplainabilityLines([
-    diagnostics.explanationLines,
-  ]);
-  const freshnessNarrativeLines = getLocalCouncilExplainabilityLines([
-    person.freshness.explanation_lines,
-    getTextValue(person.freshness.explanation)
-      ? [getTextValue(person.freshness.explanation)]
-      : [],
-  ]);
-  const sourceContractSummary = buildLocalCouncilSourceContractSummaryViewModel([
-    person.summary.source_contract_summary,
-    person.diagnostics?.source_contract_summary,
-    person.source_contract_summary,
-  ]);
-  const evidenceRows = buildEvidenceRows(person.evidence ?? []);
-  const freshnessLineageRows = buildFreshnessLineageRows(person.freshness);
-  const hasExplainabilitySection =
-    summaryExplanationLines.length > 0 ||
-    evidenceRows.length > 0 ||
-    diagnostics.qualitySignalRows.length > 0 ||
-    Boolean(sourceContractSummary) ||
-    diagnosticsExplanationLines.length > 0 ||
-    freshnessLineageRows.length > 0 ||
-    freshnessNarrativeLines.length > 0;
+  const personRenderKey = [
+    person.person_name,
+    person.office_type,
+    person.summary.headline,
+  ].join(":");
   const officialProfileSections = person.official_profile["official_profile_sections"];
   const profileSections = Array.isArray(officialProfileSections)
     ? officialProfileSections.filter(
@@ -771,7 +616,13 @@ export default function LocalCouncilPersonDetailView({
       item,
       titleKeys: ["headline", "basis_label", "summary", "title", "office_label"],
       metaKeys: ["summary", "meta", "basis_label"],
-      detailFields: [],
+      detailFields: [
+        { label: "기호", keys: ["candidate_number_display", "candidate_number", "giho"] },
+        { label: "정당", keys: ["party_name_display", "party_name", "jdName"] },
+        { label: "선거구", keys: ["election_district_display", "district_name", "wiwName"] },
+        { label: "득표수", keys: ["vote_count_display", "vote_count", "dugsu"] },
+        { label: "득표율", keys: ["vote_rate_display", "vote_rate", "dugyul"] },
+      ],
       preferredSourceKinds: [],
       preferredSourceRoles: ["elected_basis"],
       sectionSourceRefs: person.source_refs,
@@ -806,12 +657,23 @@ export default function LocalCouncilPersonDetailView({
   );
   const financeItems = person.finance_activity.map((item) =>
     buildSectionCardViewModel({
-      item,
+      item: {
+        ...item,
+        date_display: formatLocalCouncilDateTimeOrOriginal(
+          getTextValue(item.date),
+        ),
+        activity_date_display: formatLocalCouncilDateTimeOrOriginal(
+          getTextValue(item.activity_date),
+        ),
+      },
       titleKeys: ["title", "name"],
-      metaKeys: ["amount", "date", "activity_date"],
+      metaKeys: ["amount", "date_display", "activity_date_display"],
       detailFields: [
         { label: "금액", keys: ["amount"] },
-        { label: "기준일", keys: ["date", "activity_date"] },
+        {
+          label: "기준일",
+          keys: ["date_display", "activity_date_display", "date", "activity_date"],
+        },
       ],
       preferredSourceKinds: ["local_finance_365"],
       preferredSourceRoles: ["finance_activity"],
@@ -875,8 +737,6 @@ export default function LocalCouncilPersonDetailView({
               <a
                 key={`${link.label}:${link.url}`}
                 href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="rounded-full border px-3 py-1.5 text-[13px] font-semibold"
                 style={{ borderColor: "var(--border)", color: "var(--navy)" }}
               >
@@ -891,20 +751,6 @@ export default function LocalCouncilPersonDetailView({
         className="mt-5 rounded-lg border p-5"
         style={{ borderColor: "var(--border)", background: "var(--surface)" }}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
-            style={{ borderColor: "var(--border)", color: "var(--amber)" }}
-          >
-            {getLocalCouncilDataSourceLabel(dataSource)}
-          </span>
-          <span
-            className="rounded-full border px-2.5 py-1 text-[12px] font-semibold"
-            style={{ borderColor: "var(--border)", color: "var(--navy)" }}
-          >
-            {getLocalCouncilSummaryModeLabel(person.summary.summary_mode)}
-          </span>
-        </div>
         <h1 className="mt-4 text-3xl font-bold" style={{ color: "var(--navy)" }}>
           {person.person_name}
         </h1>
@@ -918,21 +764,9 @@ export default function LocalCouncilPersonDetailView({
         <p className="mt-3 text-[15px] leading-7" style={{ color: "var(--foreground)" }}>
           {person.summary.grounded_summary}
         </p>
-        <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          {getLocalCouncilFreshnessLabel(person.freshness)}
-        </p>
       </div>
 
-      {dataSource === "local_sample" && (
-        <p
-          className="mt-5 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: "var(--border)", background: "var(--amber-bg)", color: "var(--navy)" }}
-        >
-          이 상세 정보는 개발·로컬 미리보기용 샘플 데이터입니다.
-        </p>
-      )}
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4">
         <section
           className="rounded-lg border p-4"
           style={{ borderColor: "var(--border)", background: "var(--surface)" }}
@@ -941,7 +775,7 @@ export default function LocalCouncilPersonDetailView({
             근거 요약
           </h2>
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            summary.evidence_digest와 summary.summary_basis.source_kinds를 그대로 풀어 보여줍니다.
+            확인된 공식 근거를 바탕으로 핵심 활동과 출처를 정리했습니다.
           </p>
           {summaryEvidenceDigest.length > 0 ? (
             <ChipGroup items={summaryEvidenceDigest} />
@@ -956,245 +790,46 @@ export default function LocalCouncilPersonDetailView({
               <ChipGroup items={summaryBasisLabels} />
             </div>
           ) : null}
-          {summaryFallbackReason ? (
-            <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-              요약 보강 이유 · {summaryFallbackReason}
-            </p>
-          ) : null}
-        </section>
-
-        <section
-          className="rounded-lg border p-4"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-            발행·진단
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {getLocalCouncilFreshnessLabel(person.freshness)}
-          </p>
-          {freshnessRows.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                신선도 설명
-              </p>
-              <div className="mt-2">
-                <ValueRows rows={freshnessRows} />
-              </div>
-            </div>
-          ) : null}
-          {diagnostics.statusRows.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                진단 상태
-              </p>
-              <div className="mt-2">
-                <ValueRows rows={diagnostics.statusRows} />
-              </div>
-            </div>
-          ) : null}
-          {diagnostics.dataGapFlags.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                data_gap_flags
-              </p>
-              <ChipGroup items={diagnostics.dataGapFlags.map(getLocalCouncilDataGapFlagLabel)} />
-            </div>
-          ) : null}
-          {diagnostics.needsHumanReview.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                needs_human_review
-              </p>
-              <ChipGroup items={diagnostics.needsHumanReview} />
-            </div>
-          ) : null}
         </section>
       </div>
-
-      {hasExplainabilitySection ? (
-        <section
-          className="mt-4 rounded-lg border p-4"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-            설명 가능한 진단
-          </h2>
-          {summaryExplanationLines.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                요약 설명
-              </p>
-              <ul className="mt-2 grid gap-2">
-                {summaryExplanationLines.map((line) => (
-                  <li
-                    key={`summary:${line}`}
-                    className="text-sm leading-6"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {evidenceRows.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                근거 현황
-              </p>
-              <div className="mt-2 grid gap-2">
-                {evidenceRows.map((row, index) => (
-                  <div
-                    key={`${row.label}:${index}`}
-                    className="rounded-lg border px-3 py-3"
-                    style={{ borderColor: "var(--border)" }}
-                  >
-                    <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 text-sm">
-                      <span style={{ color: "var(--text-secondary)" }}>{row.label}</span>
-                      <span style={{ color: "var(--foreground)" }}>{row.value}</span>
-                    </div>
-                    {row.explanation ? (
-                      <p className="mt-2 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-                        {row.explanation}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {diagnostics.qualitySignalRows.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                품질 신호
-              </p>
-              <div className="mt-2">
-                <ValueRows rows={diagnostics.qualitySignalRows} />
-              </div>
-            </div>
-          ) : null}
-          {sourceContractSummary ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                출처 계약 점검
-              </p>
-              <p className="mt-1 text-sm" style={{ color: "var(--foreground)" }}>
-                점검 이슈 {sourceContractSummary.issueCount}건
-              </p>
-              {sourceContractSummary.status ? (
-                <div className="mt-2">
-                  <ValueRows
-                    rows={[
-                      {
-                        label: "출처 계약 상태",
-                        value: sourceContractSummary.status,
-                      },
-                    ]}
-                  />
-                </div>
-              ) : null}
-              {sourceContractSummary.issueRows.length > 0 ? (
-                <ul className="mt-2 grid gap-1">
-                  {sourceContractSummary.issueRows.map((row) => (
-                    <li
-                      key={row}
-                      className="text-sm"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {row}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {sourceContractSummary.explanationLines.length > 0 ? (
-                <ul className="mt-2 grid gap-1">
-                  {sourceContractSummary.explanationLines.map((line) => (
-                    <li
-                      key={`source-contract:${line}`}
-                      className="text-sm leading-6"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
-          {diagnosticsExplanationLines.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                진단 설명
-              </p>
-              <ul className="mt-2 grid gap-2">
-                {diagnosticsExplanationLines.map((line) => (
-                  <li
-                    key={`diagnostics:${line}`}
-                    className="text-sm leading-6"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {freshnessLineageRows.length > 0 || freshnessNarrativeLines.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                신선도 계보
-              </p>
-              {freshnessLineageRows.length > 0 ? (
-                <div className="mt-2">
-                  <ValueRows rows={freshnessLineageRows} />
-                </div>
-              ) : null}
-              {freshnessNarrativeLines.length > 0 ? (
-                <ul className="mt-2 grid gap-2">
-                  {freshnessNarrativeLines.map((line) => (
-                    <li
-                      key={`freshness:${line}`}
-                      className="text-sm leading-6"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {diagnostics.spotCheckRows.length > 0 ? (
-        <section
-          className="mt-4 rounded-lg border p-4"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-        >
-          <h2 className="text-xl font-bold" style={{ color: "var(--navy)" }}>
-            {diagnostics.spotCheckTitle || "spot-check"}
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            명단 검증용 1인 spot-check에서 읽어온 메타데이터입니다.
-          </p>
-          <div className="mt-4">
-            <ValueRows rows={diagnostics.spotCheckRows} />
-          </div>
-        </section>
-      ) : null}
 
       <div className="mt-6 grid gap-4">
-        <ExpandableRecordList title="공식 프로필" items={profileItems} />
-        <ExpandableRecordList title="당선 근거" items={electedBasisItems} />
-        <ExpandableRecordList title="위원회" items={committeeItems} />
-        <ExpandableRecordList title={officialActivityTitle} items={officialActivityItems} />
-        <ExpandableRecordList title="회의" items={meetingItems} />
-        <ExpandableRecordList title="재정 활동" items={financeItems} />
+        <ExpandableRecordList
+          key={`${personRenderKey}:official-profile`}
+          title="공식 프로필"
+          items={profileItems}
+        />
+        <ExpandableRecordList
+          key={`${personRenderKey}:elected-basis`}
+          title="당선 근거"
+          items={electedBasisItems}
+        />
+        <ExpandableRecordList
+          key={`${personRenderKey}:committees`}
+          title="위원회"
+          items={committeeItems}
+        />
+        <ExpandableRecordList
+          key={`${personRenderKey}:official-activity`}
+          title={officialActivityTitle}
+          items={officialActivityItems}
+        />
+        <ExpandableRecordList
+          key={`${personRenderKey}:meetings`}
+          title="회의"
+          items={meetingItems}
+        />
+        <ExpandableRecordList
+          key={`${personRenderKey}:finance`}
+          title="재정 활동"
+          items={financeItems}
+        />
       </div>
 
-      <SupplementalOverlaySection person={person} />
+      <SupplementalOverlaySection
+        key={`${personRenderKey}:overlay`}
+        person={person}
+      />
     </section>
   );
 }

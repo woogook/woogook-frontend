@@ -22,9 +22,17 @@ import LocalCouncilPersonDetailView from "@/features/local-council/components/Lo
 import LocalCouncilRosterView from "@/features/local-council/components/LocalCouncilRosterView";
 
 type View = "address" | "roster" | "detail";
+type LocalCouncilHistorySelection = {
+  city?: string;
+  district?: string;
+  dong?: string;
+};
 type LocalCouncilHistoryState = {
   view?: View;
   personKey?: string;
+  city?: string;
+  district?: string;
+  dong?: string;
 };
 
 function isView(value: unknown): value is View {
@@ -37,12 +45,57 @@ function getHistoryState(value: unknown): LocalCouncilHistoryState {
   }
 
   const record = value as Record<string, unknown>;
+  const city =
+    typeof record.city === "string" && record.city.trim() ? record.city : undefined;
+  const district =
+    typeof record.district === "string" && record.district.trim()
+      ? record.district
+      : undefined;
+  const dong =
+    typeof record.dong === "string" && record.dong.trim() ? record.dong : undefined;
+
   return {
     view: isView(record.view) ? record.view : undefined,
     personKey:
       typeof record.personKey === "string" && record.personKey.trim()
         ? record.personKey
         : undefined,
+    city,
+    district,
+    dong,
+  };
+}
+
+function getHistoryStateFromSearch(search: string): LocalCouncilHistoryState {
+  const params = new URLSearchParams(search);
+  const viewValue = params.get("view");
+  const personKey = params.get("personKey");
+  const city = params.get("city");
+  const district = params.get("district");
+  const dong = params.get("dong");
+
+  return {
+    view: isView(viewValue) ? viewValue : undefined,
+    personKey: personKey && personKey.trim() ? personKey : undefined,
+    city: city && city.trim() ? city : undefined,
+    district: district && district.trim() ? district : undefined,
+    dong: dong && dong.trim() ? dong : undefined,
+  };
+}
+
+function getCurrentHistoryState(rawState: unknown): LocalCouncilHistoryState {
+  const state = getHistoryState(rawState);
+  if (typeof window === "undefined") {
+    return state;
+  }
+
+  const searchState = getHistoryStateFromSearch(window.location.search);
+  return {
+    view: searchState.view ?? state.view,
+    personKey: searchState.personKey ?? state.personKey,
+    city: searchState.city ?? state.city,
+    district: searchState.district ?? state.district,
+    dong: searchState.dong ?? state.dong,
   };
 }
 
@@ -54,12 +107,65 @@ function createHistoryState(view: View, personKey?: string): LocalCouncilHistory
   return { view, personKey };
 }
 
+function hasHistorySelection(state: LocalCouncilHistoryState) {
+  return Boolean(state.city && state.district);
+}
+
+function getHistorySelection(state: LocalCouncilHistoryState): LocalCouncilHistorySelection | null {
+  if (!hasHistorySelection(state)) {
+    return null;
+  }
+
+  return {
+    city: state.city,
+    district: state.district,
+    dong: state.dong,
+  };
+}
+
+function createHistoryStateWithSelection(
+  view: View,
+  selection: LocalCouncilHistorySelection | null,
+  personKey?: string,
+): LocalCouncilHistoryState {
+  return {
+    view,
+    personKey,
+    city: selection?.city,
+    district: selection?.district,
+    dong: selection?.dong,
+  };
+}
+
 function buildBrowserHistoryState(localState: LocalCouncilHistoryState) {
   const current = window.history.state;
   if (current && typeof current === "object") {
     return { ...current, ...localState };
   }
   return localState;
+}
+
+function buildHistoryUrl(localState: LocalCouncilHistoryState) {
+  const params = new URLSearchParams();
+
+  if (localState.view && localState.view !== "address") {
+    params.set("view", localState.view);
+  }
+  if (localState.personKey) {
+    params.set("personKey", localState.personKey);
+  }
+  if (localState.city) {
+    params.set("city", localState.city);
+  }
+  if (localState.district) {
+    params.set("district", localState.district);
+  }
+  if (localState.dong) {
+    params.set("dong", localState.dong);
+  }
+
+  const query = params.toString();
+  return query ? `/local-council?${query}` : "/local-council";
 }
 
 function hasViewState(state: LocalCouncilHistoryState) {
@@ -104,6 +210,7 @@ export default function LocalCouncilPage() {
   const selectedPersonKeyRef = useRef<string | null>(null);
   const resolveRequestIdRef = useRef(0);
   const detailRequestIdRef = useRef(0);
+  const historyRestoreRequestIdRef = useRef(0);
   const selectedRosterPerson = findSelectedRosterPerson(
     rosterScreenResult,
     selectedPersonKey,
@@ -144,32 +251,135 @@ export default function LocalCouncilPage() {
     setLoading(false);
   };
 
+  const cancelHistoryRestoreRequest = () => {
+    historyRestoreRequestIdRef.current += 1;
+  };
+
   const updateViewOnly = (nextView: View) => {
     viewRef.current = nextView;
     setView(nextView);
   };
 
   const pushView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
+    const nextHistoryState = historyState ?? createHistoryState(nextView);
     viewRef.current = nextView;
     setView(nextView);
     window.history.pushState(
-      buildBrowserHistoryState(historyState ?? createHistoryState(nextView)),
+      buildBrowserHistoryState(nextHistoryState),
       "",
+      buildHistoryUrl(nextHistoryState),
     );
   };
 
   const replaceView = (nextView: View, historyState?: LocalCouncilHistoryState) => {
+    const nextHistoryState = historyState ?? createHistoryState(nextView);
     viewRef.current = nextView;
     setView(nextView);
     window.history.replaceState(
-      buildBrowserHistoryState(historyState ?? createHistoryState(nextView)),
+      buildBrowserHistoryState(nextHistoryState),
       "",
+      buildHistoryUrl(nextHistoryState),
     );
   };
 
   useEffect(() => {
+    const restoreFromHistoryState = async (historyState: LocalCouncilHistoryState) => {
+      const selection = getHistorySelection(historyState);
+      if (!selection?.city || !selection.district) {
+        replaceView("address", createHistoryState("address"));
+        return;
+      }
+
+      const requestId = ++historyRestoreRequestIdRef.current;
+      cancelResolveRequest();
+      cancelDetailRequest();
+      setLoading(true);
+      setDetailLoading(historyState.view === "detail");
+      setError(null);
+      setDetailError(null);
+
+      try {
+        const resolved = await fetchLocalCouncilResolve({
+          city: selection.city,
+          district: selection.district,
+          dong: selection.dong,
+        });
+        if (requestId !== historyRestoreRequestIdRef.current) {
+          return;
+        }
+
+        const rosterResult = buildLocalCouncilRosterScreenResult({ resolved });
+        setRosterScreenResult(rosterResult);
+        rosterScreenResultRef.current = rosterResult;
+
+        if (historyState.view === "detail" && historyState.personKey) {
+          try {
+            const person = await fetchLocalCouncilPerson(historyState.personKey);
+            if (requestId !== historyRestoreRequestIdRef.current) {
+              return;
+            }
+
+            setPersonResult(person);
+            setSelectedPersonKey(historyState.personKey);
+            personResultRef.current = person;
+            selectedPersonKeyRef.current = historyState.personKey;
+            replaceView(
+              "detail",
+              createHistoryStateWithSelection("detail", selection, historyState.personKey),
+            );
+            return;
+          } catch (err) {
+            if (requestId !== historyRestoreRequestIdRef.current) {
+              return;
+            }
+            console.error(err);
+            setPersonResult(null);
+            setSelectedPersonKey(null);
+            personResultRef.current = null;
+            selectedPersonKeyRef.current = null;
+            setDetailError(
+              err instanceof Error ? err.message : "선택한 인물 정보를 찾지 못했습니다.",
+            );
+            replaceView(
+              "roster",
+              createHistoryStateWithSelection("roster", selection),
+            );
+            return;
+          }
+        }
+
+        setPersonResult(null);
+        setSelectedPersonKey(null);
+        personResultRef.current = null;
+        selectedPersonKeyRef.current = null;
+        replaceView("roster", createHistoryStateWithSelection("roster", selection));
+      } catch (err) {
+        if (requestId !== historyRestoreRequestIdRef.current) {
+          return;
+        }
+        console.error(err);
+        setRosterScreenResult(null);
+        setPersonResult(null);
+        setSelectedPersonKey(null);
+        rosterScreenResultRef.current = null;
+        personResultRef.current = null;
+        selectedPersonKeyRef.current = null;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "현직자 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        );
+        replaceView("address", createHistoryState("address"));
+      } finally {
+        if (requestId === historyRestoreRequestIdRef.current) {
+          setLoading(false);
+          setDetailLoading(false);
+        }
+      }
+    };
+
     const reconcileHistoryState = (rawState: unknown) => {
-      const historyState = getHistoryState(rawState);
+      const historyState = getCurrentHistoryState(rawState);
       const hasRosterResult = Boolean(rosterScreenResultRef.current);
       const hasPersonResult = Boolean(personResultRef.current);
       const requestedView = historyState.view || "address";
@@ -184,6 +394,11 @@ export default function LocalCouncilPage() {
 
         if (matchingPersonResult && matchesHistoryKey) {
           updateViewOnly("detail");
+          return;
+        }
+
+        if (historyState.personKey && hasHistorySelection(historyState)) {
+          void restoreFromHistoryState(historyState);
           return;
         }
 
@@ -206,6 +421,11 @@ export default function LocalCouncilPage() {
           return;
         }
 
+        if (hasHistorySelection(historyState)) {
+          void restoreFromHistoryState(historyState);
+          return;
+        }
+
         cancelDetailRequest();
         replaceView("address", createHistoryState("address"));
         return;
@@ -215,10 +435,11 @@ export default function LocalCouncilPage() {
       updateViewOnly("address");
     };
 
-    if (!getHistoryState(window.history.state).view) {
+    if (!getCurrentHistoryState(window.history.state).view) {
       window.history.replaceState(
         buildBrowserHistoryState(createHistoryState("address")),
         "",
+        buildHistoryUrl(createHistoryState("address")),
       );
     }
     reconcileHistoryState(window.history.state);
@@ -233,6 +454,7 @@ export default function LocalCouncilPage() {
 
   const handleAddressSubmit = async (city: string, district: string, dong: string) => {
     const requestId = ++resolveRequestIdRef.current;
+    cancelHistoryRestoreRequest();
     cancelDetailRequest();
     setLoading(true);
     setError(null);
@@ -252,7 +474,10 @@ export default function LocalCouncilPage() {
       const result = buildLocalCouncilRosterScreenResult({ resolved });
       setRosterScreenResult(result);
       rosterScreenResultRef.current = result;
-      pushView("roster", createHistoryState("roster"));
+      pushView(
+        "roster",
+        createHistoryStateWithSelection("roster", { city, district, dong }),
+      );
     } catch (err) {
       if (requestId !== resolveRequestIdRef.current || viewRef.current !== "address") {
         return;
@@ -272,6 +497,7 @@ export default function LocalCouncilPage() {
 
   const handleSelectPerson = async (person: LocalCouncilRosterPerson) => {
     const requestId = ++detailRequestIdRef.current;
+    cancelHistoryRestoreRequest();
     setDetailLoading(true);
     setDetailError(null);
 
@@ -284,7 +510,14 @@ export default function LocalCouncilPage() {
       setSelectedPersonKey(person.person_key);
       personResultRef.current = result;
       selectedPersonKeyRef.current = person.person_key;
-      pushView("detail", createHistoryState("detail", person.person_key));
+      pushView(
+        "detail",
+        createHistoryStateWithSelection(
+          "detail",
+          getHistorySelection(getCurrentHistoryState(window.history.state)),
+          person.person_key,
+        ),
+      );
     } catch (err) {
       if (requestId !== detailRequestIdRef.current || viewRef.current !== "roster") {
         return;
@@ -303,6 +536,7 @@ export default function LocalCouncilPage() {
   const handleRosterBack = () => {
     cancelResolveRequest();
     cancelDetailRequest();
+    cancelHistoryRestoreRequest();
     if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
       window.history.back();
       return;
@@ -313,11 +547,18 @@ export default function LocalCouncilPage() {
   const handleDetailBack = () => {
     cancelResolveRequest();
     cancelDetailRequest();
+    cancelHistoryRestoreRequest();
     if (hasViewState(getHistoryState(window.history.state)) && window.history.length > 1) {
       window.history.back();
       return;
     }
-    replaceView("roster", createHistoryState("roster"));
+    replaceView(
+      "roster",
+      createHistoryStateWithSelection(
+        "roster",
+        getHistorySelection(getCurrentHistoryState(window.history.state)),
+      ),
+    );
   };
 
   return (

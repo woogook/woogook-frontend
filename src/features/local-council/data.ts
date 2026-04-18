@@ -7,6 +7,7 @@ import type {
   LocalCouncilRosterPerson,
   LocalCouncilSpotCheck,
 } from "@/lib/schemas";
+import { formatLocalCouncilDateTimeOrOriginal } from "@/features/local-council/time";
 
 export function getLocalCouncilOfficeLabel(officeType: string) {
   const labels: Record<string, string> = {
@@ -211,8 +212,10 @@ export function getLocalCouncilDownloadActionLabel(label: string | null | undefi
 }
 
 export function getLocalCouncilFreshnessLabel(freshness: Record<string, unknown>) {
-  const timestamp = freshness.basis_timestamp;
-  if (typeof timestamp !== "string" || !timestamp.trim()) {
+  const timestamp = formatLocalCouncilDateTimeOrOriginal(
+    typeof freshness.basis_timestamp === "string" ? freshness.basis_timestamp : null,
+  );
+  if (!timestamp) {
     return "기준 시각 확인 필요";
   }
   return `기준 ${timestamp}`;
@@ -358,10 +361,16 @@ export function getLocalCouncilFreshnessDetailRows(
     rows.push({ label: "기준 종류", value: getLocalCouncilFreshnessBasisKindLabel(basisKind) });
   }
   if (basisTimestamp) {
-    rows.push({ label: "기준 시각", value: basisTimestamp });
+    rows.push({
+      label: "기준 시각",
+      value: formatLocalCouncilDateTimeOrOriginal(basisTimestamp) ?? basisTimestamp,
+    });
   }
   if (generatedAt) {
-    rows.push({ label: "생성 시각", value: generatedAt });
+    rows.push({
+      label: "생성 시각",
+      value: formatLocalCouncilDateTimeOrOriginal(generatedAt) ?? generatedAt,
+    });
   }
   if (sourceMode) {
     rows.push({ label: "수집 모드", value: getLocalCouncilFreshnessSourceModeLabel(sourceMode) });
@@ -653,7 +662,9 @@ export function buildLocalCouncilOverlayViewModel(
                     snippet: getStringValue(itemRecord.snippet),
                     sourceName: getStringValue(itemRecord.source_name) || "보강 정보",
                     sourceUrl: getStringValue(itemRecord.source_url),
-                    publishedAt: getStringValue(itemRecord.published_at),
+                    publishedAt: formatLocalCouncilDateTimeOrOriginal(
+                      getStringValue(itemRecord.published_at),
+                    ),
                     confidenceLabel: getLocalCouncilOverlayConfidenceLabel(confidence),
                     supportTierLabel: getLocalCouncilOverlaySupportTierLabel(
                       itemSupportTier,
@@ -698,7 +709,9 @@ export function buildLocalCouncilOverlayViewModel(
     status,
     statusLabel: getLocalCouncilOverlayStatusLabel(status),
     supportTierLabel: getLocalCouncilOverlaySupportTierLabel(supportTier),
-    generatedAt: getStringValue(record?.generated_at),
+    generatedAt: formatLocalCouncilDateTimeOrOriginal(
+      getStringValue(record?.generated_at),
+    ),
     targetMemberId: getStringValue(basis.target_member_id),
     allowedSourceLabels,
     disclaimers: getStringArrayValue(record?.disclaimers),

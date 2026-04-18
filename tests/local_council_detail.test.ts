@@ -27,6 +27,7 @@ import {
   getLocalCouncilDataGapFlagLabel,
   getLocalCouncilDownloadActionLabel,
   getLocalCouncilFreshnessDetailRows,
+  getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeExplanation,
   getLocalCouncilOrdinanceStatusLabel,
   getLocalCouncilParticipationTypeLabel,
@@ -461,12 +462,18 @@ test("local council helpers normalize evidence digest, freshness, diagnostics, a
     }),
     [
       { label: "기준 종류", value: "스냅샷 배치 완료 시각" },
-      { label: "기준 시각", value: "2026-04-08T10:10:00+09:00" },
-      { label: "생성 시각", value: "2026-04-08T10:11:00+09:00" },
+      { label: "기준 시각", value: "2026-04-08 10:10:00" },
+      { label: "생성 시각", value: "2026-04-08 10:11:00" },
       { label: "수집 모드", value: "저장된 projection만 사용" },
       { label: "스냅샷 기반", value: "예" },
       { label: "메모", value: "강동구 구청장 상세 미리보기" },
     ],
+  );
+  assert.equal(
+    getLocalCouncilFreshnessLabel({
+      basis_timestamp: "2026-04-08T10:10:00+09:00",
+    }),
+    "기준 2026-04-08 10:10:00",
   );
   assert.deepEqual(
     buildLocalCouncilDiagnosticsViewModel({
@@ -708,12 +715,13 @@ test("buildSectionCardViewModel adds symmetric actions for bills, meetings, and 
   assert.equal(finance.actions.viewUrl, "https://example.com/finance");
 });
 
-test("buildBillActivityCardViewModel prefers official record locators over generic source refs", () => {
+test("buildBillActivityCardViewModel hides title-only summary copy while preferring official record locators", () => {
   const card = buildBillActivityCardViewModel({
     item: {
       bill_title: "서울특별시 강동구 청년 지원 조례안",
       proposed_at: "2026-04-07",
       participation_type: "primary_sponsor",
+      basis_kind: "official_council_bill_search",
       bill_stage: "approved",
       ordinance_status: "approved_not_confirmed",
       result_label: "원안가결",
@@ -742,11 +750,19 @@ test("buildBillActivityCardViewModel prefers official record locators over gener
     "대표발의",
     "원안가결",
   ]);
-  assert.equal(card.summaryLine, "강동구 청년 지원에 관한 조례를 정하는 의안이다.");
+  assert.equal(card.summaryLine, null);
   assert.deepEqual(card.detailRows, [
     {
       label: "상태",
       value: "의안 단계 가결 · 조례 상태 가결 후 공포 전 · 의결 결과 원안가결",
+    },
+    {
+      label: "연관 사유",
+      value: "대표발의 의안으로 확인됨",
+    },
+    {
+      label: "근거",
+      value: "강동구의회 의안검색 기준",
     },
     {
       label: "제안일",
@@ -772,6 +788,45 @@ test("buildBillActivityCardViewModel falls back to legacy bill_date in meta", ()
 
   assert.equal(card.meta, "2026-04-07");
   assert.deepEqual(card.detailRows, [
+    {
+      label: "제안일",
+      value: "2026-04-07",
+    },
+  ]);
+});
+
+test("buildBillActivityCardViewModel explains portal-based bill associations without exposing raw matcher codes", () => {
+  const card = buildBillActivityCardViewModel({
+    item: {
+      bill_title: "서울특별시 강동구의회 회의 규칙 일부개정규칙안",
+      proposed_at: "2026-04-07",
+      participation_type: "listed_activity",
+      basis_kind: "portal_member_bill_index",
+      matched_by: "PROPSR contains member name",
+      proposer: "강유진,권혁주,김기상,이원국",
+      source_ref: {
+        source_kind: "local_council_portal_members",
+        source_label: "지방의정포털",
+      },
+    },
+    sectionSourceRefs: [
+      {
+        source_kind: "local_council_portal_members",
+        role: "official_activity",
+        source_url: "https://clik.nanet.go.kr/potal/search/searchResultList.do",
+      },
+    ],
+  });
+
+  assert.deepEqual(card.detailRows, [
+    {
+      label: "연관 사유",
+      value: "제안자 명단에 의원명이 포함되어 연결됨",
+    },
+    {
+      label: "근거",
+      value: "지방의정포털 의안 목록 기준",
+    },
     {
       label: "제안일",
       value: "2026-04-07",
@@ -1151,6 +1206,46 @@ test("LocalCouncilPersonDetailView renders a static card when expandable content
   assert.doesNotMatch(html, /aria-expanded=/);
 });
 
+test("LocalCouncilPersonDetailView shows concrete election basis facts for district heads", () => {
+  const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
+    expandedKey: "당선 근거:0",
+  });
+  const html = renderToStaticMarkup(
+    createElement(LocalCouncilPersonDetailView, {
+      person: {
+        ...(dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse),
+        elected_basis: {
+          election_id: "0020220601",
+          huboid: "100144912",
+          giho: "2",
+          dugsu: "114743",
+          dugyul: "54.19",
+          jdName: "국민의힘",
+          wiwName: "강동구",
+        },
+        source_refs: [
+          {
+            role: "elected_basis",
+            source_kind: "nec_current_holder",
+            source_label: "중앙선거관리위원회",
+          },
+        ],
+      },
+      dataSource: "backend",
+      onBack: () => {},
+    }),
+  );
+
+  assert.match(html, /기호/);
+  assert.match(html, />2</);
+  assert.match(html, /득표수/);
+  assert.match(html, /114,743/);
+  assert.match(html, /득표율/);
+  assert.match(html, /54\.19%/);
+  assert.match(html, /정당/);
+  assert.match(html, /국민의힘/);
+});
+
 test("LocalCouncilPersonDetailView removes the global source section and keeps source-based expansion per card", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const html = renderToStaticMarkup(
@@ -1184,11 +1279,14 @@ test("LocalCouncilPersonDetailView removes the global source section and keeps s
   );
 
   assert.match(html, /행정복지위원회/);
-  assert.match(html, /열기/);
+  assert.doesNotMatch(html, />닫기</);
+  assert.doesNotMatch(html, />열기</);
+  assert.match(html, /aria-label="행정복지위원회 세부 닫기"/);
+  assert.match(html, /aria-expanded="true"/);
   assert.doesNotMatch(html, />출처<\/h2>/);
 });
 
-test("LocalCouncilPersonDetailView uses the source badge as the external link and removes the viewer CTA", () => {
+test("LocalCouncilPersonDetailView keeps finance source CTA in expanded content without generic primary links", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "재정 활동:0",
   });
@@ -1200,16 +1298,26 @@ test("LocalCouncilPersonDetailView uses the source badge as the external link an
     }),
   );
 
+  const financeUrlMatches =
+    html.match(
+      /href="https:\/\/www\.localfinance\.go\.kr\/finance\/gangdong\/budget-execution"/g,
+    ) ?? [];
+
+  assert.equal(financeUrlMatches.length, 1);
+  assert.doesNotMatch(html, />원문 이동<\/a>/);
   assert.match(
     html,
     /href="https:\/\/www\.localfinance\.go\.kr\/finance\/gangdong\/budget-execution"[^>]*>출처 · 지방재정365<\/a>/,
   );
+  assert.match(html, /aria-label="강동구 예산 집행 내역 세부 닫기"/);
+  assert.doesNotMatch(html, />닫기</);
+  assert.doesNotMatch(html, />열기</);
   assert.match(html, /원문 다운로드/);
   assert.doesNotMatch(html, /원문 보기/);
   assert.doesNotMatch(html, />출처<\/h2>/);
 });
 
-test("LocalCouncilPersonDetailView applies noopener to every external link", () => {
+test("LocalCouncilPersonDetailView opens external record links in the same tab for IAB compatibility", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "재정 활동:0",
   });
@@ -1221,10 +1329,8 @@ test("LocalCouncilPersonDetailView applies noopener to every external link", () 
     }),
   );
 
-  const relMatches = html.match(/rel="noopener noreferrer"/g) ?? [];
-
-  assert.equal(relMatches.length >= 4, true);
-  assert.doesNotMatch(html, /rel="noreferrer"/);
+  assert.doesNotMatch(html, /target="_blank"/);
+  assert.doesNotMatch(html, /rel="noopener noreferrer"/);
 });
 
 test("LocalCouncilPersonDetailView renders related source links in expanded content", () => {
@@ -1290,14 +1396,25 @@ test("LocalCouncilPersonDetailView renders related source links in expanded cont
   );
 });
 
-test("LocalCouncilPersonDetailView renders bill badges, summary, and locator-aware action labels", () => {
+test("LocalCouncilPersonDetailView hides title-only bill summaries and shows explicit source link buttons", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "의안:0",
   });
-  const person =
-    dossiers[
+  const person = {
+    ...(dossiers[
       "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
-    ] as LocalCouncilPersonDossierResponse;
+    ] as LocalCouncilPersonDossierResponse),
+    bills: [
+      {
+        ...(
+          dossiers[
+            "seoul-gangdong:council-member:서울_강동구의회_002003:CLIKM20220000022640"
+          ] as LocalCouncilPersonDossierResponse
+        ).bills[0],
+        basis_kind: "official_council_bill_search",
+      },
+    ],
+  };
 
   const html = renderToStaticMarkup(
     createElement(LocalCouncilPersonDetailView, {
@@ -1308,8 +1425,20 @@ test("LocalCouncilPersonDetailView renders bill badges, summary, and locator-awa
   );
 
   assert.match(html, /대표발의/);
-  assert.match(html, /강동구 청년 지원에 관한 조례를 정하는 의안이다\./);
-  assert.match(html, /의안 상세 열기/);
+  assert.doesNotMatch(html, /강동구 청년 지원에 관한 조례를 정하는 의안이다\./);
+  assert.doesNotMatch(html, /의안 상세 열기/);
+  assert.doesNotMatch(html, />닫기</);
+  assert.doesNotMatch(html, />열기</);
+  assert.doesNotMatch(html, />원문 이동<\/a>/);
+  assert.match(html, /연관 사유/);
+  assert.match(html, /대표발의 의안으로 확인됨/);
+  assert.match(html, /근거/);
+  assert.match(html, /강동구의회 의안검색 기준/);
+  assert.match(html, /aria-label="서울특별시 강동구 청년 지원 조례안 세부 닫기"/);
+  assert.match(
+    html,
+    /href="https:\/\/council\.gangdong\.go\.kr\/meeting\/bill\/bill\.do"[^>]*>출처 · 강동구의회 의안검색<\/a>/,
+  );
 });
 
 test("LocalCouncilPersonDetailView keeps unsupported meeting copy conservative", () => {
@@ -1331,14 +1460,22 @@ test("LocalCouncilPersonDetailView keeps unsupported meeting copy conservative",
 
   assert.match(html, /공식 기록 위치 확인/);
   assert.match(html, /내용 검토 전/);
+  assert.match(html, /2026-03-25/);
   assert.match(
     html,
     /공식 기록 위치는 확보됐지만 발언 요약은 아직 승격하지 않음/,
   );
+  assert.match(
+    html,
+    /href="https:\/\/council\.gangdong\.go\.kr\/meeting\/confer\/recent\.do"/,
+  );
+  assert.match(html, /aria-label="제322회 임시회 · 구정질문 세부 닫기"/);
+  assert.doesNotMatch(html, />닫기</);
+  assert.doesNotMatch(html, />열기</);
   assert.match(html, /회의록 위치 확인/);
 });
 
-test("LocalCouncilPersonDetailView translates district head data gaps instead of showing raw flags", () => {
+test("LocalCouncilPersonDetailView hides district head data-gap diagnostics from the reader view", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const person = dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse;
 
@@ -1351,7 +1488,7 @@ test("LocalCouncilPersonDetailView translates district head data gaps instead of
   );
 
   assert.doesNotMatch(html, /uncollected:district_head_minutes_person_linkage/);
-  assert.match(html, /구청장 개인 회의 활동 linkage는 아직 수집\/검토 전입니다\./);
+  assert.doesNotMatch(html, /구청장 개인 회의 활동 linkage는 아직 수집\/검토 전입니다\./);
 });
 
 test("LocalCouncilPersonDetailView keeps the source badge non-clickable when backend sends an invalid placeholder URL", () => {
@@ -1467,6 +1604,7 @@ test("LocalCouncilRosterView explains the roster office terminology", () => {
 
   assert.match(html, /구청장은 구 행정을 총괄하는 단체장입니다\./);
   assert.match(html, /구의원은 구의회에서 조례와 예산, 감시 역할을 맡습니다\./);
+  assert.match(html, /기준 2026-04-08 10:10:00/);
 });
 
 test("sample dossiers expose evidence digest, diagnostics, and richer freshness metadata", () => {
@@ -1560,7 +1698,7 @@ test("sample dossiers expose evidence digest, diagnostics, and richer freshness 
   );
 });
 
-test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-check, and freshness panels", () => {
+test("LocalCouncilPersonDetailView keeps only user-facing summary content in detail hero", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilPersonDetailView, {
@@ -1574,14 +1712,15 @@ test("LocalCouncilPersonDetailView renders evidence digest, diagnostics, spot-ch
   assert.match(html, /공식 프로필 1건/);
   assert.match(html, /요약 근거 출처/);
   assert.match(html, /강동구청장실 공식 프로필/);
-  assert.match(html, /발행·진단/);
-  assert.match(html, /기준 종류/);
-  assert.match(html, /스냅샷 배치 완료 시각/);
-  assert.match(html, /구청장 spot-check/);
-  assert.match(html, /강동구청장실 공식 프로필/);
+  assert.match(html, /확인된 공식 근거를 바탕으로 핵심 활동과 출처를 정리했습니다\./);
+  assert.doesNotMatch(html, /발행·진단/);
+  assert.doesNotMatch(html, /설명 가능한 진단/);
+  assert.doesNotMatch(html, /spot-check/);
+  assert.doesNotMatch(html, /공식 근거 데이터/);
+  assert.doesNotMatch(html, /기준 2026-04-08 10:10:00/);
 });
 
-test("LocalCouncilPersonDetailView renders a collapsed supplemental overlay summary when present", () => {
+test("LocalCouncilPersonDetailView renders a minimal expanded supplemental overlay by default when content exists", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilPersonDetailView, {
@@ -1592,16 +1731,21 @@ test("LocalCouncilPersonDetailView renders a collapsed supplemental overlay summ
   );
 
   assert.match(html, /보강 정보/);
-  assert.match(html, /준비 완료/);
-  assert.match(
-    html,
-    /보강 정보는 공식 결정적 결과가 아니라 별도 표식이 있는 supplemental surface입니다/,
-  );
-  assert.match(html, /1개 채널에서 1건의 보강 정보를 제공합니다/);
-  assert.doesNotMatch(html, /추가 보강 정보 요약/);
+  assert.doesNotMatch(html, />닫기</);
+  assert.doesNotMatch(html, />열기</);
+  assert.match(html, /aria-controls="local-council-overlay-content"/);
+  assert.match(html, /aria-expanded="true"/);
+  assert.doesNotMatch(html, /준비 완료/);
+  assert.doesNotMatch(html, /supplemental surface/);
+  assert.doesNotMatch(html, /1개 채널에서 1건의 보강 정보를 제공합니다/);
+  assert.doesNotMatch(html, /2026-04-09 12:00:00/);
+  assert.doesNotMatch(html, /허용 소스/);
+  assert.doesNotMatch(html, /생성 시각/);
+  assert.match(html, /추가 보강 정보 요약/);
+  assert.match(html, /원문 보기/);
 });
 
-test("LocalCouncilPersonDetailView renders overlay items when the supplemental section is expanded", () => {
+test("LocalCouncilPersonDetailView renders only reader-facing overlay fields when expanded", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView({
     expandedKey: "overlay",
   });
@@ -1617,12 +1761,14 @@ test("LocalCouncilPersonDetailView renders overlay items when the supplemental s
   assert.match(html, /강동구청장, 도서관 확충 추진/);
   assert.match(html, /추가 보강 정보 요약/);
   assert.match(html, /강동뉴스/);
-  assert.match(html, /신뢰 높음/);
-  assert.match(html, /news_article · news-001/);
   assert.match(html, /원문 보기/);
+  assert.doesNotMatch(html, /신뢰 높음/);
+  assert.doesNotMatch(html, /수집\/발행 시각/);
+  assert.doesNotMatch(html, /news_article · news-001/);
+  assert.doesNotMatch(html, /보강 정보는 공식 결정적 결과가 아니라/);
 });
 
-test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagnostics spot_check is missing", () => {
+test("LocalCouncilPersonDetailView hides spot-check metadata even when fallback data exists", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const districtHead = dossiers["seoul-gangdong:district-head"] as LocalCouncilPersonDossierResponse;
   const person = {
@@ -1641,10 +1787,10 @@ test("LocalCouncilPersonDetailView falls back to top-level spot_check when diagn
     }),
   );
 
-  assert.match(html, /구청장 spot-check/);
+  assert.doesNotMatch(html, /spot-check/);
 });
 
-test("LocalCouncilPersonDetailView renders additive explanation lines and source contract summary when present", () => {
+test("LocalCouncilPersonDetailView hides explanation and source-contract diagnostics even when present", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilPersonDetailView, {
@@ -1697,21 +1843,17 @@ test("LocalCouncilPersonDetailView renders additive explanation lines and source
     }),
   );
 
-  assert.match(html, /설명 가능한 진단/);
-  assert.match(html, /요약 근거는 공식 프로필, 의안, 회의, 재정 활동 데이터를 함께 확인해 구성했습니다\./);
-  assert.match(html, /출처 계약 점검/);
-  assert.match(html, /점검 이슈 3건/);
-  assert.match(html, /출처 계약 상태/);
-  assert.match(html, /ok/);
-  assert.match(html, /invalid_source_url · 지방재정365 · finance_activity_source/);
-  assert.match(html, /diagnostics_source_contract_hint/);
-  assert.match(html, /summary source contract line/);
-  assert.match(html, /diagnostics source contract line/);
-  assert.match(html, /발행 상태와 agentic 검토 상태를 함께 보여 현재 공개 가능한 수준인지 안내합니다\./);
-  assert.match(html, /기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다\./);
+  assert.match(html, /근거 요약/);
+  assert.doesNotMatch(html, /설명 가능한 진단/);
+  assert.doesNotMatch(html, /출처 계약 점검/);
+  assert.doesNotMatch(html, /점검 이슈 3건/);
+  assert.doesNotMatch(html, /diagnostics_source_contract_hint/);
+  assert.doesNotMatch(html, /summary source contract line/);
+  assert.doesNotMatch(html, /diagnostics source contract line/);
+  assert.doesNotMatch(html, /기준 시각은 현재 상세 카드들이 참조한 최신 projection 시점을 의미합니다\./);
 });
 
-test("LocalCouncilPersonDetailView renders evidence quality, source contract, summary explanations, and freshness lineage", () => {
+test("LocalCouncilPersonDetailView keeps official records visible while hiding internal diagnostics payloads", () => {
   const LocalCouncilPersonDetailView = loadLocalCouncilPersonDetailView();
   const html = renderToStaticMarkup(
     createElement(LocalCouncilPersonDetailView, {
@@ -1832,24 +1974,17 @@ test("LocalCouncilPersonDetailView renders evidence quality, source contract, su
     }),
   );
 
-  assert.match(html, /요약 설명/);
-  assert.match(html, /지방의정포털과 강동구의회 근거만으로 요약을 구성했다\./);
-  assert.match(html, /근거 현황/);
-  assert.match(html, /공식 프로필 section이 아직 없다\./);
-  assert.match(html, /품질 신호/);
-  assert.match(html, /공식 프로필<\/span><span[^>]*>0건 · missing · low · warning/);
-  assert.match(html, /출처 계약/);
-  assert.match(html, /missing_role · 지방의정포털 의원 정보 · official_profile/);
-  assert.match(html, /진단 설명/);
-  assert.match(html, /최종 발행 상태: publishable_degraded\./);
-  assert.match(html, /신선도 계보/);
-  assert.match(html, /staleness_bucket/);
-  assert.match(html, /fresh/);
-  assert.match(html, /published_batch_finished_at/);
-  assert.doesNotMatch(html, /계보 1/);
-  assert.match(html, /최근 발행 묶음 기준이다\./);
-  assert.match(html, /huboid/);
+  assert.match(html, /김가동 공식 근거 요약/);
+  assert.match(html, /당선 근거/);
+  assert.match(html, /선거일 2022-06-01/);
   assert.match(html, /600000001/);
+  assert.doesNotMatch(html, /설명 가능한 진단/);
+  assert.doesNotMatch(html, /publishable_degraded/);
+  assert.doesNotMatch(html, /summary_fallback/);
+  assert.doesNotMatch(html, /published_batch_finished_at/);
+  assert.doesNotMatch(html, /최근 발행 묶음 기준이다\./);
+  assert.doesNotMatch(html, /huboid/);
+  assert.doesNotMatch(html, /기준 2026-04-08 10:05:00/);
 });
 
 test("sample district head dossier exposes enough data for hero block and non-meeting section actions", () => {

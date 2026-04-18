@@ -38,6 +38,10 @@ const FIXTURE = {
   builtAt: "2026-04-14T09:00:00+09:00",
   basisTimestamp: "2026-04-14T09:00:00+09:00",
 };
+const INTEGRATION_MEMBER_SOURCE_URL =
+  "https://clik.nanet.go.kr/potal/search/searchView.do?DOCID=INTEGRATION_PROFILE&collection=assemblyinfo";
+const ELECTED_BASIS_SOURCE_URL =
+  "https://www.data.go.kr/data/15000864/openapi.do";
 
 function log(message) {
   console.log(`${LOG_PREFIX} ${message}`);
@@ -369,6 +373,8 @@ async function seedIntegrationFixture(databaseConfig) {
       source_kind: "nec_current_holder",
       role: "elected_basis",
       source_title: "중앙선거관리위원회 당선인정보",
+      source_label: "중앙선거관리위원회",
+      source_url: ELECTED_BASIS_SOURCE_URL,
     },
     {
       source_kind: "gangdong_district_head_official_profile",
@@ -408,7 +414,9 @@ async function seedIntegrationFixture(databaseConfig) {
       source_kind: "local_council_portal_members",
       role: "official_profile",
       source_title: "지방의정포털",
-      source_url: "https://clik.nanet.go.kr/potal/search/member/integration-profile",
+      source_label: "지방의정포털",
+      source_url: INTEGRATION_MEMBER_SOURCE_URL,
+      member_source_docid: "INTEGRATION_PROFILE",
     },
     {
       source_kind: "gangdong_council_official_activity",
@@ -420,6 +428,8 @@ async function seedIntegrationFixture(databaseConfig) {
       source_kind: "nec_council_elected_basis",
       role: "elected_basis",
       source_title: "중앙선거관리위원회 당선인정보",
+      source_label: "중앙선거관리위원회",
+      source_url: ELECTED_BASIS_SOURCE_URL,
     },
   ];
 
@@ -487,7 +497,7 @@ async function seedIntegrationFixture(databaseConfig) {
       links: [
         {
           label: "지방의정포털",
-          url: "https://clik.nanet.go.kr/potal/search/member/integration-profile",
+          url: INTEGRATION_MEMBER_SOURCE_URL,
         },
       ],
       official_profile_sections: [
