@@ -43,7 +43,7 @@ export default function Home() {
           도메인별로 안내합니다.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: "var(--text-secondary)" }}>
-          루트 페이지는 국회, 지방선거, 현직 지방의원을 서로 다른 경로로 나눠 안내합니다. 각 도메인
+          메인 페이지는 국회, 지방선거, 현직 지방의원을 서로 다른 경로로 나눠 안내합니다. 각 도메인
           경로에서 화면과 문서는 독립적으로 발전합니다.
         </p>
 

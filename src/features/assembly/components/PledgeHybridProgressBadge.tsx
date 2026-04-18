@@ -35,6 +35,8 @@ type HybridProps = {
 
 const ARIA_SCORE_HELP = "\uc810\uc218 \uae30\uc900 \uc124\uba85 \uc5f4\uae30";
 const ARIA_SCORE_PANEL = "\uacf5\uc57d \uc774\ud589 \uc810\uc218 \uc548\ub0b4";
+const MANIFESTO_REFERENCE_URL = "https://manifesto.or.kr/";
+const MANIFESTO_REFERENCE_LABEL = "\uacf5\uc2dd \ub9e4\ub2c8\ud398\uc2a4\ud1a0 \uc790\ub8cc \ubcf4\uae30";
 
 /**
  * Hybrid badge: read-only pill (progress + score) + CircleHelp button for rubric panel.
@@ -128,6 +130,15 @@ function HybridWithScorePanel({ progress, score }: HybridProps) {
           <p className="mt-3 border-t pt-2 text-[10px] leading-relaxed opacity-85" style={{ borderColor: "var(--border)" }}>
             {PLEDGE_SCORE_RUBRIC_SOURCE_NOTE}
           </p>
+          <a
+            href={MANIFESTO_REFERENCE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex text-[10px] font-medium leading-relaxed underline underline-offset-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {MANIFESTO_REFERENCE_LABEL}
+          </a>
         </div>
       ) : null}
     </div>
