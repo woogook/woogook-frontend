@@ -5,19 +5,19 @@ const serviceCards = [
     href: "/assembly",
     label: "국회 서비스",
     title: "우리동네 국회의원 안내서",
-    description: "국회 도메인 화면과 문서는 이 경로 아래에서 독립적으로 확장합니다.",
+    description: "지역구 국회의원 정보와 공약·이행 현황을 단계별로 살펴볼 수 있습니다.",
   },
   {
     href: "/local-election",
     label: "지방선거 서비스",
     title: "내 선거 안내서",
-    description: "주소 기반 투표지 확인과 후보 비교 흐름은 지방선거 도메인으로 유지합니다.",
+    description: "주소로 투표지를 확인하고, 후보를 비교하며 선거 안내를 이어갈 수 있습니다.",
   },
   {
     href: "/local-council",
     label: "현직 지방의원",
     title: "우리동네 지방의원",
-    description: "주소 기반으로 구청장과 구의원의 공식 근거 요약을 확인합니다.",
+    description: "주소를 입력하면 구청장·구의원 정보와 공개 자료 기반 요약을 확인할 수 있습니다.",
   },
 ];
 
@@ -32,19 +32,19 @@ export default function Home() {
     >
       <section className="mx-auto max-w-5xl">
         <p className="text-sm font-semibold tracking-[0.18em]" style={{ color: "var(--text-secondary)" }}>
-          WOOGOOK FRONTEND
+          WOOGOOK SERVICE
         </p>
         <h1
           className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl"
           style={{ color: "var(--navy)", fontFamily: "var(--font-noto-serif), 'Noto Serif KR', serif" }}
         >
-          국회와 지역 정치 서비스를
+          국회부터 우리 동네까지,
           <br />
-          도메인별로 안내합니다.
+          필요한 정치 정보를 안내합니다.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: "var(--text-secondary)" }}>
-          메인 페이지는 국회, 지방선거, 현직 지방의원을 서로 다른 경로로 나눠 안내합니다. 각 도메인
-          경로에서 화면과 문서는 독립적으로 발전합니다.
+          국회의원, 지방선거, 현직 지방의원 안내를 주제별 화면으로 나누었습니다. 아래에서 보고 싶은
+          주제를 골라 이동하면 됩니다.
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
