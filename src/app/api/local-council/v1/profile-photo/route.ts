@@ -268,6 +268,9 @@ function extractImageUrlFromHtml(html: string, pageUrl: URL) {
       if (resolved.hostname.toLowerCase() !== pageUrl.hostname.toLowerCase()) {
         continue;
       }
+      if (pageUrl.protocol === "https:" && resolved.protocol !== "https:") {
+        continue;
+      }
 
       return resolved;
     } catch {

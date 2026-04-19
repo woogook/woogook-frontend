@@ -566,6 +566,51 @@ test("local council profile photo route rejects same-host https-to-http downgrad
   });
 });
 
+test("local council profile photo route rejects same-host http image urls extracted from https profile pages", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const fetchCalls: string[] = [];
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    fetchCalls.push(url);
+
+    if (url === "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010") {
+      return new Response(
+        '<html><body><img class="bg_mayor" src="http://www.gangdong.go.kr/design/theme/mayor/new/image/sub/img_mayor.png?ver=2025" alt="강동구청장 이수희"></body></html>',
+        {
+          status: 200,
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "set-cookie": "JSESSIONID=abc; Path=/",
+          },
+        },
+      );
+    }
+
+    throw new Error(`unexpected fetch url: ${url}`);
+  }) as typeof fetch;
+
+  const { GET } = loadProfilePhotoRoute();
+  const response = await GET(
+    new Request(
+      "http://127.0.0.1:3000/api/local-council/v1/profile-photo?pageUrl=https%3A%2F%2Fwww.gangdong.go.kr%2Fweb%2Fmayor%2Fcontents%2Fgdo010_010",
+    ),
+  );
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(fetchCalls, [
+    "https://www.gangdong.go.kr/web/mayor/contents/gdo010_010",
+  ]);
+  assert.deepEqual(await response.json(), {
+    error: "profile image unavailable",
+    message: "공식 프로필 사진을 찾지 못했습니다.",
+  });
+});
+
 test("local council profile photo route rejects non-image upstream responses after resolving the profile image URL", async (t) => {
   const originalFetch = globalThis.fetch;
 
