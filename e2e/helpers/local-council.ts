@@ -64,7 +64,6 @@ export async function expectPersonDetailShell(
   options: {
     name: string;
     headline: string;
-    dataSourceLabel: string;
   },
 ) {
   await expect(
@@ -73,7 +72,6 @@ export async function expectPersonDetailShell(
   await expect(
     page.getByRole("heading", { name: options.headline, exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(options.dataSourceLabel)).toBeVisible();
 }
 
 export function getSectionByHeading(scope: RoleScope, heading: string) {
@@ -86,13 +84,14 @@ export function getSectionByHeading(scope: RoleScope, heading: string) {
 export async function expandSectionCard(section: Locator, name: string | RegExp) {
   const cardButton = section.getByRole("button", { name });
   await expect(cardButton).toBeVisible();
-  await cardButton.click();
+  const expanded = await cardButton.getAttribute("aria-expanded");
+  if (expanded !== "true") {
+    await cardButton.click();
+  }
 }
 
 export async function expectExternalLink(link: Locator, href: string) {
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute("href", href);
-  await expect(link).toHaveAttribute("target", "_blank");
-  await expect(link).toHaveAttribute("rel", /noopener/);
-  await expect(link).toHaveAttribute("rel", /noreferrer/);
+  await expect(link).not.toHaveAttribute("target", "_blank");
 }

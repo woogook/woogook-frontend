@@ -8,6 +8,7 @@ import {
   getLocalCouncilRecordGroundingLevelLabel,
   getLocalCouncilSourceLabel,
 } from "./data";
+import { formatLocalCouncilDateTimeOrOriginal } from "./time";
 
 const heroImageKeys = ["profile_image_url", "photo_url", "image_url"] as const;
 
@@ -495,12 +496,18 @@ export function buildPersonHeroMeta(person: Record<string, unknown>) {
   const careerItems = collectTextList(officialProfile, ["career", "career_items", "history", "major_career"]);
   const summaryLine = asText(person.headline) ?? asText(asRecord(person.summary).headline);
   const links = collectLinkItems(officialProfile);
+  const profilePageUrl =
+    sanitizeExternalUrl(officialProfile.source_url) ??
+    links.find((link) => link.label.includes("프로필"))?.url ??
+    links[0]?.url ??
+    null;
 
   const heroMeta: {
     name: string;
     officeLabel: string;
     partyName?: string;
     imageUrl?: string;
+    profilePageUrl?: string;
     educationItems: string[];
     careerItems: string[];
     summaryLine?: string;
@@ -520,6 +527,10 @@ export function buildPersonHeroMeta(person: Record<string, unknown>) {
 
   if (imageUrl) {
     heroMeta.imageUrl = imageUrl;
+  }
+
+  if (profilePageUrl) {
+    heroMeta.profilePageUrl = profilePageUrl;
   }
 
   if (summaryLine) {
@@ -593,6 +604,83 @@ function getLocatorAction(record: Record<string, unknown>) {
     viewUrl,
     viewLabel: kind ? labels[kind] || "원문 보기" : "원문 보기",
   };
+}
+
+function resolveBillSummaryLine(billSummary: Record<string, unknown>) {
+  const summaryLine = asText(billSummary.summary_line);
+  if (!summaryLine) {
+    return null;
+  }
+
+  const status = asText(billSummary.status);
+  const summaryBasis = asText(billSummary.summary_basis);
+  if (status === "title_only" || summaryBasis === "bill_title") {
+    return null;
+  }
+
+  return summaryLine;
+}
+
+function resolveBillAssociationReason(item: Record<string, unknown>) {
+  const participationType = asText(item.participation_type);
+  const matchedBy = asText(item.matched_by);
+  const participationLabel =
+    asText(item.participation_label) ??
+    (participationType
+      ? getLocalCouncilParticipationTypeLabel(participationType)
+      : null);
+
+  if (participationType === "primary_sponsor") {
+    return "대표발의 의안으로 확인됨";
+  }
+
+  if (participationType === "co_sponsor") {
+    return "공동발의 의안으로 확인됨";
+  }
+
+  if (participationType === "submitted_by_district_head") {
+    return "구청장이 제출한 의안으로 확인됨";
+  }
+
+  if (
+    participationType === "listed_activity" &&
+    matchedBy === "PROPSR contains member name"
+  ) {
+    return "제안자 명단에 의원명이 포함되어 연결됨";
+  }
+
+  if (participationType === "listed_activity") {
+    return "의안 참여 기록으로 연결됨";
+  }
+
+  if (participationLabel) {
+    return `${participationLabel}로 확인됨`;
+  }
+
+  return null;
+}
+
+function resolveBillAssociationEvidence(item: Record<string, unknown>) {
+  const basisKind = asText(item.basis_kind);
+  if (basisKind === "official_council_bill_search") {
+    return "강동구의회 의안검색 기준";
+  }
+
+  if (basisKind === "portal_member_bill_index") {
+    return "지방의정포털 의안 목록 기준";
+  }
+
+  const sourceRef = asRecord(item.source_ref);
+  const sourceLabel =
+    asText(sourceRef.source_label) ??
+    (asText(sourceRef.source_kind)
+      ? getLocalCouncilSourceLabel(asText(sourceRef.source_kind)!)
+      : null);
+  if (sourceLabel) {
+    return `${sourceLabel} 기준`;
+  }
+
+  return null;
 }
 
 export function resolveSectionSourceLabel({
@@ -699,6 +787,8 @@ export function buildBillActivityCardViewModel(args: {
   const ordinanceStatus = asText(args.item.ordinance_status);
   const resultLabel = asText(args.item.result_label);
   const billSummary = asRecord(args.item.bill_summary);
+  const associationReason = resolveBillAssociationReason(args.item);
+  const associationEvidence = resolveBillAssociationEvidence(args.item);
   const statusParts = [
     billStage ? `의안 단계 ${getLocalCouncilBillStageLabel(billStage)}` : null,
     ordinanceStatus
@@ -714,7 +804,23 @@ export function buildBillActivityCardViewModel(args: {
     });
   }
 
-  const proposedAt = asText(args.item.proposed_at) ?? asText(args.item.bill_date);
+  if (associationReason) {
+    detailRows.push({
+      label: "연관 사유",
+      value: associationReason,
+    });
+  }
+
+  if (associationEvidence) {
+    detailRows.push({
+      label: "근거",
+      value: associationEvidence,
+    });
+  }
+
+  const rawProposedAt = asText(args.item.proposed_at) ?? asText(args.item.bill_date);
+  const proposedAt =
+    formatLocalCouncilDateTimeOrOriginal(rawProposedAt) ?? rawProposedAt;
   if (proposedAt) {
     detailRows.push({
       label: "제안일",
@@ -739,7 +845,7 @@ export function buildBillActivityCardViewModel(args: {
         : null,
       resultLabel ? { label: resultLabel, tone: "subtle" } : null,
     ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
-    summaryLine: asText(billSummary.summary_line) ?? null,
+    summaryLine: resolveBillSummaryLine(billSummary),
     detailRows,
     actions: {
       viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
@@ -782,7 +888,10 @@ export function buildMeetingActivityCardViewModel(args: {
   const groundingStatus = asText(contentGrounding.status) ?? "unavailable";
   const activityType = asText(args.item.activity_type);
   const recordGroundingLevel = asText(args.item.record_grounding_level);
-  const meetingDate = firstValue(args.item, ["meeting_date", "date"]);
+  const rawMeetingDate = asText(args.item.meeting_date) ?? asText(args.item.date);
+  const meetingDate =
+    formatLocalCouncilDateTimeOrOriginal(rawMeetingDate) ?? rawMeetingDate;
+  const meetingName = firstValue(args.item, ["meeting_name"]);
   const supportedSummary =
     groundingStatus === "supported" ? asText(args.item.activity_summary_line) : null;
   const headline =
@@ -821,10 +930,10 @@ export function buildMeetingActivityCardViewModel(args: {
     ].filter((badge): badge is SectionCardBadge => Boolean(badge)),
     summaryLine:
       groundingStatus === "supported" ? supportedSummary : unsupportedSummary,
-    detailRows: buildSectionDetailRows(args.item, [
-      { label: "회의일", keys: ["meeting_date", "date"] },
-      { label: "회의명", keys: ["meeting_name"] },
-    ]),
+    detailRows: [
+      ...(meetingDate ? [{ label: "회의일", value: meetingDate }] : []),
+      ...(meetingName ? [{ label: "회의명", value: meetingName }] : []),
+    ],
     actions: {
       viewUrl: locatorAction.viewUrl ?? fallbackActions.viewUrl,
       viewLabel: locatorAction.viewLabel ?? fallbackActions.viewLabel,
