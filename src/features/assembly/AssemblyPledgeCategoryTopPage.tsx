@@ -31,6 +31,10 @@ function formatRegionBreadcrumbLabel(
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
+export function formatExcludedUnknownPromiseNotice(count: number): string {
+  return `판단불가 ${count}건은 평균 산정에서 제외됩니다.`;
+}
+
 /**
  * 카테고리별 이행 우수 공약 목록. 딥링크 promise_id는 해당 행을 강조한다.
  * 딥링크: `?promise_id=<공약ID>` — 해당 행으로 스크롤 후 잠시 강조(피드·뉴스 연동용).
@@ -98,6 +102,13 @@ export function AssemblyPledgeCategoryTopPage() {
   const regionParams = assemblyPledgeContextParams(city, sigungu, null);
   const regionLabel = formatRegionBreadcrumbLabel(city, sigungu);
   const memberLabel = memberCard?.name ?? monaCd ?? null;
+  const excludedUnknownPromiseCount = pledgeResponse
+    ? Math.max(
+        pledgeResponse.meta.total_in_category -
+          pledgeResponse.meta.evaluated_in_category,
+        0,
+      )
+    : 0;
   const backHref =
     backParams.toString().length > 0
       ? `/assembly/pledge?${backParams.toString()}`
@@ -162,14 +173,11 @@ export function AssemblyPledgeCategoryTopPage() {
                     전체 {pledgeResponse.meta.total_in_category}건 · 평가{" "}
                     {pledgeResponse.meta.evaluated_in_category}건
                   </p>
-                  {pledgeResponse.meta.total_in_category -
-                    pledgeResponse.meta.evaluated_in_category >
-                  0 ? (
+                  {excludedUnknownPromiseCount > 0 ? (
                     <p className="mt-1">
-                      미평가{" "}
-                      {pledgeResponse.meta.total_in_category -
-                        pledgeResponse.meta.evaluated_in_category}
-                      건은 평균 산정에서 제외됩니다.
+                      {formatExcludedUnknownPromiseNotice(
+                        excludedUnknownPromiseCount,
+                      )}
                     </p>
                   ) : null}
                 </div>

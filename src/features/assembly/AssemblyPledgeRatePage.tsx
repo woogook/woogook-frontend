@@ -53,10 +53,11 @@ type ProgressSegment = {
 const EMPTY_PROGRESS_BREAKDOWN: AssemblyPledgeProgressBreakdown = {
   completed_count: 0,
   in_progress_count: 0,
+  not_started_count: 0,
   unknown_count: 0,
 };
 
-function buildProgressSegments(
+export function buildProgressSegments(
   breakdown: AssemblyPledgeProgressBreakdown,
 ): ProgressSegment[] {
   return [
@@ -69,6 +70,11 @@ function buildProgressSegments(
       label: "진행중",
       count: breakdown.in_progress_count,
       color: PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND["진행중"],
+    },
+    {
+      label: "미착수",
+      count: breakdown.not_started_count,
+      color: PLEDGE_PROGRESS_BAR_SEGMENT_BACKGROUND["미착수"],
     },
     {
       label: "판단불가",
@@ -118,7 +124,7 @@ function PledgeProgressStackedBar({
             })
           : null}
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
         {segments.map((segment) => (
           <div key={segment.label} className="flex items-center gap-1.5">
             <span
