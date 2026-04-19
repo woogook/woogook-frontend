@@ -13,6 +13,7 @@ import { proxyToBackendWithObservability } from "@/app/api/_shared/backend-proxy
 const originalBackendBaseUrl = process.env.WOOGOOK_BACKEND_BASE_URL;
 const originalObservabilityTimeout =
   process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS;
+const originalNodeEnv = process.env.NODE_ENV;
 
 describe("proxyToBackendWithObservability", () => {
   beforeEach(() => {
@@ -31,6 +32,11 @@ describe("proxyToBackendWithObservability", () => {
     } else {
       process.env.WOOGOOK_OBSERVABILITY_OUTBOUND_TIMEOUT_MS =
         originalObservabilityTimeout;
+    }
+    if (originalNodeEnv == null) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
   });
 
@@ -179,5 +185,62 @@ describe("proxyToBackendWithObservability", () => {
       error: "Backend unavailable",
       message: "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
     });
+  });
+
+  it("retries the local FastAPI port when the desktop relay port is unavailable in development", async () => {
+    process.env.NODE_ENV = "development";
+    process.env.WOOGOOK_BACKEND_BASE_URL = "http://127.0.0.1:18000";
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+          },
+        }),
+      );
+
+    const response = await proxyToBackendWithObservability({
+      request: new Request("https://example.com/api/local-council/v1/resolve", {
+        method: "GET",
+        headers: {
+          "x-correlation-id": "corr-local-retry",
+        },
+      }),
+      path: "/api/local-council/v1/resolve?address=%EC%84%9C%EC%9A%B8",
+      observableRoute: "local-council/v1/resolve",
+      missingBackendMessage:
+        "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+      unavailableMessage:
+        "현직자 조회가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.",
+    });
+
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:18000/api/local-council/v1/resolve?address=%EC%84%9C%EC%9A%B8",
+      expect.objectContaining({
+        cache: "no-store",
+      }),
+    );
+    expect(fetchSpy).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8000/api/local-council/v1/resolve?address=%EC%84%9C%EC%9A%B8",
+      expect.objectContaining({
+        cache: "no-store",
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ ok: true });
+    expect(logServerEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        component: "proxy",
+        route: "local-council/v1/resolve",
+        correlationId: "corr-local-retry",
+        httpStatus: 200,
+      }),
+    );
   });
 });

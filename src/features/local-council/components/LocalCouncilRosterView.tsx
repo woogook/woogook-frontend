@@ -10,8 +10,6 @@ import {
   getLocalCouncilDataSourceLabel,
   getLocalCouncilFreshnessLabel,
   getLocalCouncilOfficeLabel,
-  getLocalCouncilOfficeExplanation,
-  getLocalCouncilSourceCoverageSummary,
   getRosterPersonInitial,
   isLocalCouncilRosterPerson,
 } from "@/features/local-council/data";
@@ -115,12 +113,6 @@ export default function LocalCouncilRosterView({
     ? rosterData.roster.district_head
     : null;
   const members = rosterData.roster.council_members;
-  const officeGlossaryCopy = [
-    getLocalCouncilOfficeExplanation("basic_head"),
-    getLocalCouncilOfficeExplanation("basic_council"),
-  ]
-    .filter((item): item is string => Boolean(item))
-    .join(" ");
 
   return (
     <section className="mx-auto w-full max-w-5xl px-5 py-8">
@@ -143,12 +135,6 @@ export default function LocalCouncilRosterView({
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
             {getLocalCouncilFreshnessLabel(rosterData.roster.freshness)}
-          </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {getLocalCouncilSourceCoverageSummary(rosterData.roster.source_coverage)}
-          </p>
-          <p className="mt-3 max-w-3xl text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-            {officeGlossaryCopy}
           </p>
         </div>
       </div>

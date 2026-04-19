@@ -8,8 +8,31 @@ import { parseObservabilityConfig } from "@/lib/observability/config";
 import { fetchWithTimeout } from "@/lib/observability/http";
 import { logServerEvent } from "@/lib/observability/server";
 
-function getBackendBaseUrl() {
-  return process.env.WOOGOOK_BACKEND_BASE_URL?.trim().replace(/\/$/, "") || null;
+const LOCAL_DESKTOP_RELAY_PATTERN =
+  /^https?:\/\/(?:127\.0\.0\.1|localhost):18000$/i;
+const LOCAL_BACKEND_FALLBACK_BASE_URL = "http://127.0.0.1:8000";
+
+function normalizeBaseUrl(value: string | undefined) {
+  return value?.trim().replace(/\/$/, "") || null;
+}
+
+function getBackendBaseUrls() {
+  const configuredBaseUrl = normalizeBaseUrl(
+    process.env.WOOGOOK_BACKEND_BASE_URL,
+  );
+
+  if (!configuredBaseUrl) {
+    return [];
+  }
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    LOCAL_DESKTOP_RELAY_PATTERN.test(configuredBaseUrl)
+  ) {
+    return [configuredBaseUrl, LOCAL_BACKEND_FALLBACK_BASE_URL];
+  }
+
+  return [configuredBaseUrl];
 }
 
 function getProxyTimeoutMs() {
@@ -78,12 +101,12 @@ export async function proxyToBackendWithObservability({
   unavailableMessage,
   unavailableError = "Backend unavailable",
 }: ProxyToBackendWithObservabilityParams): Promise<Response> {
-  const baseUrl = getBackendBaseUrl();
+  const baseUrls = getBackendBaseUrls();
   const correlationId = getOrCreateCorrelationId(new Headers(request.headers));
   const routeForLogs = observableRoute ?? path.split("?")[0] ?? path;
   const effectiveTimeoutMs = timeoutMs ?? getProxyTimeoutMs();
 
-  if (!baseUrl) {
+  if (baseUrls.length === 0) {
     await logServerEvent({
       level: "warn",
       signalType: "server_error",
@@ -104,59 +127,64 @@ export async function proxyToBackendWithObservability({
   }
 
   const startedAt = Date.now();
+  let lastError: unknown;
 
-  try {
-    const headers = new Headers(init?.headers);
-    headers.set("Accept", "application/json");
-    if (init?.body) {
-      headers.set("Content-Type", "application/json");
+  for (const baseUrl of baseUrls) {
+    try {
+      const headers = new Headers(init?.headers);
+      headers.set("Accept", "application/json");
+      if (init?.body) {
+        headers.set("Content-Type", "application/json");
+      }
+      headers.set(CORRELATION_HEADER, correlationId);
+
+      const response = await fetchWithTimeout(
+        `${baseUrl}${path}`,
+        {
+          ...init,
+          cache: "no-store",
+          headers,
+        },
+        effectiveTimeoutMs,
+      );
+
+      await logServerEvent({
+        level: response.ok ? "info" : "warn",
+        signalType: "server_request",
+        component: "proxy",
+        route: routeForLogs,
+        correlationId,
+        httpMethod: init?.method ?? request.method,
+        httpStatus: response.status,
+        latencyMs: Date.now() - startedAt,
+        tags: ["backend-proxy"],
+      });
+
+      return relayBackendResponse(response, correlationId);
+    } catch (error) {
+      lastError = error;
     }
-    headers.set(CORRELATION_HEADER, correlationId);
-
-    const response = await fetchWithTimeout(
-      `${baseUrl}${path}`,
-      {
-        ...init,
-        cache: "no-store",
-        headers,
-      },
-      effectiveTimeoutMs,
-    );
-
-    await logServerEvent({
-      level: response.ok ? "info" : "warn",
-      signalType: "server_request",
-      component: "proxy",
-      route: routeForLogs,
-      correlationId,
-      httpMethod: init?.method ?? request.method,
-      httpStatus: response.status,
-      latencyMs: Date.now() - startedAt,
-      tags: ["backend-proxy"],
-    });
-
-    return relayBackendResponse(response, correlationId);
-  } catch (error) {
-    await logServerEvent({
-      level: "error",
-      signalType: "server_error",
-      component: "proxy",
-      route: routeForLogs,
-      correlationId,
-      httpMethod: init?.method ?? request.method,
-      httpStatus: 503,
-      latencyMs: Date.now() - startedAt,
-      errorName: error instanceof Error ? error.name : "ProxyFetchError",
-      errorMessage:
-        error instanceof Error ? error.message : "Proxy request failed",
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    return buildJsonErrorResponse({
-      error: unavailableError,
-      message: unavailableMessage,
-      status: 503,
-      correlationId,
-    });
   }
+
+  await logServerEvent({
+    level: "error",
+    signalType: "server_error",
+    component: "proxy",
+    route: routeForLogs,
+    correlationId,
+    httpMethod: init?.method ?? request.method,
+    httpStatus: 503,
+    latencyMs: Date.now() - startedAt,
+    errorName: lastError instanceof Error ? lastError.name : "ProxyFetchError",
+    errorMessage:
+      lastError instanceof Error ? lastError.message : "Proxy request failed",
+    stack: lastError instanceof Error ? lastError.stack : undefined,
+  });
+
+  return buildJsonErrorResponse({
+    error: unavailableError,
+    message: unavailableMessage,
+    status: 503,
+    correlationId,
+  });
 }

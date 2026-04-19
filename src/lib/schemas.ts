@@ -442,8 +442,11 @@ export const localCouncilOverlaySchema = z
   .catchall(z.unknown());
 
 export const localCouncilPersonDossierResponseSchema = z.object({
+  person_key: z.string().optional(),
   person_name: z.string(),
   office_type: z.string(),
+  party_name: z.string().nullable().optional(),
+  profile_image_url: z.string().nullable().optional(),
   summary: localCouncilPersonSummarySchema,
   evidence: z.array(localCouncilPayloadObjectSchema).optional(),
   overlay: localCouncilOverlaySchema.optional(),
