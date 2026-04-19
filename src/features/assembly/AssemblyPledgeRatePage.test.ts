@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildProgressSegments } from "@/features/assembly/AssemblyPledgeRatePage";
+import {
+  buildProgressSegments,
+  isRequestedAssemblyMember,
+} from "@/features/assembly/AssemblyPledgeRatePage";
 
 describe("buildProgressSegments", () => {
   it("includes not-started pledges as a visible progress segment", () => {
@@ -18,5 +21,15 @@ describe("buildProgressSegments", () => {
       "판단불가",
     ]);
     expect(segments.find((segment) => segment.label === "미착수")?.count).toBe(4);
+  });
+});
+
+describe("isRequestedAssemblyMember", () => {
+  it("rejects stale member data when the response mona_cd differs from the URL", () => {
+    expect(isRequestedAssemblyMember("68P7228G", "CCU1009B")).toBe(false);
+  });
+
+  it("accepts member data when the response mona_cd matches the URL after trimming", () => {
+    expect(isRequestedAssemblyMember(" CCU1009B ", "CCU1009B")).toBe(true);
   });
 });
