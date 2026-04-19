@@ -44,6 +44,17 @@ function formatRegionBreadcrumbLabel(
   return parts.length > 0 ? parts.join(" ") : null;
 }
 
+export function isRequestedAssemblyMember(
+  responseMonaCd: string | null | undefined,
+  requestedMonaCd: string,
+): boolean {
+  const normalizedRequestedMonaCd = requestedMonaCd.trim();
+  return (
+    normalizedRequestedMonaCd.length > 0 &&
+    responseMonaCd?.trim() === normalizedRequestedMonaCd
+  );
+}
+
 type ProgressSegment = {
   label: string;
   count: number;
@@ -177,21 +188,49 @@ export function AssemblyPledgeRatePage() {
   const monaCdTrimmed = (monaCdRaw ?? "").trim();
   const useApiProfile = monaCdTrimmed.length > 0;
 
-  const { data: memberCard, isPending, isError, error } = useQuery(
-    assemblyMemberMetaCardQueryOptions(monaCdTrimmed),
-  );
+  const {
+    data: memberCard,
+    isPending,
+    isFetching,
+    isError,
+    error,
+  } = useQuery(assemblyMemberMetaCardQueryOptions(monaCdTrimmed));
   const {
     data: pledgeSummary,
     isPending: isSummaryPending,
+    isFetching: isSummaryFetching,
     isError: isSummaryError,
     error: summaryError,
   } = useQuery(assemblyPledgeSummaryQueryOptions(monaCdTrimmed));
 
+  const memberCardForDisplay =
+    useApiProfile &&
+    isRequestedAssemblyMember(memberCard?.member_mona_cd, monaCdTrimmed)
+      ? memberCard
+      : null;
+  const isMemberCardMismatch =
+    useApiProfile && Boolean(memberCard) && !memberCardForDisplay;
+  const isMemberCardLoading =
+    useApiProfile && (isPending || (isMemberCardMismatch && isFetching));
+
+  const pledgeSummaryForDisplay =
+    useApiProfile &&
+    isRequestedAssemblyMember(
+      pledgeSummary?.member.member_mona_cd,
+      monaCdTrimmed,
+    )
+      ? pledgeSummary
+      : null;
+  const isPledgeSummaryMismatch =
+    useApiProfile && Boolean(pledgeSummary) && !pledgeSummaryForDisplay;
+  const isPledgeSummaryUnavailable =
+    isSummaryError || (isPledgeSummaryMismatch && !isSummaryFetching);
+
   const overallRateLabel =
-    pledgeSummary?.fulfillment.overall_rate_display ??
+    pledgeSummaryForDisplay?.fulfillment.overall_rate_display ??
     (useApiProfile && isSummaryPending ? "불러오는 중" : "판단불가");
   const categoryRates: AssemblyPledgeCategoryFulfillment[] =
-    pledgeSummary?.fulfillment.categories ??
+    pledgeSummaryForDisplay?.fulfillment.categories ??
     ASSEMBLY_PLEDGE_CATEGORY_LABELS.map((label) => ({
       category_label: label,
       rate_percent: null,
@@ -201,8 +240,10 @@ export function AssemblyPledgeRatePage() {
       unknown_promises: 0,
     }));
   const progressBreakdown =
-    pledgeSummary?.fulfillment.progress_breakdown ?? EMPTY_PROGRESS_BREAKDOWN;
-  const progressTotal = pledgeSummary?.fulfillment.total_promises ?? 0;
+    pledgeSummaryForDisplay?.fulfillment.progress_breakdown ??
+    EMPTY_PROGRESS_BREAKDOWN;
+  const progressTotal =
+    pledgeSummaryForDisplay?.fulfillment.total_promises ?? 0;
 
   const selectionNote =
     city && sigungu
@@ -220,28 +261,35 @@ export function AssemblyPledgeRatePage() {
   let campaignBookletPdfUrl = "";
   if (!useApiProfile) {
     campaignBookletPdfUrl = envBookletUrl;
-  } else if (!isPending && !isError && memberCard) {
+  } else if (!isPending && !isError && memberCardForDisplay) {
     campaignBookletPdfUrl =
-      memberCard.campaign_booklet_pdf_url?.trim() || envBookletUrl || "";
+      memberCardForDisplay.campaign_booklet_pdf_url?.trim() ||
+      envBookletUrl ||
+      "";
   }
 
-  const displayName = useApiProfile && memberCard ? memberCard.name : DEMO_NAME;
+  const displayName = useApiProfile
+    ? memberCardForDisplay?.name ?? "국회의원"
+    : DEMO_NAME;
   const displayTerms =
-    useApiProfile && memberCard
-      ? memberCard.election_count_text?.trim() || null
+    useApiProfile && memberCardForDisplay
+      ? memberCardForDisplay.election_count_text?.trim() || null
       : DEMO_TERMS;
   const displayAffiliation =
-    useApiProfile && memberCard
-      ? formatPartyDistrictLine(memberCard.party_name, memberCard.district_label)
+    useApiProfile && memberCardForDisplay
+      ? formatPartyDistrictLine(
+          memberCardForDisplay.party_name,
+          memberCardForDisplay.district_label,
+        )
       : DEMO_AFFILIATION;
   const displayCommittee =
-    useApiProfile && memberCard
-      ? memberCard.current_committee_name?.trim() || null
+    useApiProfile && memberCardForDisplay
+      ? memberCardForDisplay.current_committee_name?.trim() || null
       : null;
 
   const profileImageUrl =
-    useApiProfile && memberCard?.profile_image_url?.trim()
-      ? memberCard.profile_image_url.trim()
+    useApiProfile && memberCardForDisplay?.profile_image_url?.trim()
+      ? memberCardForDisplay.profile_image_url.trim()
       : null;
 
   const campaignBookletButtonClass =
@@ -293,7 +341,7 @@ export function AssemblyPledgeRatePage() {
             }}
             aria-hidden
           >
-            {useApiProfile && isPending ? (
+            {isMemberCardLoading ? (
               <div
                 className="h-full w-full animate-pulse"
                 style={{ background: "var(--border)" }}
@@ -306,7 +354,7 @@ export function AssemblyPledgeRatePage() {
             )}
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
-            {useApiProfile && isPending ? (
+            {isMemberCardLoading ? (
               <div className="space-y-2">
                 <div
                   className="h-7 w-32 max-w-full animate-pulse rounded-md"
@@ -321,7 +369,7 @@ export function AssemblyPledgeRatePage() {
                   style={{ background: "var(--border)" }}
                 />
               </div>
-            ) : useApiProfile && isError ? (
+            ) : useApiProfile && (isError || isMemberCardMismatch) ? (
               <p className="text-[13px] leading-snug" style={{ color: "var(--foreground)" }}>
                 의원 정보를 불러오지 못했습니다.
                 {error && "message" in error && typeof error.message === "string"
@@ -421,23 +469,23 @@ export function AssemblyPledgeRatePage() {
           >
             전체 공약 평균 이행도 {overallRateLabel}
           </p>
-          {isSummaryError ? (
+          {isPledgeSummaryUnavailable ? (
             <p className="mt-2 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
               평가 결과를 불러오지 못했습니다.
               {summaryError && "message" in summaryError && typeof summaryError.message === "string"
                 ? ` (${summaryError.message})`
                 : null}
             </p>
-          ) : pledgeSummary ? (
+          ) : pledgeSummaryForDisplay ? (
             <>
               <p className="mt-2 text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-                전체 {pledgeSummary.fulfillment.total_promises}건 · 평가{" "}
-                {pledgeSummary.fulfillment.evaluated_promises}건 기준 평균입니다.
-                {pledgeSummary.fulfillment.unknown_promises > 0 ? (
+                전체 {pledgeSummaryForDisplay.fulfillment.total_promises}건 · 평가{" "}
+                {pledgeSummaryForDisplay.fulfillment.evaluated_promises}건 기준 평균입니다.
+                {pledgeSummaryForDisplay.fulfillment.unknown_promises > 0 ? (
                   <>
                     {" "}
                     <br />
-                    미평가(판단불가 등) {pledgeSummary.fulfillment.unknown_promises}건은 평균에 포함하지
+                    미평가(판단불가 등) {pledgeSummaryForDisplay.fulfillment.unknown_promises}건은 평균에 포함하지
                     않습니다.
                   </>
                 ) : null}
