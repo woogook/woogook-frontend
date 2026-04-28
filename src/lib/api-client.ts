@@ -50,6 +50,22 @@ type RegionQueryResult = {
   fallbackMessage?: string;
 };
 
+function normalizeRegionItems(items: string[]) {
+  return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
+}
+
+function hasInvalidRegionItems(items: string[], invalidItems?: string[]) {
+  if (!invalidItems || invalidItems.length === 0) {
+    return false;
+  }
+
+  const invalidItemSet = new Set(
+    invalidItems.map((item) => item.trim()).filter(Boolean),
+  );
+
+  return items.some((item) => invalidItemSet.has(item));
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -164,11 +180,21 @@ async function fetchRegionQuery<T extends Record<K, string[]>, K extends string>
   key: K,
   fallbackMessage: string,
   fallbackItems: string[],
+  options?: {
+    invalidItems?: string[];
+    invalidMessage?: string;
+  },
 ) {
   try {
     const payload = await fetchJson(input, schema);
+    const items = normalizeRegionItems(payload[key]);
+
+    if (hasInvalidRegionItems(items, options?.invalidItems)) {
+      throw new Error(options?.invalidMessage ?? fallbackMessage);
+    }
+
     return {
-      items: payload[key],
+      items,
     } satisfies RegionQueryResult;
   } catch (error) {
     if (error instanceof Error) {
@@ -237,6 +263,10 @@ export function emdQueryOptions(city: string, sigungu: string) {
             city: parsed.city,
             sigungu: parsed.sigungu,
           }),
+          {
+            invalidItems: [parsed.city, parsed.sigungu],
+            invalidMessage: "읍/면/동 데이터에 이상이 있습니다.",
+          },
         )
       );
     },
